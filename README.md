@@ -1,4 +1,4 @@
-[На русском](https://github.com/lavrentijav/TeleForge/blob/main/README_RU.md)
+[На русском](https://github.com/lavrentijav/TeleForge/blob/master/README_RU.md)
 
 # TeleForge
 
