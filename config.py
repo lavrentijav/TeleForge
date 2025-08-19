@@ -1,0 +1,1 @@
+SESSIONS_FILE = "sessions.json"
