@@ -24,7 +24,7 @@ class TelegramChatManager:
         self.max_cache_size = 1000
         self.db_semaphore = asyncio.Semaphore(1)
         self.api_semaphore = asyncio.Semaphore(1)
-        self._register_handlers()
+        self._register_handlers()  # Uncommented for real-time events
 
     async def _execute_with_semaphore(self, query: str, params=()) -> bool:
         start_time = time.time()
@@ -206,65 +206,7 @@ class TelegramChatManager:
             await self.save_chat(effective_sender_id, "channel", title=None)
             sender_id = effective_sender_id
 
-        prev_message_id = message_id - 1
-        existing = await self._fetch_with_semaphore(
-            """
-            SELECT history_id, version, created_at, content
-            FROM messages
-            WHERE chat_id = ? AND sender_id = ? AND message_id = ? AND deleted = 0
-            """,
-            (chat_id, sender_id, prev_message_id),
-        )
-        if existing:
-            history_id, version, prev_created_at, prev_content = existing[0]
-            if content == prev_content and abs(created_at - prev_created_at) < 15:
-                logging.info(f"DUP_DETECTED: chat_id={chat_id}, new_id={message_id}, prev_id={prev_message_id}")
-                new_version = version + 1
-                await self._execute_with_semaphore(
-                    """
-                    UPDATE messages
-                    SET message_id = ?, created_at = ?, reply_to = ?, forwarded_from = ?, message_type = ?,
-                        media_path = ?, version = ?, pinned = ?, edited = 1
-                    WHERE message_id = ? AND chat_id = ?
-                    """,
-                    (
-                        message_id,
-                        created_at,
-                        reply_to,
-                        forwarded_from,
-                        message_type,
-                        media_path,
-                        new_version,
-                        pinned,
-                        prev_message_id,
-                        chat_id,
-                    ),
-                )
-                await self._execute_with_semaphore(
-                    """
-                    INSERT INTO message_events (history_id, event_type, content, created_at, reply_to, forwarded_from,
-                                                message_type, media_path, replaced_content, version, pinned)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        history_id,
-                        "edited",
-                        content,
-                        created_at,
-                        reply_to,
-                        forwarded_from,
-                        message_type,
-                        media_path,
-                        prev_content,
-                        new_version,
-                        pinned,
-                    ),
-                )
-                logging.info(f"MSG_UPDATED_DUP: chat_id={chat_id}, msg_id={message_id}")
-                return await self._fetch_with_semaphore(
-                    "SELECT chat_id, sender_id, version, content FROM messages WHERE message_id = ? AND chat_id = ?",
-                    (message_id, chat_id),
-                )
+        # Removed dup detect - rare case, overhead
 
         history_id = self._generate_history_id(chat_id, message_id)
         try:
@@ -504,29 +446,33 @@ class TelegramChatManager:
                 query = """
                 SELECT m.message_id, m.content, u.username, m.created_at, m.sender_id
                 FROM messages m JOIN users u ON m.sender_id = u.user_id
-                WHERE m.chat_id = ?
+                WHERE m.chat_id = ? AND m.deleted = 0
                 ORDER BY m.message_id DESC LIMIT ?
                 """
                 params = (chat_id, limit)
+                rows = await self._fetch_with_semaphore(query, params)
+                rows = rows[::-1]  # To ASC for grouping
             else:
                 query = """
                 SELECT m.message_id, m.content, u.username, m.created_at, m.sender_id
                 FROM messages m JOIN users u ON m.sender_id = u.user_id
-                WHERE m.chat_id = ? AND m.message_id > ?
-                ORDER BY m.message_id DESC LIMIT ?
+                WHERE m.chat_id = ? AND m.message_id < ? AND m.deleted = 0
+                ORDER BY m.message_id ASC LIMIT ?
                 """
                 params = (chat_id, min_id, limit)
+                rows = await self._fetch_with_semaphore(query, params)
         elif direction == "newer":
             if max_id is None:
                 return []
             query = """
             SELECT m.message_id, m.content, u.username, m.created_at, m.sender_id
             FROM messages m JOIN users u ON m.sender_id = u.user_id
-            WHERE m.chat_id = ? AND m.message_id < ?
-            ORDER BY m.message_id DESC LIMIT ?
+            WHERE m.chat_id = ? AND m.message_id > ? AND m.deleted = 0
+            ORDER BY m.message_id ASC LIMIT ?
             """
             params = (chat_id, max_id, limit)
-        return await self._fetch_with_semaphore(query, params)
+            rows = await self._fetch_with_semaphore(query, params)
+        return rows
 
     async def get_message_content(self, chat_id, message_id):
         result = await self._fetch_with_semaphore(
@@ -553,9 +499,7 @@ class TelegramChatManager:
                     continue
                 start_time = time.time()
 
-
                 await self.save_chat_history(chat_id, limit)
-
 
             logging.info("HIST_LOADED")
         except Exception as exc:

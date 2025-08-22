@@ -4,6 +4,7 @@ import datetime
 import json
 import os
 
+import telethon
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 
 from telethon import TelegramClient
@@ -71,6 +72,7 @@ class LoginWindow(QDialog):
 
     def confirm_code(self):
         code = self.code_input.text().strip()
+
         self.code = code
 
         async def do_confirm():
@@ -81,10 +83,11 @@ class LoginWindow(QDialog):
                 #self.login_btn.setText("Ввести пароль")
                 self.login_btn.clicked.disconnect()
                 self.login_btn.clicked.connect(self.confirm_password)
-                return
+            except telethon.errors.SendCodeUnavailableError:
+                QMessageBox.warning(self, "Ошибка", "Введённый код подтверждения не верен")
             except Exception as e:
-                QMessageBox.critical(self, "Ошибка", str(e))
-                return
+                QMessageBox.warning(self, "Ошибка", e)
+                print(e)
 
             # Success
             me = await self.client.get_me()
@@ -122,6 +125,6 @@ class LoginWindow(QDialog):
                     json.dump(sessions, f, indent=4, ensure_ascii=False)
                 self.close()
             except Exception as e:
-                QMessageBox.critical(self, "Ошибка", str(e))
+                print(e)
 
         asyncio.run_coroutine_threadsafe(do_pass(), self.loop).result()

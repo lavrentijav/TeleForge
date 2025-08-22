@@ -32,6 +32,7 @@ class MessageGroupWidget(QWidget):
         # messages: [(content, timestamp, message_id, is_me), ...]
         self.message_ids = [msg[2] for msg in messages]
         self.parent_window = parent  # For access to show_context_menu
+        self.last_width = 0  # For resize optimization
 
         self.main_layout = QHBoxLayout(self)
         self.main_layout.setContentsMargins(10, 5, 10, 5)
@@ -117,10 +118,13 @@ class MessageGroupWidget(QWidget):
         self.setLayout(self.main_layout)
 
     def resizeEvent(self, event):
-        max_width_percent = 0.7
-        new_max_width = int(self.width() * max_width_percent)
-        for label in self.messages_widgets:
-            label.setMaximumWidth(new_max_width)
+        new_width = self.width()
+        if abs(new_width - self.last_width) > 10:  # Optimize: only if significant change
+            max_width_percent = 0.7
+            new_max_width = int(new_width * max_width_percent)
+            for label in self.messages_widgets:
+                label.setMaximumWidth(new_max_width)
+            self.last_width = new_width
         super().resizeEvent(event)
 
     def add_message(self, content: str, timestamp: str, msg_id: int):
@@ -169,14 +173,9 @@ class TelegramWindow(QMainWindow):
         self.me = None
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.check_new_messages)
-        self.refresh_timer.start(2000)
+        self.refresh_timer.start(5000)  # Reduced for better responsiveness
 
-        self.upd_chats_timer = QTimer()
-        def upd_chats():
-            self.dialogs = asyncio.run_coroutine_threadsafe(self.client.get_dialogs(), self.loop).result()
-        self.upd_chats_timer.timeout.connect(upd_chats)
-        self.upd_chats_timer.start(2000)
-
+        # Removed upd_chats_timer - unnecessary frequent API calls
         self.dialogs = asyncio.run_coroutine_threadsafe(self.client.get_dialogs(), self.loop).result()
 
         self.setWindowTitle("TeleForge")
@@ -331,38 +330,40 @@ class TelegramWindow(QMainWindow):
         self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)
 
     def load_chats_with_text(self, text):
-        dialogs = self.dialogs
-        self.chat_list.clear()
+        # Удаляем "no results" item, если он есть в конце
+        if self.chat_list.count() > 0 and self.chat_list.item(self.chat_list.count() - 1).text() == "Кажется ничего нет 😕":
+            self.chat_list.takeItem(self.chat_list.count() - 1)
 
-        new_dialogs = []
-        for dialog in dialogs:
-            title = dialog.title.lower()
-            username = getattr(dialog.entity, 'username', "")
-            chat_id = dialog.id
-            if text.lower() in title or text.lower() in username.lower() if type(username) == str else "":
-                new_dialogs.append(dialog)
-                item = QListWidgetItem(title)
-                item.setData(Qt.ItemDataRole.UserRole, chat_id)
-                self.chat_list.addItem(item)
+        text_lower = text.lower()
+        has_visible = False
+        for i in range(self.chat_list.count()):
+            item = self.chat_list.item(i)
+            title_lower = item.text().lower()
+            username = item.data(Qt.ItemDataRole.UserRole + 1)
+            username_lower = username.lower() if isinstance(username, str) else ""
+            if text_lower in title_lower or text_lower in username_lower:
+                item.setHidden(False)
+                has_visible = True
+            else:
+                item.setHidden(True)
 
-        dialogs = new_dialogs.copy()
-        if not dialogs:
+        # Если ничего не видно, добавляем "no results" item
+        if not has_visible:
             item = QListWidgetItem("Кажется ничего нет 😕")
             self.chat_list.addItem(item)
 
-
     def load_chats(self):
-        dialogs = self.dialogs
         self.chat_list.clear()
-
-        for dialog in dialogs:
+        for dialog in self.dialogs:
             title = dialog.name
+            username = getattr(dialog.entity, 'username', None)
             chat_id = dialog.id
             item = QListWidgetItem(title)
             item.setData(Qt.ItemDataRole.UserRole, chat_id)
+            item.setData(Qt.ItemDataRole.UserRole + 1, username)
             self.chat_list.addItem(item)
 
-        if not dialogs:
+        if not self.dialogs:
             item = QListWidgetItem("Кажется ничего нет 😕")
             self.chat_list.addItem(item)
 
@@ -371,7 +372,6 @@ class TelegramWindow(QMainWindow):
             self.load_messages_batch(direction="newer", limit=50)
 
     def load_chat_messages(self, item):
-
         self.chat_name.setText(item.text())
         self.chat_status.setText("Loading...")
         # Clear messages
@@ -380,7 +380,7 @@ class TelegramWindow(QMainWindow):
             if w:
                 w.setParent(None)
         self.current_chat_id = item.data(Qt.ItemDataRole.UserRole)
-        asyncio.run_coroutine_threadsafe(self.manager.save_chat_history(self.current_chat_id, 200), self.loop).result()
+        asyncio.run_coroutine_threadsafe(self.manager.save_chat_history(self.current_chat_id, 200), self.loop)
 
         self.chat_status.setText("N/A")
 
@@ -415,10 +415,7 @@ class TelegramWindow(QMainWindow):
             elif direction == "newer":
                 self.max_loaded_id = max(new_ids)
 
-        # Group messages
-        if direction == "older":
-            rows = rows[::-1]  # ASC for grouping
-
+        # Group messages (rows already ASC old to new)
         grouped = []
         current_group = None
         prev_username = None
@@ -427,7 +424,7 @@ class TelegramWindow(QMainWindow):
         for msg_id, content, username, created_at, sender_id in rows:
             timestamp = datetime.datetime.fromtimestamp(created_at).strftime("%H:%M")
             is_own = sender_id == self.me.id
-            if current_group and username == prev_username and created_at - prev_timestamp <= 300:
+            if current_group and username == prev_username and (created_at - prev_timestamp) <= 300:
                 current_group.append((content, timestamp, msg_id))
             else:
                 if current_group:
@@ -439,9 +436,6 @@ class TelegramWindow(QMainWindow):
         if current_group:
             grouped.append((prev_username, current_group, is_own))
 
-        if direction == "older":
-            grouped = grouped[::-1]
-
         # Save scroll position
         scrollbar = self.scroll_area.verticalScrollBar()
         old_value = scrollbar.value()
@@ -449,54 +443,37 @@ class TelegramWindow(QMainWindow):
 
         # Add groups
         if direction == "older":
-            for username, msgs, is_own in grouped:
+            for username, msgs, is_own in reversed(grouped):
                 group = MessageGroupWidget(username, msgs, is_own, parent=self)
                 self.messages_layout.insertWidget(0, group)
-        elif direction == "newer":
+        else:  # newer
             for username, msgs, is_own in grouped:
                 group = MessageGroupWidget(username, msgs, is_own, parent=self)
                 self.messages_layout.addWidget(group)
 
-        # Limit number of widgets (~100 groups)
+        # Scroll logic
+        if scroll_to_bottom:
+            QTimer.singleShot(0, lambda: scrollbar.setValue(scrollbar.maximum()))
+        elif direction == "newer" and old_value >= old_max - 50:  # Was near bottom
+            QTimer.singleShot(0, lambda: scrollbar.setValue(scrollbar.maximum()))
+
+        # Limit number of widgets (~150 groups)
         total_widgets = self.messages_layout.count()
-        max_widgets = 100
+        max_widgets = 150
         if total_widgets > max_widgets:
+            excess = total_widgets - max_widgets
             if direction == "older":
-                for _ in range(total_widgets - max_widgets):
+                for _ in range(excess):
                     w = self.messages_layout.takeAt(self.messages_layout.count() - 1).widget()
                     if w:
                         w.setParent(None)
-                # Update max_loaded_id
-                self.max_loaded_id = max(
-                    [
-                        max(self.messages_layout.itemAt(i).widget().message_ids)
-                        for i in range(self.messages_layout.count())
-                    ]
-                )
+                self.max_loaded_id = max(max(self.messages_layout.itemAt(i).widget().message_ids) for i in range(self.messages_layout.count()))
             elif direction == "newer":
-                for _ in range(total_widgets - max_widgets):
+                for _ in range(excess):
                     w = self.messages_layout.takeAt(0).widget()
                     if w:
                         w.setParent(None)
-                # Update min_loaded_id
-                self.min_loaded_id = min(
-                    [
-                        min(self.messages_layout.itemAt(i).widget().message_ids)
-                        for i in range(self.messages_layout.count())
-                    ]
-                )
-
-        # Adjust scroll
-        def adjust_scroll():
-            if scroll_to_bottom:
-                scrollbar.setValue(scrollbar.maximum())
-            elif direction == "older":
-                scrollbar.setValue(old_value + (scrollbar.maximum() - old_max))
-            # For newer, if was at bottom, stay at bottom
-            elif direction == "newer" and old_value >= old_max - 50:  # Near bottom
-                scrollbar.setValue(scrollbar.maximum())
-
-        QTimer.singleShot(0, adjust_scroll)
+                self.min_loaded_id = min(min(self.messages_layout.itemAt(i).widget().message_ids) for i in range(self.messages_layout.count()))
 
     def on_scroll(self, value):
         scrollbar = self.scroll_area.verticalScrollBar()

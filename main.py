@@ -40,8 +40,6 @@ def run_app():
     api_id = 23435967
     api_hash = "216c60772fcaf17e0e5822e94ec86b92"
 
-
-
     # Event loop for Telethon in a separate thread
     loop = asyncio.new_event_loop()
     threading.Thread(target=loop.run_forever, daemon=True).start()
@@ -84,7 +82,8 @@ def run_app():
 
     # Start background history load
     async def background_load():
-        await manager.save_chats_history(1000)
+        #await manager.save_chats_history(1000)
+        pass
 
     asyncio.run_coroutine_threadsafe(background_load(), loop)
 
