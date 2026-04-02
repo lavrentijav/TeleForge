@@ -1,31 +1,64 @@
-# AyuGram
+# TeleForge
 
-![AyuGram Logo](.github/AyuGram.png) ![AyuChan](.github/AyuChan.png)
+![TeleForge Logo](Telegram/Resources/art/logo_256.png)
 
-[ English  |   [Русский](README-RU.md) ]
+[ English | [Русский](README-RU.md) ]
 
-## Features
+## Overview
 
-- Full ghost mode (flexible)
-- Messages history
-- Anti-recall
-- Font customization
-- Streamer mode
-- Local Telegram Premium
+**TeleForge** is an unofficial Telegram client, inspired by AyuGram but enhanced with unique features.
+
+The project is based on Telegram Desktop and keeps the familiar desktop experience while extending it with additional customization, utility, privacy-oriented behavior, and experimental client features that are not part of the official app.
+
+## Project Direction
+
+TeleForge is built as a separate client identity, not as a simple rebrand. The current direction of the project includes:
+
+- deeper customization of interface and behavior
+- privacy-oriented tooling such as anti-delete and message history features
+- per-chat automation and policy controls
+- synchronization of client-side personality and assistant state
+- AI and local inference integrations such as LM Studio
+- experimental interaction features that go beyond stock Telegram Desktop
+
+## Core Features
+
+- Ghost Mode
+- Anti-delete and message history tooling
+- Extended appearance and font customization
+- Streamer Mode
+- Local Telegram Premium options
 - Translator
-- Media preview & quick reaction on force click (macOS)
-- Enhanced appearance
+- Advanced UI customization
+- Experimental AI and automation integrations
 
-And many more. Check out our [Documentation](https://docs.ayugram.one/desktop/).
+## Official Resources
+
+- Channel: [t.me/teleforge_official](https://t.me/teleforge_official)
+- Chat: [t.me/teleforgechat](https://t.me/teleforgechat)
+- Website: [tele-forge.ru](https://tele-forge.ru)
+
+## Logos And Branding
+
+TeleForge uses its own branding assets stored in the repository.
+
+- Main project logo: [Telegram/Resources/art/logo_256.png](Telegram/Resources/art/logo_256.png)
+- Primary application icons: [Telegram/Resources/art/icon128.png](Telegram/Resources/art/icon128.png), [Telegram/Resources/art/icon256.png](Telegram/Resources/art/icon256.png), [Telegram/Resources/art/icon512.png](Telegram/Resources/art/icon512.png)
+- Windows icon bundle: [Telegram/Resources/art/icon256.ico](Telegram/Resources/art/icon256.ico)
+- Alternative logo variant without margins: [Telegram/Resources/art/logo_256_no_margin.png](Telegram/Resources/art/logo_256_no_margin.png)
+
+These assets define the current visual identity of the client across the app window, installer resources, repository presentation, and packaged builds.
+
+## Preview
 
 <h3>
   <details>
-    <summary>Preview</summary>
+    <summary>Screenshots</summary>
     <table>
       <tr>
         <td><img src='.github/demos/demo1.png' width='268' alt='Preferences'></td>
-        <td><img src='.github/demos/demo2.png' width='268' alt='AyuGram Options'></td>
-        <td><img src='.github/demos/demo3.png' width='268' alt='Message Filters'></td>
+        <td><img src='.github/demos/demo2.png' width='268' alt='Options'></td>
+        <td><img src='.github/demos/demo3.png' width='268' alt='Filters'></td>
       </tr>
       <tr>
         <td><img src='.github/demos/demo4.png' width='268' alt='Appearance'></td>
@@ -37,115 +70,34 @@ And many more. Check out our [Documentation](https://docs.ayugram.one/desktop/).
 
 ## Downloads
 
-### Windows
+Prebuilt binaries may be distributed through GitHub Releases, GitHub Actions artifacts, or official TeleForge resources when available.
 
-#### Official
+If you need a local build, use the build documentation from this repository:
 
-You can download prebuilt Windows binary from [Releases tab](https://github.com/AyuGram/AyuGramDesktop/releases) or from
-the [Telegram channel](https://t.me/AyuGramReleases).
+- Windows x64: [docs/building-win-x64.md](docs/building-win-x64.md)
+- Windows ARM: [docs/building-win-arm.md](docs/building-win-arm.md)
+- Linux: [docs/building-linux.md](docs/building-linux.md)
+- macOS: [docs/building-mac.md](docs/building-mac.md)
 
-#### Winget
+## Windows Build Notes
 
-```bash
-winget install RadolynLabs.AyuGramDesktop
-```
+Make sure your Visual Studio Build Tools installation includes:
 
-#### Scoop
-
-```bash
-scoop bucket add extras
-scoop install ayugram
-```
-
-#### Self-built
-
-Follow [official guide](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-win-x64.md) if you want to
-build by yourself.
-
-### macOS
-
-#### Official
-
-You can download prebuilt macOS package from [Releases tab](https://github.com/AyuGram/AyuGramDesktop/releases).
-
-#### Homebrew
-
-```bash
-brew install --cask ayugram
-```
-
-### Arch Linux
-
-#### From source (recommended)
-
-Install `ayugram-desktop` from [AUR](https://aur.archlinux.org/packages/ayugram-desktop).
-
-#### Prebuilt binaries
-
-Install `ayugram-desktop-bin` from [AUR](https://aur.archlinux.org/packages/ayugram-desktop-bin).
-
-Note: these binaries aren't officially maintained by us.
-
-### NixOS
-
-#### Flake (recommended)
-
-Install `ayugram-desktop` from [ndfined-crp/ayugram-desktop](https://github.com/ndfined-crp/ayugram-desktop)
-
-#### Nixpkgs
-
-Install `ayugram-desktop` from [nixpkgs](https://search.nixos.org/packages?channel=unstable&show=ayugram-desktop)
-
-### ALT Linux
-
-[Sisyphus](https://packages.altlinux.org/en/sisyphus/srpms/ayugram-desktop/)
-
-### Gentoo Linux
-
-See [this repository](https://github.com/OverLessArtem/ayugram-ebuild-gentoo) for installation manual.
-
-### EPM
-
-`epm play ayugram`
-
-### Fedora
-
-From [RPM Fusion](https://admin.rpmfusion.org/pkgdb/package/free/ayugram-desktop/) repository.
-
-```bash
-dnf install ayugram-desktop
-```
-
-### Any other Linux distro
-
-Flatpak: https://github.com/0FL01/AyuGramDesktop-flatpak
-
-Or follow the [official guide](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-linux.md).
-
-### Remarks for Windows
-
-Make sure you have these components installed with VS Build Tools:
-
-- C++ MFC latest (x86 & x64)
-- C++ ATL latest (x86 & x64)
-- latest Windows 11 SDK
-
-## Donation
-
-Enjoy using **AyuGram**? Consider sending us a tip!
-
-[Here's available methods.](https://docs.ayugram.one/donate/)
+- C++ MFC latest for x86 and x64
+- C++ ATL latest for x86 and x64
+- recent Windows 11 SDK
 
 ## Credits
 
-### Telegram clients
+### Base clients and inspirations
 
 - [Telegram Desktop](https://github.com/telegramdesktop/tdesktop)
+- [AyuGram](https://github.com/AyuGram/AyuGramDesktop)
 - [Kotatogram](https://github.com/kotatogram/kotatogram-desktop)
 - [64Gram](https://github.com/TDesktop-x64/tdesktop)
 - [Forkgram](https://github.com/forkgram/tdesktop)
 
-### Libraries used
+### Libraries
 
 - [JSON for Modern C++](https://github.com/nlohmann/json)
 - [SQLite](https://github.com/sqlite/sqlite)
@@ -156,6 +108,6 @@ Enjoy using **AyuGram**? Consider sending us a tip!
 
 - [Solar Icon Set](https://www.figma.com/community/file/1166831539721848736)
 
-### Bots
+### Utilities
 
 - [TelegramDB](https://t.me/tgdatabase) for username lookup by ID

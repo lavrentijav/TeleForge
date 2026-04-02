@@ -1,30 +1,64 @@
-# AyuGram
+# TeleForge
 
-![AyuGram Лого](.github/AyuGram.png) ![AyuChan](.github/AyuChan.png)
+![Логотип TeleForge](Telegram/Resources/art/logo_256.png)
 
-[ [English](README.md)  | Русский ]
+[ [English](README.md) | Русский ]
 
-## Функции и Фишки
+## Общее описание
 
-- Полный режим призрака (настраиваемый)
-- История удалений и изменений сообщений
-- Кастомизация шрифта
-- Режим Стримера
-- Локальный телеграм премиум
+**TeleForge** это неофициальный Telegram-клиент, вдохновлённый AyuGram, но расширенный собственными уникальными возможностями.
+
+Проект основан на Telegram Desktop и сохраняет привычный десктопный UX, одновременно добавляя больше кастомизации, утилитарных возможностей, privacy-oriented поведения и экспериментальных функций, которых нет в официальном клиенте.
+
+## Направление проекта
+
+TeleForge развивается как отдельный клиент, а не как простой ребрендинг. Текущий вектор проекта включает:
+
+- глубокую настройку интерфейса и поведения клиента
+- privacy-инструменты, включая anti-delete и историю сообщений
+- per-chat политики и управление доступом к функциям
+- синхронизацию personality и локального состояния ассистента
+- AI и локальные inference-интеграции, включая LM Studio
+- экспериментальные возможности поверх стандартного Telegram Desktop
+
+## Основные возможности
+
+- Ghost Mode
+- Anti-delete и история сообщений
+- Расширенная настройка внешнего вида и шрифтов
+- Streamer Mode
+- Локальные опции Telegram Premium
 - Переводчик
-- Превью медиа и быстрая реакция при сильном нажатии на тачпад (macOS)
-- Улучшенный вид
+- Расширенная кастомизация интерфейса
+- Экспериментальные AI и automation-возможности
 
-И многое другое. Посмотрите нашу [Документацию](https://docs.ayugram.one/desktop/) для более подробной информации.
+## Официальные ресурсы
+
+- Канал: [t.me/teleforge_official](https://t.me/teleforge_official)
+- Чат: [t.me/teleforgechat](https://t.me/teleforgechat)
+- Сайт: [tele-forge.ru](https://tele-forge.ru)
+
+## Логотипы и айдентика
+
+TeleForge использует собственные branding assets, которые лежат прямо в репозитории.
+
+- Основной логотип проекта: [Telegram/Resources/art/logo_256.png](Telegram/Resources/art/logo_256.png)
+- Основные иконки приложения: [Telegram/Resources/art/icon128.png](Telegram/Resources/art/icon128.png), [Telegram/Resources/art/icon256.png](Telegram/Resources/art/icon256.png), [Telegram/Resources/art/icon512.png](Telegram/Resources/art/icon512.png)
+- Windows icon bundle: [Telegram/Resources/art/icon256.ico](Telegram/Resources/art/icon256.ico)
+- Вариант логотипа без полей: [Telegram/Resources/art/logo_256_no_margin.png](Telegram/Resources/art/logo_256_no_margin.png)
+
+Эти файлы формируют текущую визуальную идентичность клиента в окне приложения, ресурсах установщика, репозитории и готовых сборках.
+
+## Превью
 
 <h3>
   <details>
-    <summary>Превью</summary>
+    <summary>Скриншоты</summary>
     <table>
       <tr>
         <td><img src='.github/demos/demo1.png' width='268' alt='Preferences'></td>
-        <td><img src='.github/demos/demo2.png' width='268' alt='AyuGram Options'></td>
-        <td><img src='.github/demos/demo3.png' width='268' alt='Message Filters'></td>
+        <td><img src='.github/demos/demo2.png' width='268' alt='Options'></td>
+        <td><img src='.github/demos/demo3.png' width='268' alt='Filters'></td>
       </tr>
       <tr>
         <td><img src='.github/demos/demo4.png' width='268' alt='Appearance'></td>
@@ -34,126 +68,46 @@
   </details>
 </h3>
 
-## Установка
+## Загрузка и сборка
 
-### Windows
+Готовые бинарники могут распространяться через GitHub Releases, GitHub Actions artifacts или через официальные ресурсы TeleForge, когда они доступны.
 
-#### Официальная версия
+Если нужна локальная сборка, используйте инструкции из этого репозитория:
 
-Вы можете скачать готовый бинарный файл со вкладки [Releases](https://github.com/AyuGram/AyuGramDesktop/releases) или из
-[Телеграм канала](https://t.me/AyuGramReleases).
+- Windows x64: [docs/building-win-x64.md](docs/building-win-x64.md)
+- Windows ARM: [docs/building-win-arm.md](docs/building-win-arm.md)
+- Linux: [docs/building-linux.md](docs/building-linux.md)
+- macOS: [docs/building-mac.md](docs/building-mac.md)
 
-#### Winget
+## Примечания по сборке Windows
 
-```bash
-winget install RadolynLabs.AyuGramDesktop
-```
+Убедитесь, что в Visual Studio Build Tools установлены:
 
-#### Scoop
+- C++ MFC latest для x86 и x64
+- C++ ATL latest для x86 и x64
+- актуальный Windows 11 SDK
 
-```bash
-scoop bucket add extras
-scoop install ayugram
-```
+## Credits
 
-#### Сборка вручную
-
-Следуйте [официальному руководству](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-win-x64.md), если
-вы хотите собрать AyuGram сами.
-
-### macOS
-
-#### Официальная версия
-
-Вы можете скачать подписанный пакет со вкладки [Releases](https://github.com/AyuGram/AyuGramDesktop/releases).
-
-#### Homebrew
-
-```bash
-brew install --cask ayugram
-```
-
-### Arch Linux
-
-#### Из исходников (рекомендованный способ)
-
-Установите `ayugram-desktop` из [AUR](https://aur.archlinux.org/packages/ayugram-desktop).
-
-#### Готовые бинарники
-
-Установите `ayugram-desktop-bin` из [AUR](https://aur.archlinux.org/packages/ayugram-desktop-bin).
-
-Примечание: данный пакет собирается не нами.
-
-### NixOS
-
-#### Флейк (рекомендуется)
-
-Установите `ayugram-desktop` из [ndfined-crp/ayugram-desktop](https://github.com/ndfined-crp/ayugram-desktop)
-
-#### Nixpkgs
-
-Установите `ayugram-desktop` из [nixpkgs](https://search.nixos.org/packages?channel=unstable&show=ayugram-desktop)
-
-### ALT Linux
-
-[Sisyphus](https://packages.altlinux.org/en/sisyphus/srpms/ayugram-desktop/)
-
-### Gentoo Linux
-
-Инструкцию по установке можно найти в [этом репозитории](https://github.com/OverLessArtem/ayugram-ebuild-gentoo).
-
-### EPM
-
-`epm play ayugram`
-
-### Fedora
-
-Из репозитория [RPM Fusion](https://admin.rpmfusion.org/pkgdb/package/free/ayugram-desktop/).
-
-```bash
-dnf install ayugram-desktop
-```
-
-### Любой другой Линукс дистрибутив
-
-Flatpak: https://github.com/0FL01/AyuGramDesktop-flatpak
-
-Или следуйте [официальному руководству](https://github.com/AyuGram/AyuGramDesktop/blob/dev/docs/building-linux.md).
-
-### Примечания для Windows
-
-Убедитесь что у вас присутствуют эти зависимости:
-
-- C++ MFC latest (x86 & x64)
-- C++ ATL latest (x86 & x64)
-- последний Windows 11 SDK
-
-## Пожертвования
-
-Вам нравится использовать **AyuGram**? Оставьте нам чаевые!
-
-[Здесь доступные варианты.](https://docs.ayugram.one/donate/)
-
-## Использованные материалы
-
-### Телеграм клиенты
+### Базовые клиенты и источники вдохновения
 
 - [Telegram Desktop](https://github.com/telegramdesktop/tdesktop)
+- [AyuGram](https://github.com/AyuGram/AyuGramDesktop)
 - [Kotatogram](https://github.com/kotatogram/kotatogram-desktop)
 - [64Gram](https://github.com/TDesktop-x64/tdesktop)
 - [Forkgram](https://github.com/forkgram/tdesktop)
 
-### Использованные библиотеки
+### Библиотеки
 
 - [JSON for Modern C++](https://github.com/nlohmann/json)
 - [SQLite](https://github.com/sqlite/sqlite)
 - [sqlite_orm](https://github.com/fnc12/sqlite_orm)
+- [androidx sources](https://github.com/androidx/androidx)
 
 ### Иконки
 
 - [Solar Icon Set](https://www.figma.com/community/file/1166831539721848736)
 
-### Боты
+### Утилиты
 
-- [TelegramDB](https://t.me/tgdatabase) для получения юзернейма по ID
+- [TelegramDB](https://t.me/tgdatabase) для поиска username по ID
