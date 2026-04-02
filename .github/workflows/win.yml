@@ -3,6 +3,8 @@ name: Windows.
 on:
   workflow_dispatch:
   push:
+    tags:
+      - '*'
     paths-ignore:
       - 'docs/**'
       - '**.md'
@@ -182,6 +184,8 @@ jobs:
     name: Windows
     needs: windows-deps
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     strategy:
       fail-fast: false
@@ -467,3 +471,12 @@ jobs:
           path: ${{ github.workspace }}\artifact\
           if-no-files-found: error
           compression-level: 0
+
+      - name: Publish release assets.
+        if: startsWith(github.ref, 'refs/tags/') && matrix.config == 'Release'
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "artifact/*.zip"
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          removeArtifacts: false
