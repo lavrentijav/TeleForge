@@ -7,14 +7,14 @@ on:
     tags:
       - '*'
     paths-ignore:
+      - '!docs/building-win*.md'
+      - '!.github/workflows/win.yml'
       - 'docs/**'
       - '**.md'
-      - '!docs/building-win*.md'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
       - '.github/**'
-      - '!.github/workflows/win.yml'
       - 'lib/xdg/**'
       - 'snap/**'
       - 'Telegram/build/docker/**'
