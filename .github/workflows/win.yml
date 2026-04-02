@@ -237,7 +237,12 @@ jobs:
       - name: sccache stats.
         if: always()
         run: |
-          %SCCACHE_PATH% --show-stats
+          where sccache
+          if errorlevel 1 (
+            echo sccache is not available, skipping stats.
+            exit /b 0
+          )
+          sccache --show-stats
 
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
