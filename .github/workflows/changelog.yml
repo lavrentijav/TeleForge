@@ -1,4 +1,5 @@
 name: Changelog
+# Trigger refresh: 2026-04-02
 
 on:
   push:

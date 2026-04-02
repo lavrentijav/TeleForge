@@ -1,4 +1,5 @@
 name: Snap.
+# Trigger refresh: 2026-04-02
 
 on:
   workflow_dispatch:
