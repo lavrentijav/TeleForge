@@ -131,3 +131,5 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/out/Debug/artifact/
+          if-no-files-found: error
+          compression-level: 0

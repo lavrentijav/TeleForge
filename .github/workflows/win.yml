@@ -122,11 +122,39 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\*
             !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\ffmpeg
+            !${{ env.LibrariesPath }}\ffmpeg\**
+            !${{ env.LibrariesPath }}\tg_owt
+            !${{ env.LibrariesPath }}\tg_owt\**
+            !${{ env.LibrariesPath }}\tde2e
+            !${{ env.LibrariesPath }}\tde2e\**
+            !${{ env.LibrariesPath }}\protobuf
+            !${{ env.LibrariesPath }}\protobuf\**
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\ffmpeg
+            !${{ env.LibrariesPath }}\cache_keys\tg_owt
+            !${{ env.LibrariesPath }}\cache_keys\tde2e
+            !${{ env.LibrariesPath }}\cache_keys\protobuf
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
           restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
+
+      - name: Heavy libraries cache.
+        id: cache-heavy-libs
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\ffmpeg
+            ${{ env.LibrariesPath }}\tg_owt
+            ${{ env.LibrariesPath }}\tde2e
+            ${{ env.LibrariesPath }}\protobuf
+            ${{ env.LibrariesPath }}\cache_keys\ffmpeg
+            ${{ env.LibrariesPath }}\cache_keys\tg_owt
+            ${{ env.LibrariesPath }}\cache_keys\tde2e
+            ${{ env.LibrariesPath }}\cache_keys\protobuf
+          key: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-
 
       - name: Qt cache.
         id: cache-qt
@@ -246,11 +274,39 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\*
             !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\ffmpeg
+            !${{ env.LibrariesPath }}\ffmpeg\**
+            !${{ env.LibrariesPath }}\tg_owt
+            !${{ env.LibrariesPath }}\tg_owt\**
+            !${{ env.LibrariesPath }}\tde2e
+            !${{ env.LibrariesPath }}\tde2e\**
+            !${{ env.LibrariesPath }}\protobuf
+            !${{ env.LibrariesPath }}\protobuf\**
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\ffmpeg
+            !${{ env.LibrariesPath }}\cache_keys\tg_owt
+            !${{ env.LibrariesPath }}\cache_keys\tde2e
+            !${{ env.LibrariesPath }}\cache_keys\protobuf
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
           restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
+
+      - name: Heavy libraries cache.
+        id: cache-heavy-libs
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\ffmpeg
+            ${{ env.LibrariesPath }}\tg_owt
+            ${{ env.LibrariesPath }}\tde2e
+            ${{ env.LibrariesPath }}\protobuf
+            ${{ env.LibrariesPath }}\cache_keys\ffmpeg
+            ${{ env.LibrariesPath }}\cache_keys\tg_owt
+            ${{ env.LibrariesPath }}\cache_keys\tde2e
+            ${{ env.LibrariesPath }}\cache_keys\protobuf
+          key: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-
 
       - name: Qt cache.
         id: cache-qt
@@ -350,15 +406,37 @@ jobs:
           )
           sccache --show-stats
 
-      - name: Move artifact.
+      - name: Stage artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
           set OUT=%TBUILD%\%REPO_NAME%\out\${{ matrix.config }}
-          mkdir artifact
-          move %OUT%\TeleForge.exe artifact/
+          set ARTIFACT_DIR=%GITHUB_WORKSPACE%\artifact
+          if exist "%ARTIFACT_DIR%" rmdir /Q /S "%ARTIFACT_DIR%"
+          mkdir "%ARTIFACT_DIR%"
+
+          if not exist "%OUT%\TeleForge.exe" (
+            echo TeleForge.exe not found in "%OUT%".
+            exit /b 1
+          )
+
+          copy /Y "%OUT%\TeleForge.exe" "%ARTIFACT_DIR%\"
+          if exist "%OUT%\TeleForge.pdb" copy /Y "%OUT%\TeleForge.pdb" "%ARTIFACT_DIR%\"
+
+          if exist "%OUT%\Updater.exe" copy /Y "%OUT%\Updater.exe" "%ARTIFACT_DIR%\"
+          if exist "%OUT%\Updater.pdb" copy /Y "%OUT%\Updater.pdb" "%ARTIFACT_DIR%\"
+
+          if /I not "%Platform%"=="arm64" (
+            if exist "%OUT%\modules\%Platform%\d3d\d3dcompiler_47.dll" (
+              mkdir "%ARTIFACT_DIR%\modules\%Platform%\d3d"
+              copy /Y "%OUT%\modules\%Platform%\d3d\d3dcompiler_47.dll" "%ARTIFACT_DIR%\modules\%Platform%\d3d\"
+            )
+          )
+
       - uses: actions/upload-artifact@v7
         name: Upload artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: artifact\
+          path: ${{ github.workspace }}\artifact\
+          if-no-files-found: error
+          compression-level: 0
