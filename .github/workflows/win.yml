@@ -65,8 +65,6 @@ jobs:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
       SCCACHE_GHA_ENABLED: "true"
       SCCACHE_CACHE_SIZE: "10G"
-      LIBS_CACHE_VERSION: "full-release-v1"
-
     defaults:
       run:
         shell: cmd
@@ -138,8 +136,8 @@ jobs:
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ env.LIBS_CACHE_VERSION }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ env.LIBS_CACHE_VERSION }}-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
 
       - name: Qt cache.
         id: cache-qt
@@ -148,10 +146,19 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.LIBS_CACHE_VERSION }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.LIBS_CACHE_VERSION }}-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
 
-      - name: Libraries.
+      - name: Libraries for Debug.
+        if: matrix.config == 'Debug'
+        env:
+          GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\'
+          GYP_MSVS_VERSION: 2022
+        run: |
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent ${{ matrix.qt }}
+
+      - name: Libraries for Release.
+        if: matrix.config == 'Release'
         env:
           GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\'
           GYP_MSVS_VERSION: 2022
