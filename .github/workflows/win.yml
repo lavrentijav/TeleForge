@@ -45,19 +45,14 @@ jobs:
 
   windows-deps:
     name: Windows Dependencies
-    runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || 'windows-latest' }}
+    runs-on: windows-latest
 
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64_x86, x64, arm64]
-        qt: ["", qt6]
+        arch: [x64]
+        qt: [""]
         config: [Debug, Release]
-        exclude:
-          - arch: arm64
-            qt: ""
-          - arch: x64_x86
-            qt: qt6
 
     env:
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
@@ -186,20 +181,15 @@ jobs:
   windows:
     name: Windows
     needs: windows-deps
-    runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || 'windows-latest' }}
+    runs-on: windows-latest
 
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64_x86, x64, arm64]
+        arch: [x64]
         qt: [""]
         generator: [""]
         config: [Debug, Release]
-        exclude:
-          - arch: arm64
-            qt: ""
-          - arch: x64_x86
-            qt: qt6
 
     env:
       UPLOAD_ARTIFACT: "true"

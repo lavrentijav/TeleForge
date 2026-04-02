@@ -1,0 +1,197 @@
+name: Releases
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    name: Windows x64 Release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    env:
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_SIZE: "10G"
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Prepare directories.
+        run: |
+          mkdir %userprofile%\TBuild\Libraries
+          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+
+      - name: Get repository name.
+        shell: bash
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Clone.
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
+
+      - name: First set up.
+        shell: bash
+        run: |
+          DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
+          SDK="$(grep "SDK version" "$DOCPATH" | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
+          echo "SDK=$SDK" >> $GITHUB_ENV
+
+          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
+
+          VERSION_FILE="$TBUILD/$REPO_NAME/Telegram/build/version"
+          APP_VERSION_FULL="$(awk '$1=="AppVersionOriginal"{print $2}' "$VERSION_FILE")"
+          if [ -z "$APP_VERSION_FULL" ]; then
+            echo "Failed to read app version from $VERSION_FILE."
+            exit 1
+          fi
+          echo "APP_VERSION_FULL=$APP_VERSION_FULL" >> $GITHUB_ENV
+          echo "PORTABLE_NAME=teleforge-portable-x64.${APP_VERSION_FULL}.zip" >> $GITHUB_ENV
+
+          APP_ID='${{ secrets.APP_ID }}'
+          APP_HASH='${{ secrets.APP_HASH }}'
+          if [ -z "$APP_ID" ] || [ -z "$APP_HASH" ]; then
+            echo "Missing APP_ID or APP_HASH GitHub secrets."
+            exit 1
+          fi
+          echo "TDESKTOP_BUILD_API=-D TDESKTOP_API_ID=$APP_ID -D TDESKTOP_API_HASH=$APP_HASH" >> $GITHUB_ENV
+
+          echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
+          echo "$SDK" >> CACHE_KEY.txt
+          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
+
+      - uses: ilammy/msvc-dev-cmd@v1.13.0
+        name: Native Tools Command Prompt.
+        with:
+          arch: x64
+          sdk: ${{ env.SDK }}
+
+      - name: Set up sccache.
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: NuGet sources.
+        run: |
+          nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
+          nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
+
+      - name: ThirdParty cache.
+        id: cache-third-party
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ runner.arch }}-third-party-
+
+      - name: Libraries cache.
+        id: cache-libs
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\ffmpeg
+            !${{ env.LibrariesPath }}\ffmpeg\**
+            !${{ env.LibrariesPath }}\tg_owt
+            !${{ env.LibrariesPath }}\tg_owt\**
+            !${{ env.LibrariesPath }}\tde2e
+            !${{ env.LibrariesPath }}\tde2e\**
+            !${{ env.LibrariesPath }}\protobuf
+            !${{ env.LibrariesPath }}\protobuf\**
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\ffmpeg
+            !${{ env.LibrariesPath }}\cache_keys\tg_owt
+            !${{ env.LibrariesPath }}\cache_keys\tde2e
+            !${{ env.LibrariesPath }}\cache_keys\protobuf
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-libs-full-release-v2-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-libs-full-release-v2-
+
+      - name: Heavy libraries cache.
+        id: cache-heavy-libs
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\ffmpeg
+            ${{ env.LibrariesPath }}\tg_owt
+            ${{ env.LibrariesPath }}\tde2e
+            ${{ env.LibrariesPath }}\protobuf
+            ${{ env.LibrariesPath }}\cache_keys\ffmpeg
+            ${{ env.LibrariesPath }}\cache_keys\tg_owt
+            ${{ env.LibrariesPath }}\cache_keys\tde2e
+            ${{ env.LibrariesPath }}\cache_keys\protobuf
+          key: ${{ runner.OS }}-x64-heavy-libs-release-v1-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-heavy-libs-release-v1-
+
+      - name: Qt cache.
+        id: cache-qt
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-qt-full-release-v2-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-qt-full-release-v2-
+
+      - name: Libraries for Release.
+        env:
+          GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\'
+          GYP_MSVS_VERSION: 2022
+        run: |
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat silent
+
+      - name: Build TeleForge x64.
+        run: |
+          cd %TBUILD%\%REPO_NAME%\Telegram
+
+          call configure.bat ^
+          x64 ^
+          %TDESKTOP_BUILD_API% ^
+          -D CMAKE_CONFIGURATION_TYPES=Release ^
+          -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
+          -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
+          -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+          -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
+
+          cmake --build ..\out --config Release --parallel
+
+      - name: Package release zip.
+        shell: powershell
+        run: |
+          $out = Join-Path $env:TBUILD "$env:REPO_NAME\out\Release"
+          $releaseDir = Join-Path $env:GITHUB_WORKSPACE "release"
+          $appDir = Join-Path $releaseDir "TeleForge"
+
+          if (Test-Path $releaseDir) { Remove-Item -LiteralPath $releaseDir -Recurse -Force }
+          New-Item -ItemType Directory -Path $appDir | Out-Null
+
+          Copy-Item -LiteralPath (Join-Path $out "TeleForge.exe") -Destination $appDir -Force
+
+          $d3d = Join-Path $out "modules\x64\d3d\d3dcompiler_47.dll"
+          if (Test-Path $d3d) {
+            $d3dDir = Join-Path $appDir "modules\x64\d3d"
+            New-Item -ItemType Directory -Path $d3dDir -Force | Out-Null
+            Copy-Item -LiteralPath $d3d -Destination $d3dDir -Force
+          }
+
+          Compress-Archive -Path (Join-Path $appDir "*") -DestinationPath (Join-Path $releaseDir $env:PORTABLE_NAME) -Force
+          Remove-Item -LiteralPath $appDir -Recurse -Force
+
+      - name: Publish GitHub release.
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "release/*.zip"
+          artifactErrorsFailBuild: true
+          generateReleaseNotes: true
+          allowUpdates: true
