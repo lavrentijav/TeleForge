@@ -1,7 +1,15 @@
 ## API credentials
 
-Official Telegram keys:
+TeleForge builds require Telegram API credentials.
 
-API_ID `2040`
+For local development you should use your own Telegram application keys:
 
-API_HASH `b18441a1ff607e10a989891a5462e627`
+- `YOUR_API_ID`
+- `YOUR_API_HASH`
+
+For GitHub Actions in this repository, store them as repository secrets:
+
+- `APP_ID`
+- `APP_HASH`
+
+Do not hardcode private credentials into the source tree.

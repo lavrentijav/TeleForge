@@ -1,4 +1,4 @@
-# Build instructions for Windows 64-bit
+# Build instructions for TeleForge on Windows x64
 
 - [Prepare folder](#prepare-folder)
 - [Install third party software](#install-third-party-software)
@@ -22,20 +22,20 @@ All commands (if not stated otherwise) will be launched from **x64 Native Tools 
 
 Open **x64 Native Tools Command Prompt for VS 2022.bat**, go to ***BuildPath*** and run
 
-    git clone --recursive https://github.com/AyuGram/AyuGramDesktop.git tdesktop
+    git clone --recursive https://github.com/lavrentijav/TeleForge.git tdesktop
     tdesktop\Telegram\build\prepare\win.bat
 
 You may encounter an error saying that your IP is not allowed - simply turn on VPN.
 
 ## Build the project
 
-Go to ***BuildPath*\\tdesktop\\Telegram** and run
+Go to ***BuildPath*\\tdesktop\\Telegram** and run (using your own **api_id** and **api_hash**):
 
-    configure.bat x64 -D TDESKTOP_API_ID=2040 -D TDESKTOP_API_HASH=b18441a1ff607e10a989891a5462e627
+    configure.bat x64 -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH
 
 * Open ***BuildPath*\\tdesktop\\out\\Telegram.sln** in Visual Studio 2022
 * Select Telegram project and press Build > Build Telegram (Debug and Release configurations)
-* The result AyuGram.exe will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
+* The result **TeleForge.exe** will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
 
 If you encounter issue like `error C1090: PDB API call failed, error code '12'` on Release build, apply the following patch in `tdesktop/cmake` folder (via pwsh or manually):
 

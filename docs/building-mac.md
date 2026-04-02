@@ -1,4 +1,4 @@
-## Build instructions for macOS
+## Build instructions for TeleForge on macOS
 
 ### Note
 
@@ -21,13 +21,13 @@ Go to ***BuildPath*** and run
 
     sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
-    git clone --recursive https://github.com/AyuGram/AyuGramDesktop.git tdesktop
+    git clone --recursive https://github.com/lavrentijav/TeleForge.git tdesktop
     ./tdesktop/Telegram/build/prepare/mac.sh
 
 ### Building the project
 
 Go to ***BuildPath*/tdesktop/Telegram** and run
 
-    ./configure.sh -D TDESKTOP_API_ID=2040 -D TDESKTOP_API_HASH=b18441a1ff607e10a989891a5462e627
+    ./configure.sh -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH
 
-Then launch Xcode, open ***BuildPath*/tdesktop/out/Telegram.xcodeproj** and build for Debug / Release.
+Then launch Xcode, open ***BuildPath*/tdesktop/out/Telegram.xcodeproj** and build for Debug / Release. The resulting application binary is **TeleForge**.
