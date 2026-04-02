@@ -1,6 +1,7 @@
 name: Windows.
 
 on:
+  workflow_dispatch:
   push:
     paths-ignore:
       - 'docs/**'
@@ -371,6 +372,32 @@ jobs:
           API="-D TDESKTOP_API_ID=$APP_ID -D TDESKTOP_API_HASH=$APP_HASH"
           echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV
 
+          VERSION_FILE="$TBUILD/$REPO_NAME/Telegram/build/version"
+          APP_VERSION="$(awk '$1=="AppVersionStrSmall"{print $2}' "$VERSION_FILE")"
+          APP_VERSION_FULL="$(awk '$1=="AppVersionOriginal"{print $2}' "$VERSION_FILE")"
+          if [ -z "$APP_VERSION" ] || [ -z "$APP_VERSION_FULL" ]; then
+            echo "Failed to read app version from $VERSION_FILE."
+            exit 1
+          fi
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+          echo "APP_VERSION_FULL=$APP_VERSION_FULL" >> $GITHUB_ENV
+
+          PORTABLE_NAME=""
+          if [ "${{ matrix.config }}" = "Release" ]; then
+            case "${{ matrix.arch }}" in
+              x64_x86)
+                PORTABLE_NAME="teleforge-portable.${APP_VERSION_FULL}.zip"
+                ;;
+              x64)
+                PORTABLE_NAME="teleforge-portable-x64.${APP_VERSION_FULL}.zip"
+                ;;
+              arm64)
+                PORTABLE_NAME="teleforge-portable-arm64.${APP_VERSION_FULL}.zip"
+                ;;
+            esac
+          fi
+          echo "PORTABLE_NAME=$PORTABLE_NAME" >> $GITHUB_ENV
+
       - name: Free up some disk space.
         shell: bash
         run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' ')' -type f ')' -o -empty ')' -delete
@@ -411,25 +438,35 @@ jobs:
         run: |
           set OUT=%TBUILD%\%REPO_NAME%\out\${{ matrix.config }}
           set ARTIFACT_DIR=%GITHUB_WORKSPACE%\artifact
+          set RAW_DIR=%ARTIFACT_DIR%\TeleForge
           if exist "%ARTIFACT_DIR%" rmdir /Q /S "%ARTIFACT_DIR%"
           mkdir "%ARTIFACT_DIR%"
+          mkdir "%RAW_DIR%"
 
           if not exist "%OUT%\TeleForge.exe" (
             echo TeleForge.exe not found in "%OUT%".
             exit /b 1
           )
 
-          copy /Y "%OUT%\TeleForge.exe" "%ARTIFACT_DIR%\"
-          if exist "%OUT%\TeleForge.pdb" copy /Y "%OUT%\TeleForge.pdb" "%ARTIFACT_DIR%\"
+          copy /Y "%OUT%\TeleForge.exe" "%RAW_DIR%\"
 
-          if exist "%OUT%\Updater.exe" copy /Y "%OUT%\Updater.exe" "%ARTIFACT_DIR%\"
-          if exist "%OUT%\Updater.pdb" copy /Y "%OUT%\Updater.pdb" "%ARTIFACT_DIR%\"
+          if /I not "${{ matrix.config }}"=="Release" (
+            if exist "%OUT%\TeleForge.pdb" copy /Y "%OUT%\TeleForge.pdb" "%ARTIFACT_DIR%\"
+            if exist "%OUT%\Updater.exe" copy /Y "%OUT%\Updater.exe" "%ARTIFACT_DIR%\"
+            if exist "%OUT%\Updater.pdb" copy /Y "%OUT%\Updater.pdb" "%ARTIFACT_DIR%\"
+          )
 
           if /I not "%Platform%"=="arm64" (
             if exist "%OUT%\modules\%Platform%\d3d\d3dcompiler_47.dll" (
-              mkdir "%ARTIFACT_DIR%\modules\%Platform%\d3d"
-              copy /Y "%OUT%\modules\%Platform%\d3d\d3dcompiler_47.dll" "%ARTIFACT_DIR%\modules\%Platform%\d3d\"
+              mkdir "%RAW_DIR%\modules\%Platform%\d3d"
+              copy /Y "%OUT%\modules\%Platform%\d3d\d3dcompiler_47.dll" "%RAW_DIR%\modules\%Platform%\d3d\"
             )
+          )
+
+          if /I "${{ matrix.config }}"=="Release" (
+            powershell -NoProfile -Command "Compress-Archive -Path '%RAW_DIR%\\*' -DestinationPath '%ARTIFACT_DIR%\\%PORTABLE_NAME%' -Force"
+            if errorlevel 1 exit /b 1
+            rmdir /Q /S "%RAW_DIR%"
           )
 
       - uses: actions/upload-artifact@v7
