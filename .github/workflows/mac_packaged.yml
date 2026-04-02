@@ -1,5 +1,5 @@
 name: MacOS Packaged.
-# Trigger refresh: 2026-04-02
+# Trigger marker: 2026-04-02 16:00 MSK
 
 on:
   workflow_dispatch:
