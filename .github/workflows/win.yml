@@ -1,5 +1,5 @@
 name: Windows.
-# Trigger marker: 2026-04-02 16:00 MSK
+# Trigger marker
 
 on:
   workflow_dispatch:
