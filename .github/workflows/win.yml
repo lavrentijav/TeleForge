@@ -191,8 +191,8 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x64_x86, x64, arm64]
-        qt: ["", qt6]
-        generator: ["", "Ninja Multi-Config"]
+        qt: [""]
+        generator: [""]
         config: [Debug, Release]
         exclude:
           - arch: arm64
