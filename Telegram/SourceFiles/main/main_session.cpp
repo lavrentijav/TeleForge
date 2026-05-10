@@ -223,65 +223,75 @@ Session::Session(
 		_selfUserpicView = view.cloud;
 	}, lifetime());
 
-	crl::on_main_queue(this, { [=] {
-		using Flag = Data::PeerUpdate::Flag;
-		changes().peerUpdates(
-			_user,
-			Flag::Name
-			| Flag::Username
-			| Flag::Photo
-			| Flag::About
-			| Flag::PhoneNumber
-		) | rpl::on_next([=](const Data::PeerUpdate &update) {
-			local().writeSelf();
-
-			if (update.flags & Flag::PhoneNumber) {
-				const auto phone = _user->phone();
-				_api->instance().setUserPhone(phone);
-				if (!phone.isEmpty()) {
-					_api->instance().requestConfig();
-				}
+	{
+		const auto weak = base::make_weak(this);
+		const auto step = std::make_shared<std::function<void(int)>>();
+		*step = [=](int index) {
+			const auto session = weak.get();
+			if (!session) {
+				return;
 			}
-		}, _lifetime);
+			switch (index) {
+			case 0: {
+				using Flag = Data::PeerUpdate::Flag;
+				session->changes().peerUpdates(
+					session->_user,
+					Flag::Name
+					| Flag::Username
+					| Flag::Photo
+					| Flag::About
+					| Flag::PhoneNumber
+				) | rpl::on_next([=](const Data::PeerUpdate &update) {
+					const auto strong = weak.get();
+					if (!strong) {
+						return;
+					}
+					strong->local().writeSelf();
 
-		if (_settings->hadLegacyCallsPeerToPeerNobody()) {
-			api().userPrivacy().save(
-				Api::UserPrivacy::Key::CallsPeer2Peer,
-				Api::UserPrivacy::Rule{
-					.option = Api::UserPrivacy::Option::Nobody
-				});
-			saveSettingsDelayed();
-		}
-	}, [=] {
-		// Storage::Account uses Main::Account::session() in those methods.
-		// So they can't be called during Main::Session construction.
-		//
-		// They are deferred via crl::on_main which fires after the
-		// constructor returns and _session is set.
-		//
-		// Steps are chained via crl::on_main so that paint events
-		// can be processed between heavy file reads.
-		local().readInstalledStickers();
-	}, [=] {
-		local().readInstalledMasks();
-	}, [=] {
-		local().readInstalledCustomEmoji();
-	}, [=] {
-		local().readFeaturedStickers();
-	}, [=] {
-		local().readFeaturedCustomEmoji();
-	}, [=] {
-		local().readRecentStickers();
-		local().readRecentMasks();
-		local().readFavedStickers();
-		local().readSavedGifs();
-	}, [=] {
-		data().stickers().notifyUpdated(Data::StickersType::Stickers);
-		data().stickers().notifyUpdated(Data::StickersType::Masks);
-		data().stickers().notifyUpdated(Data::StickersType::Emoji);
-		data().stickers().notifySavedGifsUpdated();
-		DEBUG_LOG(("Init: Account stored data load finished."));
-	} }).dispatch();
+					if (update.flags & Flag::PhoneNumber) {
+						const auto phone = strong->_user->phone();
+						strong->_api->instance().setUserPhone(phone);
+						if (!phone.isEmpty()) {
+							strong->_api->instance().requestConfig();
+						}
+					}
+				}, session->_lifetime);
+
+				if (session->_settings->hadLegacyCallsPeerToPeerNobody()) {
+					session->api().userPrivacy().save(
+						Api::UserPrivacy::Key::CallsPeer2Peer,
+						Api::UserPrivacy::Rule{
+							.option = Api::UserPrivacy::Option::Nobody
+						});
+					session->saveSettingsDelayed();
+				}
+			} break;
+			case 1: session->local().readInstalledStickers(); break;
+			case 2: session->local().readInstalledMasks(); break;
+			case 3: session->local().readInstalledCustomEmoji(); break;
+			case 4: session->local().readFeaturedStickers(); break;
+			case 5: session->local().readFeaturedCustomEmoji(); break;
+			case 6:
+				session->local().readRecentStickers();
+				session->local().readRecentMasks();
+				session->local().readFavedStickers();
+				session->local().readSavedGifs();
+				break;
+			case 7:
+				session->data().stickers().notifyUpdated(
+					Data::StickersType::Stickers);
+				session->data().stickers().notifyUpdated(
+					Data::StickersType::Masks);
+				session->data().stickers().notifyUpdated(
+					Data::StickersType::Emoji);
+				session->data().stickers().notifySavedGifsUpdated();
+				DEBUG_LOG(("Init: Account stored data load finished."));
+				return;
+			}
+			crl::on_main([=] { (*step)(index + 1); });
+		};
+		crl::on_main([=] { (*step)(0); });
+	}
 
 #ifndef TDESKTOP_DISABLE_SPELLCHECK
 	Spellchecker::Start(this);

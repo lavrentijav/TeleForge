@@ -13,8 +13,10 @@
 #include "lang/lang_text_entity.h"
 #include "styles/style_ayu_styles.h"
 #include "styles/style_boxes.h"
+#include "styles/style_giveaway.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_premium.h"
 #include "styles/style_settings.h"
 #include "styles/style_widgets.h"
 #include "ui/painter.h"
@@ -23,6 +25,7 @@
 #include "ui/vertical_list.h"
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
+#include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "window/window_session_controller.h"
 

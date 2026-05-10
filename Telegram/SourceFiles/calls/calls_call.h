@@ -13,7 +13,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/sender.h"
 #include "mtproto/mtproto_auth_key.h"
 #include "webrtc/webrtc_device_resolver.h"
-#include "webrtc/webrtc_system_audio_capture.h"
 
 namespace Data {
 class GroupCall;
@@ -373,7 +372,6 @@ private:
 	QString _videoCaptureDeviceId;
 	bool _videoCaptureIsScreencast = false;
 	bool _screenWithAudio = false;
-	std::unique_ptr<Webrtc::SystemAudioCapture> _systemAudioCapture;
 	const std::unique_ptr<Webrtc::VideoTrack> _videoIncoming;
 	const std::unique_ptr<Webrtc::VideoTrack> _videoOutgoing;
 

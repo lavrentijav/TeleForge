@@ -582,7 +582,7 @@ bool Panel::chooseSourceActiveWithAudio() {
 }
 
 bool Panel::chooseSourceWithAudioSupported() {
-	return Webrtc::LoopbackAudioCaptureSupported();
+	return false;
 }
 
 rpl::lifetime &Panel::chooseSourceInstanceLifetime() {
