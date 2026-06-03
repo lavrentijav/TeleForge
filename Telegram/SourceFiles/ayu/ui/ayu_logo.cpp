@@ -1,8 +1,3 @@
-// This is the source code of AyuGram for Desktop.
-//
-// We do not and cannot prevent the use of our code,
-// but be respectful and credit the original author.
-//
 // Copyright @Radolyn, 2026
 #include "ayu/ui/ayu_logo.h"
 
@@ -16,7 +11,7 @@ static QString LAST_LOADED_NAME;
 static QImage LAST_LOADED;
 static QImage LAST_LOADED_PAD;
 
-namespace AyuAssets {
+namespace TeleForgeAssets {
 
 QString appIcoPath() {
 	return cWorkingDir() + u"tdata/TeleForge.ico"_q;
@@ -32,13 +27,17 @@ void loadAppIco() {
 		f.remove();
 	}
 	f.close();
-	QFile::copy(qsl(":/gui/art/ayu/%1/app_icon.ico").arg(settings.appIcon()), iconPath);
+	const auto icoResource = qsl(":/gui/art/teleforge/%1/app_icon.ico")
+		.arg(settings.appIcon());
+	if (QFile::exists(icoResource)) {
+		QFile::copy(icoResource, iconPath);
+	}
 }
 
 QImage CreateImage(const QString &name, const QSize resultImageSize, const int padding = 0) {
 	const auto iconSize = resultImageSize.shrunkBy(QMargins(padding, padding, padding, padding));
 
-	const auto pngPath = qsl(":/gui/art/ayu/%1/app.png").arg(name);
+	const auto pngPath = qsl(":/gui/art/teleforge/%1/app.png").arg(name);
 	if (QFile::exists(pngPath)) {
 		const auto loaded = QImage(pngPath).scaled(iconSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 		auto res = QImage(
@@ -53,7 +52,7 @@ QImage CreateImage(const QString &name, const QSize resultImageSize, const int p
 		return res;
 	}
 
-	const auto svgPath = qsl(":/gui/art/ayu/%1/app.svg").arg(name);
+	const auto svgPath = qsl(":/gui/art/teleforge/%1/app.svg").arg(name);
 	if (!QFile::exists(svgPath)) {
 		return {};
 	}
@@ -88,11 +87,11 @@ QImage CreateImage(const QString &name, const QSize resultImageSize, const int p
 }
 
 void loadIcons() {
-	const auto &settings = AyuSettings::getInstance();
-	if (LAST_LOADED_NAME != settings.appIcon()) {
-		LAST_LOADED_NAME = settings.appIcon();
-		LAST_LOADED = CreateImage(settings.appIcon(), Size(256));
-		LAST_LOADED_PAD = CreateImage(settings.appIcon(), Size(256), 12);
+	const auto iconName = TeleForgeAssets::DEFAULT_ICON;
+	if (LAST_LOADED_NAME != iconName) {
+		LAST_LOADED_NAME = iconName;
+		LAST_LOADED = CreateImage(iconName, Size(256));
+		LAST_LOADED_PAD = CreateImage(iconName, Size(256), 12);
 	}
 }
 
@@ -114,4 +113,4 @@ QImage currentAppLogoPad() {
 	return LAST_LOADED_PAD;
 }
 
-}
+} // namespace TeleForgeAssets

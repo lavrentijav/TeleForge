@@ -33,6 +33,7 @@ private:
 	void loadCachedLanguage();
 	void saveCachedLanguage(const QByteArray &json, const QString &langId);
 	[[nodiscard]] QString getCacheDir() const;
+	[[nodiscard]] QString legacyCacheDir() const;
 	[[nodiscard]] QString getCachePath(const QString &langId) const;
 
 	QNetworkAccessManager networkManager;

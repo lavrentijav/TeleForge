@@ -7746,7 +7746,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // Keys finished
 
 
-// AyuGram keys generated
+// TeleForge extension keys (ayu_* ids kept for compatibility)
 
 "ayu_AyuPreferences" = "TeleForge";
 "ayu_DocsText" = "Documentation";

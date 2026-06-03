@@ -53,7 +53,7 @@ void BuildLogo(SectionBuilder &builder) {
 		logoRaw->paintRequest(
 		) | rpl::on_next([=] {
 			auto p = QPainter(logoRaw);
-			const auto image = AyuAssets::currentAppLogoPad();
+			const auto image = TeleForgeAssets::currentAppLogoPad();
 			if (!image.isNull()) {
 				const auto size = st::settingsCloudPasswordIconSize;
 				const auto scaled = image.scaled(

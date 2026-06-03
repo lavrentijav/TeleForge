@@ -47,11 +47,19 @@ AyuLanguage *AyuLanguage::currentInstance() {
 }
 
 QString AyuLanguage::getCacheDir() const {
+	return cWorkingDir() + u"tdata/teleforge/languages/"_q;
+}
+
+QString AyuLanguage::legacyCacheDir() const {
 	return cWorkingDir() + u"tdata/ayu/languages/"_q;
 }
 
 QString AyuLanguage::getCachePath(const QString &langId) const {
-	return getCacheDir() + langId + u".json"_q;
+	const auto primary = getCacheDir() + langId + u".json"_q;
+	if (QFile::exists(primary)) {
+		return primary;
+	}
+	return legacyCacheDir() + langId + u".json"_q;
 }
 
 void AyuLanguage::loadCachedLanguage() {
@@ -83,7 +91,7 @@ void AyuLanguage::loadCachedLanguage() {
 		QJsonParseError error{};
 		const auto doc = QJsonDocument::fromJson(data, &error);
 		if (error.error == QJsonParseError::NoError) {
-			LOG(("Loading cached AyuGram language: %1").arg(finalLangPackId));
+			LOG(("Loading cached TeleForge language: %1").arg(finalLangPackId));
 			applyLanguageJson(doc);
 		}
 	}
@@ -98,7 +106,7 @@ void AyuLanguage::saveCachedLanguage(const QByteArray &json, const QString &lang
 	if (file.open(QIODevice::WriteOnly)) {
 		file.write(json);
 		file.close();
-		LOG(("Cached AyuGram language: %1").arg(langId));
+		LOG(("Cached TeleForge language: %1").arg(langId));
 	}
 }
 
@@ -137,7 +145,7 @@ void AyuLanguage::fetchFinished() {
 	auto statusCode = _chkReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
 	if (statusCode == 404 && !langPackId.isEmpty() && !langPackBaseId.isEmpty() && !needFallback) {
-		LOG(("AyuGram Language not found! Fallback to main language: %1...").arg(langPackBaseId));
+		LOG(("TeleForge language not found! Fallback to main language: %1...").arg(langPackBaseId));
 		needFallback = true;
 		_chkReply->disconnect();
 		fetchLanguage("", langPackBaseId);
@@ -164,12 +172,12 @@ void AyuLanguage::fetchError(QNetworkReply::NetworkError e) {
 		const auto id = Lang::GetInstance().id();
 
 		if (!id.isEmpty() && !baseId.isEmpty() && !needFallback) {
-			LOG(("AyuGram Language not found! Fallback to main language: %1...").arg(baseId));
+			LOG(("TeleForge language not found! Fallback to main language: %1...").arg(baseId));
 			needFallback = true;
 			_chkReply->disconnect();
 			fetchLanguage("", baseId);
 		} else {
-			LOG(("AyuGram Language not found!"));
+			LOG(("TeleForge language not found!"));
 			_chkReply = nullptr;
 		}
 	}

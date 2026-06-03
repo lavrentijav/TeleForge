@@ -68,7 +68,7 @@ void initTranslator() {
 
 void initIcon() {
 #ifdef Q_OS_WIN
-	AyuAssets::loadAppIco();
+	TeleForgeAssets::loadAppIco();
 	reloadAppIconFromTaskBar();
 #endif
 }

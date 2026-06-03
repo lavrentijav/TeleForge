@@ -90,7 +90,7 @@ QPixmap MakeNoCoverImage(const QSize &size) {
 								 : st::windowBoldFg->c.lighter();
 		image.fill(bgColor);
 
-		auto svgIcon = QSvgRenderer(u":/gui/icons/ayu/nocover.svg"_q);
+		auto svgIcon = QSvgRenderer(u":/gui/icons/teleforge/nocover.svg"_q);
 		p.setPen(st::windowBoldFg->p);
 		svgIcon.render(&p, QRect(0, 0, size.width(), size.height()));
 	}

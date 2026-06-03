@@ -75,3 +75,6 @@ settings.local.json
 Telegram/SourceFiles/_other/packer_private.h
 
 # TeleForge CI trigger marker
+
+/out-ninja/
+/codegen_emoji_*.log

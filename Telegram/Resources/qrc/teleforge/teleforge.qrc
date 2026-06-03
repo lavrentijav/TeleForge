@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/gui">
+        <file alias="art/teleforge/default/app.svg">../../art/teleforge/default/app.svg</file>
+        <file alias="icons/teleforge/nocover.svg">../../icons/ayu/nocover.svg</file>
+        <file alias="icons/teleforge/donates/boosty.svg">../../icons/ayu/donates/boosty.svg</file>
+        <file alias="icons/teleforge/donates/ton.svg">../../icons/ayu/donates/ton.svg</file>
+        <file alias="icons/teleforge/donates/bitcoin.svg">../../icons/ayu/donates/bitcoin.svg</file>
+        <file alias="icons/teleforge/donates/ethereum.svg">../../icons/ayu/donates/ethereum.svg</file>
+        <file alias="icons/teleforge/donates/solana.svg">../../icons/ayu/donates/solana.svg</file>
+        <file alias="icons/teleforge/donates/tron.svg">../../icons/ayu/donates/tron.svg</file>
+        <file alias="icons/teleforge/donates/support_logo.svg">../../icons/ayu/donates/support_logo.svg</file>
+    </qresource>
+</RCC>

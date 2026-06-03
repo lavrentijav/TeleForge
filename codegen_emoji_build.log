@@ -1,0 +1,22 @@
+Сборка начата 02.04.2026 19:02:15.
+Уровень детализации журнала: Normal.
+     1>Проект "D:\TeleForge\tdesktop\out\Telegram\codegen\codegen\emoji\codegen_emoji.vcxproj" в узле 1 (целевые объекты по умолчанию).
+     1>Проект "D:\TeleForge\tdesktop\out\Telegram\codegen\codegen\emoji\codegen_emoji.vcxproj" (1) выполняет сборку "D:\TeleForge\tdesktop\out\ZERO_CHECK.vcxproj" (2) в узле 1 (целевые объекты по умолчанию).
+     2>PrepareForBuild:
+         Структурированный вывод включен. Форматирование диагностики компилятора будет отражать иерархию ошибок. Подробнее см. https://aka.ms/cpp/structured-output.
+       InitializeBuildStatus:
+         Создание "x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\unsuccessfulbuild".
+       CustomBuild:
+         Для всех выходных данных обновления не требуется.
+       FinalizeBuildStatus:
+         Файл "x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\unsuccessfulbuild" удаляется.
+         Обращение к "x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\ZERO_CHECK.lastbuildstate".
+     2>Сборка проекта "D:\TeleForge\tdesktop\out\ZERO_CHECK.vcxproj" завершена (целевые объекты по умолчанию).
+     1>Сборка проекта "D:\TeleForge\tdesktop\out\Telegram\codegen\codegen\emoji\codegen_emoji.vcxproj" завершена (целевые объекты по умолчанию) с ошибкой.
+
+Ошибка сборки.
+    Предупреждений: 0
+    Ошибок: 0
+
+Прошло времени 00:00:02.85

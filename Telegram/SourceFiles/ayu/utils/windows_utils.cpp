@@ -154,7 +154,7 @@ void processNewShortcuts(const QString &iconPath) {
 }
 
 void reloadAppIconFromTaskBar() {
-	const auto iconPath = AyuAssets::appIcoPath();
+	const auto iconPath = TeleForgeAssets::appIcoPath();
 
 	processNewPinned(iconPath);
 	processNewShortcuts(iconPath);

@@ -21,9 +21,8 @@ add_subdirectory(lib_webrtc)
 add_subdirectory(lib_webview)
 add_subdirectory(codegen)
 
-# AyuGram filters
+# TeleForge extensions
 add_subdirectory(lib_icu)
-# AyuGram filters
 
 get_filename_component(src_loc SourceFiles REALPATH)
 get_filename_component(res_loc Resources REALPATH)
@@ -100,11 +99,10 @@ PRIVATE
     desktop-app::external_openal
     desktop-app::external_xxhash
 
-    # AyuGram filters
-    ayugram::lib_icu
+    teleforge::lib_icu
 )
 
-set(ayugram_files
+set(teleforge_extension_files
         ayu/ayu_worker.cpp
         ayu/ayu_worker.h
         ayu/ayu_url_handlers.cpp
@@ -332,7 +330,7 @@ target_precompile_headers(Telegram PRIVATE $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:${sr
 nice_target_sources(Telegram ${src_loc}
 PRIVATE
     ${style_files}
-    ${ayugram_files}
+    ${teleforge_extension_files}
 
     api/api_attached_stickers.cpp
     api/api_attached_stickers.h
@@ -2110,7 +2108,7 @@ endif()
 
 nice_target_sources(Telegram ${res_loc}
 PRIVATE
-    qrc/ayu/ayu.qrc
+    qrc/teleforge/teleforge.qrc
 
     qrc/emoji_1.qrc
     qrc/emoji_2.qrc
@@ -2234,23 +2232,12 @@ elseif (APPLE)
 #    endif()
 
     if (CMAKE_GENERATOR STREQUAL Xcode)
-        set(ayugram_icons
+        set(teleforge_mac_icons
             Default
-            Alt
-            Discord
-            Spotify
-            Extera
-            Nothing
-            Bard
-            Yaplus
-            Win95
-            Chibi
-            Chibi2
-            Extera2
         )
 
 #        set(ICON_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/IconOutput")
-        foreach (icon ${ayugram_icons})
+        foreach (icon ${teleforge_mac_icons})
 #            add_custom_command(TARGET Telegram
 #                    PRE_LINK
 #                    COMMAND mkdir -p "${ICON_OUTPUT_DIR}"
@@ -2395,7 +2382,7 @@ PRIVATE
     TDESKTOP_API_ID=${TDESKTOP_API_ID}
     TDESKTOP_API_HASH=${TDESKTOP_API_HASH}
     G_LOG_DOMAIN="Telegram"
-    U_STATIC_IMPLEMENTATION=1 # AyuGram: do not use __declspec(dllimport) when including icu headers
+    U_STATIC_IMPLEMENTATION=1 # TeleForge: static ICU on Windows
 )
 
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
