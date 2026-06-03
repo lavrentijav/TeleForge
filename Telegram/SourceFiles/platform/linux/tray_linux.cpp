@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/platform_specific.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/popup_menu.h"
+#include "window/main_window.h"
 #include "window/window_controller.h"
 #include "styles/style_window.h"
 
@@ -192,7 +193,10 @@ QIcon IconGraphic::trayIcon() {
 			}
 
 			if (currentImageBack.isNull()) {
-				currentImageBack = Window::Logo();
+				currentImageBack = Window::TrayIconRasterBase(
+					iconSize,
+					_new.counter,
+					_new.muted);
 			}
 
 			if (dprSize(currentImageBack) != desiredSize) {

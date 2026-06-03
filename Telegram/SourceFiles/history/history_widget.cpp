@@ -198,6 +198,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/utils/telegram_helpers.h"
 #include "ayu/features/message_shot/message_shot.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/teleforge/teleforge_history_bridge.h"
+#include "ayu/features/teleforge/teleforge_inference.h"
+#include "ayu/features/teleforge/teleforge_memory.h"
+
+#include "crl/crl.h"
+#include "data/data_peer_id.h"
 #include "boxes/abstract_box.h"
 
 
@@ -1492,6 +1498,58 @@ void HistoryWidget::supportInsertText(const QString &text) {
 	_field->setFocus();
 	_field->textCursor().insertText(text);
 	_field->ensureCursorVisible();
+}
+
+void HistoryWidget::teleForgeSuggestReply() {
+	if (!_history || !_peer || !canWriteMessage()) {
+		return;
+	}
+	const auto peerTf = static_cast<long long>(SerializePeerId(_peer->id));
+	if (!TeleForge::LoadMemorySettings(peerTf).aiAnswer) {
+		controller()->showToast(
+			u"TeleForge: AI reply is disabled for this chat."_q);
+		return;
+	}
+	const auto tfCore = TeleForge::LoadPersonalityCore().value_or(
+		TeleForge::DefaultPersonalityCore());
+	const auto maxTurns = std::clamp(
+		tfCore.chatContextMessages > 0 ? tfCore.chatContextMessages : 40,
+		4,
+		128);
+	auto turns = TeleForge::CollectInferenceTurns(_history, maxTurns);
+	if (turns.empty()) {
+		controller()->showToast(
+			u"TeleForge: add some text messages to the chat first."_q);
+		return;
+	}
+	const auto query = TeleForge::BuildRetrievalQueryFromTurns(turns, 4);
+	turns.push_back({
+		QStringLiteral("user"),
+		QStringLiteral(
+			"[TeleForge] Draft a concise reply as this account. "
+			"Match the chat language and tone. "
+			"Output only the reply body, no quotes or labels."),
+		0,
+	});
+	auto params = TeleForge::InferenceParams{
+		.peerId = peerTf,
+		.retrievalQuery = query,
+		.chronologicalTurns = std::move(turns),
+	};
+	params.lmOptions.maxTokens = 1024;
+	params.lmOptions.temperature = 0.7;
+
+	controller()->showToast(u"TeleForge: generating reply…"_q);
+	TeleForge::RequestTeleForgeCompletionAsync(
+		std::move(params),
+		crl::guard(this, [=](const QString &text) {
+			supportInsertText(text.trimmed());
+			controller()->showToast(u"TeleForge: reply inserted."_q);
+		}),
+		crl::guard(this, [=](const QString &err) {
+			controller()->showToast(
+				u"TeleForge: %1"_q.arg(err));
+		}));
 }
 
 void HistoryWidget::supportShareContact(Support::Contact contact) {
@@ -3936,6 +3994,9 @@ void HistoryWidget::newItemAdded(not_null<HistoryItem*> item) {
 		|| item->isScheduled()) {
 		return;
 	}
+	if (!item->out() && !item->isLocal()) {
+		TeleForge::MaybeIngestHistoryItem(item);
+	}
 	if (item->isSponsored()) {
 		if (const auto view = item->mainView()) {
 			view->resizeGetHeight(width());
@@ -5046,6 +5107,16 @@ void HistoryWidget::send(Api::SendOptions options) {
 		&& message.webPage.url.isEmpty();
 	session().api().sendMessage(std::move(message), nextLocalMessageId);
 	_justMarkingAsRead = false;
+
+	if (_peer && !message.textWithTags.text.trimmed().isEmpty()) {
+		const auto peerTf = static_cast<long long>(SerializePeerId(_peer->id));
+		const auto selfTf = static_cast<long long>(
+			SerializePeerId(session().userPeerId()));
+		TeleForge::IngestOutgoingChatText(
+			peerTf,
+			selfTf,
+			message.textWithTags.text);
+	}
 
 	clearFieldText();
 	if (_preview) {
@@ -7938,6 +8009,9 @@ void HistoryWidget::keyPressEvent(QKeyEvent *e) {
 	} else if ((e->key() == Qt::Key_O)
 		&& (e->modifiers() == Qt::ControlModifier)) {
 		chooseAttach();
+	} else if ((e->key() == Qt::Key_M)
+		&& (commonModifiers == (Qt::ControlModifier | Qt::ShiftModifier))) {
+		teleForgeSuggestReply();
 	} else {
 		e->ignore();
 	}

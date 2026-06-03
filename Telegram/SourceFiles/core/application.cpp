@@ -75,6 +75,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/power_saving.h"
 #include "storage/storage_domain.h"
 #include "storage/storage_databases.h"
+#include "logs.h"
 #include "storage/localstorage.h"
 #include "payments/payments_checkout_process.h"
 #include "export/export_manager.h"
@@ -292,7 +293,9 @@ void Application::run() {
 	_translator = std::make_unique<Lang::Translator>();
 	QCoreApplication::instance()->installTranslator(_translator.get());
 
+	DEBUG_LOG(("Application::run: AyuInfra::init next (cWorkingDir=%1)").arg(cWorkingDir()));
 	AyuInfra::init();
+	LOG(("Application::run: after AyuInfra::init (TeleForge + Ayu subsystems); starting style/UI"));
 	style::StartManager(cScale());
 	Ui::Accessible::Init();
 	Ui::InitTextOptions();
@@ -325,6 +328,7 @@ void Application::run() {
 	}, _lifetime);
 
 	DEBUG_LOG(("Application Info: inited..."));
+	LOG(("Application::run: style/emoji/shortcuts/media ready; creating primary window"));
 
 	DEBUG_LOG(("Application Info: starting app..."));
 
@@ -335,6 +339,7 @@ void Application::run() {
 	[[maybe_unused]] const auto &webviewAvailability
 		= Core::CachedWebviewAvailability();
 
+	LOG(("Application::run: constructing Window::Controller (primary)"));
 	_windows.emplace(nullptr, std::make_unique<Window::Controller>());
 	setLastActiveWindow(_windows.front().second.get());
 	_windowInSettings = _lastActivePrimaryWindow = _lastActiveWindow;
@@ -381,22 +386,27 @@ void Application::run() {
 	}, _lifetime);
 
 	DEBUG_LOG(("Application Info: window created..."));
+	LOG(("Application::run: Window::Controller ready; startDomain + tray + firstShow"));
 
 	startDomain();
 	startTray();
 
+	LOG(("Application::run: MainWindow::firstShow (native window show/geometry)"));
 	_lastActivePrimaryWindow->firstShow();
 
 	startMediaView();
 
 	DEBUG_LOG(("Application Info: showing."));
+	LOG(("Application::run: finishFirstShow (work mode: tray/minimized/maximized)"));
 	_lastActivePrimaryWindow->finishFirstShow();
 
 	if (!_lastActivePrimaryWindow->locked() && cStartToSettings()) {
+		LOG(("Application::run: opening settings (cStartToSettings)"));
 		_lastActivePrimaryWindow->showSettings();
 	}
 
 	_lastActivePrimaryWindow->updateIsActiveFocus();
+	LOG(("Application::run: primary window init complete; event loop continues"));
 
 	for (const auto &error : Shortcuts::Errors()) {
 		LOG(("Shortcuts Error: %1").arg(error));
@@ -422,6 +432,7 @@ void Application::run() {
 	}
 
 	processCreatedWindow(_lastActivePrimaryWindow);
+	LOG(("Application::run: returned after setup (Qt event loop still running in Sandbox)"));
 }
 
 void Application::autoRegisterUrlScheme() {
@@ -479,6 +490,16 @@ void Application::showOpenGLCrashNotification() {
 
 void Application::startDomain() {
 	const auto state = _domain->start(QByteArray());
+	const auto stateName = [&] {
+		switch (state) {
+		case Storage::StartResult::Success: return "Success";
+		case Storage::StartResult::IncorrectPasscode: return "IncorrectPasscode";
+		case Storage::StartResult::IncorrectPasscodeLegacy: return "IncorrectPasscodeLegacy";
+		}
+		return "unknown";
+	}();
+	LOG(("Application::startDomain: Main::Domain::start -> %1 (if not Success, UI may show passcode lock)")
+		.arg(stateName));
 	if (state != Storage::StartResult::IncorrectPasscodeLegacy) {
 		// In case of non-legacy passcoded app all global settings are ready.
 		startSettingsAndBackground();
@@ -486,6 +507,7 @@ void Application::startDomain() {
 	if (state != Storage::StartResult::Success) {
 		lockByPasscode();
 		DEBUG_LOG(("Application Info: passcode needed..."));
+		LOG(("Application::startDomain: passcode lock engaged — main chat UI hidden until unlocked"));
 	}
 }
 
@@ -532,6 +554,7 @@ void Application::processCreatedWindow(
 	) | rpl::start_to_stream(_openInMediaViewRequests, window->lifetime());
 
 	if (AyuFeatures::StreamerMode::isEnabled()) {
+		LOG(("Application::processCreatedWindow: StreamerMode hides window from capture — UI may look \"not started\""));
 		AyuFeatures::StreamerMode::hideWidgetWindow(window->widget());
 	}
 }

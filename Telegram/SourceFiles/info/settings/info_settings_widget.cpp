@@ -15,6 +15,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ui/settings/settings_main.h"
+#include "ayu/ui/settings/settings_teleforge_ai.h"
+#include "ayu/ui/settings/settings_teleforge_plugins.h"
+#include "ayu/ui/settings/settings_teleforge_sync.h"
 
 
 namespace Info {
@@ -209,7 +212,10 @@ const Ui::RoundRect *Widget::bottomSkipRounding() const {
 rpl::producer<bool> Widget::desiredShadowVisibility() const {
 	return (_type == ::Settings::MainId()
 		|| _type == ::Settings::InformationId()
-		|| _type == ::Settings::AyuMain::Id())
+		|| _type == ::Settings::AyuMain::Id()
+		|| _type == ::Settings::TeleForgeAi::Id()
+		|| _type == ::Settings::TeleForgePlugins::Id()
+		|| _type == ::Settings::TeleForgeSync::Id())
 		? ContentWidget::desiredShadowVisibility()
 		: rpl::single(true);
 }

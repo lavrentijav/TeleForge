@@ -1,5 +1,6 @@
 #include "ayu/features/teleforge/teleforge_core.h"
 
+#include "ayu/features/teleforge/teleforge_inference.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
 
 #include <algorithm>
@@ -68,6 +69,17 @@ namespace {
 		.systemPrompt = core.systemPrompt.toStdString(),
 		.sourceDevice = core.sourceDevice.toStdString(),
 		.updatedAt = static_cast<int>(core.updatedAt.toSecsSinceEpoch()),
+		.embeddingEndpointUrl = core.embeddingEndpointUrl.toStdString(),
+		.embeddingModelId = core.embeddingModelId.toStdString(),
+		.lmStudioBaseUrl = core.lmStudioBaseUrl.toStdString(),
+		.chatModelPath = core.chatModelPath.toStdString(),
+		.chatModelId = core.chatModelId.toStdString(),
+		.openAiApiKey = core.openAiApiKey.toStdString(),
+		.chatContextMessages = core.chatContextMessages,
+		.memorySyncEnabled = core.memorySyncEnabled,
+		.rerankEndpointUrl = core.rerankEndpointUrl.toStdString(),
+		.rerankModelId = core.rerankModelId.toStdString(),
+		.rerankModelPath = core.rerankModelPath.toStdString(),
 	};
 }
 
@@ -83,6 +95,19 @@ namespace {
 		.systemPrompt = QString::fromStdString(record.systemPrompt),
 		.sourceDevice = QString::fromStdString(record.sourceDevice),
 		.updatedAt = QDateTime::fromSecsSinceEpoch(record.updatedAt),
+		.embeddingEndpointUrl = QString::fromStdString(record.embeddingEndpointUrl),
+		.embeddingModelId = QString::fromStdString(record.embeddingModelId),
+		.lmStudioBaseUrl = QString::fromStdString(record.lmStudioBaseUrl),
+		.chatModelPath = QString::fromStdString(record.chatModelPath),
+		.chatModelId = QString::fromStdString(record.chatModelId),
+		.openAiApiKey = QString::fromStdString(record.openAiApiKey),
+		.chatContextMessages = record.chatContextMessages > 0
+			? record.chatContextMessages
+			: 40,
+		.memorySyncEnabled = record.memorySyncEnabled,
+		.rerankEndpointUrl = QString::fromStdString(record.rerankEndpointUrl),
+		.rerankModelId = QString::fromStdString(record.rerankModelId),
+		.rerankModelPath = QString::fromStdString(record.rerankModelPath),
 	};
 }
 
@@ -178,6 +203,7 @@ std::optional<PersonalityCore> LoadPersonalityCore() {
 void PersistPersonalityCore(const PersonalityCore &core) {
 	Storage::upsertPersonalityCore(ToRecord(core));
 	ExportPersonalityCoreSnapshot(core, DefaultSnapshotPath());
+	ApplyPersonalityEndpoints(core);
 }
 
 QString SerializePersonalityCore(const PersonalityCore &core) {
@@ -193,6 +219,47 @@ QString SerializePersonalityCore(const PersonalityCore &core) {
 	lines.push_back("creativity=" + QString::number(core.weights.creativity, 'f', 2));
 	lines.push_back("system_prompt=" + QString::fromUtf8(
 		core.systemPrompt.toUtf8().toPercentEncoding()));
+	if (!core.embeddingEndpointUrl.isEmpty()) {
+		lines.push_back("embedding_endpoint=" + QString::fromUtf8(
+			core.embeddingEndpointUrl.toUtf8().toPercentEncoding()));
+	}
+	if (!core.embeddingModelId.isEmpty()) {
+		lines.push_back("embedding_model=" + QString::fromUtf8(
+			core.embeddingModelId.toUtf8().toPercentEncoding()));
+	}
+	if (!core.lmStudioBaseUrl.isEmpty()) {
+		lines.push_back("lm_base_url=" + QString::fromUtf8(
+			core.lmStudioBaseUrl.toUtf8().toPercentEncoding()));
+	}
+	if (!core.chatModelPath.isEmpty()) {
+		lines.push_back("chat_model_path=" + QString::fromUtf8(
+			core.chatModelPath.toUtf8().toPercentEncoding()));
+	}
+	if (!core.chatModelId.isEmpty()) {
+		lines.push_back("chat_model_id=" + QString::fromUtf8(
+			core.chatModelId.toUtf8().toPercentEncoding()));
+	}
+	if (!core.openAiApiKey.isEmpty()) {
+		lines.push_back("openai_api_key=" + QString::fromUtf8(
+			core.openAiApiKey.toUtf8().toPercentEncoding()));
+	}
+	if (core.chatContextMessages > 0) {
+		lines.push_back("chat_context_messages=" + QString::number(core.chatContextMessages));
+	}
+	lines.push_back(
+		"memory_sync=" + QString::number(core.memorySyncEnabled ? 1 : 0));
+	if (!core.rerankEndpointUrl.isEmpty()) {
+		lines.push_back("rerank_endpoint=" + QString::fromUtf8(
+			core.rerankEndpointUrl.toUtf8().toPercentEncoding()));
+	}
+	if (!core.rerankModelId.isEmpty()) {
+		lines.push_back("rerank_model=" + QString::fromUtf8(
+			core.rerankModelId.toUtf8().toPercentEncoding()));
+	}
+	if (!core.rerankModelPath.isEmpty()) {
+		lines.push_back("rerank_model_path=" + QString::fromUtf8(
+			core.rerankModelPath.toUtf8().toPercentEncoding()));
+	}
 	return lines.join('\n');
 }
 
@@ -227,6 +294,28 @@ std::optional<PersonalityCore> ParsePersonalityCore(const QString &serialized) {
 			core.weights.creativity = value.toDouble();
 		} else if (key == "system_prompt") {
 			core.systemPrompt = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "embedding_endpoint") {
+			core.embeddingEndpointUrl = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "embedding_model") {
+			core.embeddingModelId = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "lm_base_url") {
+			core.lmStudioBaseUrl = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "chat_model_path") {
+			core.chatModelPath = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "chat_model_id") {
+			core.chatModelId = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "openai_api_key") {
+			core.openAiApiKey = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "chat_context_messages") {
+			core.chatContextMessages = value.toInt();
+		} else if (key == "memory_sync") {
+			core.memorySyncEnabled = (value.toInt() != 0);
+		} else if (key == "rerank_endpoint") {
+			core.rerankEndpointUrl = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "rerank_model") {
+			core.rerankModelId = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "rerank_model_path") {
+			core.rerankModelPath = QUrl::fromPercentEncoding(value.toUtf8());
 		}
 	}
 
@@ -235,6 +324,11 @@ std::optional<PersonalityCore> ParsePersonalityCore(const QString &serialized) {
 	core.weights.emojis = ClampWeight(core.weights.emojis);
 	core.weights.toxicity = ClampWeight(core.weights.toxicity);
 	core.weights.creativity = ClampWeight(core.weights.creativity);
+	if (core.chatContextMessages <= 0) {
+		core.chatContextMessages = 40;
+	} else {
+		core.chatContextMessages = std::clamp(core.chatContextMessages, 4, 128);
+	}
 	return core;
 }
 

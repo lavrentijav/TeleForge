@@ -2468,6 +2468,11 @@ Dialogs::BadgesState History::adjustBadgesStateByFolder(
 
 Dialogs::UnreadState History::computeUnreadState() const {
 	auto result = Dialogs::UnreadState();
+	const auto peer = this->peer.get();
+	if (AyuSettings::getInstance().isUnreadBadgeExcluded(peer->id.value)) {
+		result.known = _unreadCount.has_value();
+		return result;
+	}
 	const auto count = _unreadCount.value_or(0);
 	const auto mark = !count && unreadMark();
 	const auto muted = this->muted();
@@ -2475,7 +2480,6 @@ Dialogs::UnreadState History::computeUnreadState() const {
 	result.chats = count ? 1 : 0;
 	result.marks = mark ? 1 : 0;
 	result.mentions = unreadMentions().has() ? 1 : 0;
-	const auto peer = this->peer.get();
 	const auto &settings = AyuSettings::getInstance();
 	const auto hideReactions = (peer->isChannel() && !peer->isMegagroup() && !settings.showChannelReactions())
 		|| (peer->isMegagroup() && !settings.showGroupReactions())

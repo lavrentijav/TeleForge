@@ -37,6 +37,8 @@ struct SeparateId;
 
 [[nodiscard]] QImage Logo();
 [[nodiscard]] QImage LogoNoMargin();
+/// TeleForge tray SVGs (`Resources/icons/tray_monochrome*.svg`), not the main window logo.
+[[nodiscard]] QImage TrayIconRasterBase(int size, int unreadCount, bool muted);
 [[nodiscard]] const QImage &LogoTelegramDefault();
 void OverrideApplicationIcon(QImage image);
 [[nodiscard]] QIcon CreateIcon(

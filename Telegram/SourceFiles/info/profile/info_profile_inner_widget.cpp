@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_music_button.h"
 #include "info/profile/info_profile_top_bar.h"
 #include "info/profile/info_profile_actions.h"
+#include "info/profile/info_teleforge_peer_panel.h"
 #include "info/media/info_media_buttons.h"
 #include "info/saved/info_saved_music_widget.h"
 #include "data/data_changes.h"
@@ -156,6 +157,14 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 			result.data(),
 			rpl::duplicate(showDivider),
 			sharedTracker));
+	if (!_sublist) {
+		if (auto teleforge = SetupTeleForgePeerPanel(
+				_controller,
+				result.data(),
+				_peer)) {
+			result->add(std::move(teleforge));
+		}
+	}
 	if (_topic || _sublist) {
 		return result;
 	}

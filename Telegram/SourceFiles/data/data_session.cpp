@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_session.h"
 
+#include "ayu/features/spy/online_tracker.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "main/main_app_config.h"
@@ -809,6 +810,7 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 			: Data::LastseenStatus::LongAgo(false);
 		if (result->updateLastseen(lastseen)) {
 			flags |= UpdateFlag::OnlineStatus;
+			TeleForge::Spy::recordUserStatus(result, lastseen);
 		}
 	}
 
@@ -4037,6 +4039,8 @@ void Session::webpageApplyFields(
 					return (DocumentData*)nullptr;
 				}, [](const MTPDwebPageAttributeStarGiftAuction &) {
 					return (DocumentData*)nullptr;
+				}, [](const MTPDwebPageAttributeAiComposeTone &) {
+					return (DocumentData*)nullptr;
 				});
 				if (result) {
 					return result;
@@ -5261,6 +5265,7 @@ void Session::insertCheckedServiceNotification(
 				MTPMessageFwdHeader(),
 				MTPlong(), // via_bot_id
 				MTPlong(), // via_business_bot_id
+				MTPPeer(), // guestchat_via_from
 				MTPMessageReplyHeader(),
 				MTP_int(date),
 				MTP_string(sending.text),

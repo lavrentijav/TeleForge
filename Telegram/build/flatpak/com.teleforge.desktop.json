@@ -1,0 +1,31 @@
+{
+  "app-id": "com.teleforge.desktop",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "23.08",
+  "sdk": "org.freedesktop.Sdk",
+  "command": "TeleForge",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    "--share=network",
+    "--device=dri",
+    "--filesystem=home"
+  ],
+  "modules": [
+    {
+      "name": "teleforge",
+      "buildsystem": "cmake-ninja",
+      "config-opts": [
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DDESKTOP_APP_USE_LLAMA_CPP=ON"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "../../.."
+        }
+      ]
+    }
+  ]
+}

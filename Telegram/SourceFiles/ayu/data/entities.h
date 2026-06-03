@@ -48,6 +48,8 @@ public:
 	std::vector<char> thumbsSerialized;
 	std::vector<char> documentAttributesSerialized;
 	std::string mimeType;
+	/// Cross-device stable merge key (sha256 hex of stable message fields).
+	std::string contentHash;
 };
 
 class DeletedMessage : public AyuMessageBase
@@ -134,4 +136,23 @@ public:
 	ID dialogId;
 	int messageId;
 	int entityCreateDate;
+};
+
+class OnlineEvent
+{
+public:
+	ID fakeId = 0;
+	ID userId = 0;
+	int timestamp = 0;
+	int kind = 0;
+	int onlineTill = 0;
+	int manualLastSeen = 0;
+};
+
+class SpyTarget
+{
+public:
+	ID userId = 0;
+	bool enabled = true;
+	int since = 0;
 };

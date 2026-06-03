@@ -308,6 +308,9 @@ public:
 	[[nodiscard]] const QString &monoFont() const { return _monoFont.current(); }
 	[[nodiscard]] bool hideNotificationCounters() const { return _hideNotificationCounters.current(); }
 	[[nodiscard]] bool hideNotificationBadge() const { return _hideNotificationBadge.current(); }
+	[[nodiscard]] bool isUnreadBadgeExcluded(uint64 peerSerialized) const;
+	void setUnreadBadgeExcluded(uint64 peerSerialized, bool excluded);
+	void toggleUnreadBadgeExcluded(uint64 peerSerialized);
 	[[nodiscard]] bool hideAllChatsFolder() const { return _hideAllChatsFolder.current(); }
 	[[nodiscard]] ChannelBottomButton channelBottomButton() const { return _channelBottomButton.current(); }
 	[[nodiscard]] bool quickAdminShortcuts() const { return _quickAdminShortcuts.current(); }
@@ -581,6 +584,7 @@ private:
 	rpl::variable<bool> _saveMessagesHistory = true;
 	rpl::variable<bool> _saveForBots = false;
 	std::unordered_set<int64> _shadowBanIds;
+	std::unordered_set<uint64> _unreadBadgeExcludedPeers;
 	rpl::variable<bool> _filtersEnabled = false;
 	rpl::variable<bool> _filtersEnabledInChats = false;
 	rpl::variable<bool> _hideFromBlocked = false;

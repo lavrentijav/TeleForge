@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_forum_topic.h"
 #include "data/data_user.h"
 #include "main/main_session.h"
+#include "logs.h"
 #include "main/main_session_settings.h"
 #include "base/options.h"
 #include "base/crc32hash.h"
@@ -42,12 +43,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h" // ChildSkip().x() for new child windows.
 
+#include <QtCore/QFile>
 #include <QtCore/QMimeData>
 #include <QtGui/QWindow>
 #include <QtGui/QScreen>
 #include <QtGui/QDrag>
+#include <QtGui/QPainter>
+
+#include <QSvgRenderer>
 
 #include <kurlmimedata.h>
+
+#include <algorithm>
+#include <array>
 
 // AyuGram includes
 #include "ayu/ui/ayu_logo.h"
@@ -125,6 +133,41 @@ QImage Logo() {
 
 QImage LogoNoMargin() {
 	return AyuAssets::currentAppLogo();
+}
+
+namespace {
+
+std::array<base::flat_map<int, QImage>, 3> TrayRasterCaches;
+
+} // namespace
+
+QImage TrayIconRasterBase(int size, int unreadCount, bool muted) {
+	Expects(size > 0);
+
+	const auto variant = (unreadCount <= 0) ? 0 : (muted ? 2 : 1);
+	if (const auto it = TrayRasterCaches[variant].find(size);
+			it != TrayRasterCaches[variant].end()) {
+		return it->second;
+	}
+
+	const auto path = [&] {
+		switch (variant) {
+		case 1: return u":/gui/icons/tray/monochrome_attention.svg"_q;
+		case 2: return u":/gui/icons/tray/monochrome_mute.svg"_q;
+		default: return u":/gui/icons/tray/monochrome.svg"_q;
+		}
+	}();
+	QFile f(path);
+	const auto content = f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
+
+	auto image = QImage(size, size, QImage::Format_ARGB32_Premultiplied);
+	image.fill(Qt::transparent);
+	if (!content.isEmpty()) {
+		auto p = QPainter(&image);
+		auto hq = PainterHighQualityEnabler(p);
+		QSvgRenderer(content).render(&p, QRectF(0, 0, size, size));
+	}
+	return TrayRasterCaches[variant].emplace(size, std::move(image)).first->second;
 }
 
 const QImage &LogoTelegramDefault() {
@@ -297,20 +340,21 @@ QImage GenerateCounterLayer(CounterLayerArgs &&args) {
 	const auto f = style::font{ d.font, 0, 0 };
 	const auto w = f->width(text);
 
+	const auto badgeW = w + d.delta * 2;
+	const auto badgeH = f->height;
+	const auto badgeX = d.size - badgeW - 1;
+	const auto badgeY = d.size - badgeH - 1;
 	p.setBrush(args.bg.value());
 	p.setPen(Qt::NoPen);
+	p.drawEllipse(QRect(badgeX - 1, badgeY - 1, badgeW + 2, badgeH + 2));
 	p.drawRoundedRect(
-		QRect(
-			d.size - w - d.delta * 2,
-			d.size - f->height,
-			w + d.delta * 2,
-			f->height),
+		QRect(badgeX, badgeY, badgeW, badgeH),
 		d.radius,
 		d.radius);
 
 	p.setFont(f);
 	p.setPen(args.fg.value());
-	p.drawText(d.size - w - d.delta, d.size - f->height + f->ascent, text);
+	p.drawText(badgeX + d.delta, badgeY + f->ascent, text);
 	p.end();
 
 	return result;
@@ -329,13 +373,11 @@ QImage WithSmallCounter(QImage image, CounterLayerArgs &&args) {
 		int size = 0;
 		int font = 0;
 		int delta = 0;
-		int radius = 0;
 	};
 	const auto d = Dimensions{
 		.size = args.size.value(),
 		.font = args.size.value() / 2,
 		.delta = args.size.value() / ((textSize < 2) ? 8 : 16),
-		.radius = args.size.value() / ((textSize < 2) ? 4 : 5),
 	};
 
 	auto p = QPainter(&image);
@@ -343,20 +385,19 @@ QImage WithSmallCounter(QImage image, CounterLayerArgs &&args) {
 	const auto f = style::font{ d.font, 0, 0 };
 	const auto w = f->width(text);
 
+	const auto boxW = w + d.delta * 2;
+	const auto boxH = f->height;
+	const auto dim = std::max(boxW, boxH);
+	const auto left = d.size - dim - d.delta;
+	const auto top = d.size - dim - d.delta;
+
 	p.setBrush(args.bg.value());
 	p.setPen(Qt::NoPen);
-	p.drawRoundedRect(
-		QRect(
-			d.size - w - d.delta * 2,
-			d.size - f->height,
-			w + d.delta * 2,
-			f->height),
-		d.radius,
-		d.radius);
+	p.drawEllipse(QRect(left, top, dim, dim));
 
 	p.setFont(f);
 	p.setPen(args.fg.value());
-	p.drawText(d.size - w - d.delta, d.size - f->height + f->ascent, text);
+	p.drawText(QRect(left, top, dim, dim), Qt::AlignCenter, text);
 	p.end();
 
 	return image;
@@ -707,8 +748,10 @@ QRect MainWindow::countInitialGeometry(WindowPosition position) {
 }
 
 void MainWindow::firstShow() {
+	LOG(("Window::MainWindow::firstShow: primary=%1").arg(Logs::b(isPrimary())));
 	updateMinimumSize();
 	if (initGeometryFromSystem()) {
+		LOG(("Window::MainWindow::firstShow: initGeometryFromSystem -> show()"));
 		show();
 		return;
 	}
@@ -718,6 +761,11 @@ void MainWindow::firstShow() {
 		).arg(geometry.y()
 		).arg(geometry.width()
 		).arg(geometry.height()));
+	LOG(("Window::MainWindow::firstShow: setGeometry + show() | %1x%2 @ %3,%4")
+		.arg(geometry.width())
+		.arg(geometry.height())
+		.arg(geometry.x())
+		.arg(geometry.y()));
 	setGeometry(geometry);
 	show();
 }

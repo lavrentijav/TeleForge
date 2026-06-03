@@ -222,9 +222,12 @@ void Polls::reloadResults(not_null<HistoryItem*> item) {
 	if (!item->isRegular() || _pollReloadRequestIds.contains(itemId)) {
 		return;
 	}
+	const auto media = item->media();
+	const auto poll = media ? media->poll() : nullptr;
 	const auto requestId = _api.request(MTPmessages_GetPollResults(
 		item->history()->peer->input(),
-		MTP_int(item->id)
+		MTP_int(item->id),
+		MTP_long(poll ? poll->hash : 0)
 	)).done([=](const MTPUpdates &result) {
 		_pollReloadRequestIds.erase(itemId);
 		_session->updates().applyUpdates(result);

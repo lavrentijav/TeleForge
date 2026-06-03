@@ -16,22 +16,22 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/popup_menu.h"
+#include "window/main_window.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_window.h"
+#include "styles/style_ayu_icons.h"
 
 #include <qpa/qplatformscreen.h>
 #include <qpa/qplatformsystemtrayicon.h>
 #include <qpa/qplatformtheme.h>
 #include <private/qguiapplication_p.h>
 #include <private/qhighdpiscaling_p.h>
-#include <QSvgRenderer>
 #include <QBuffer>
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
-#include "ayu/ui/ayu_logo.h"
-#include "styles/style_ayu_icons.h"
+
 
 
 namespace Platform {
@@ -80,108 +80,31 @@ bool DarkTasbarValueValid/* = false*/;
 	return DarkTaskbar;
 }
 
-[[nodiscard]] QImage MonochromeIconFor(int size, bool darkMode) {
-	Expects(size > 0);
-
-	static const auto Content = [&] {
-		auto f = QFile(u":/gui/icons/tray/monochrome.svg"_q);
-		return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
-	}();
-	static auto Mask = QImage();
-	static auto Size = 0;
-	if (Mask.isNull() || Size != size) {
-		Size = size;
-		Mask = QImage(size, size, QImage::Format_ARGB32_Premultiplied);
-		Mask.fill(Qt::transparent);
-		auto p = QPainter(&Mask);
-		QSvgRenderer(Content).render(&p, QRectF(0, 0, size, size));
-	}
-	static auto Colored = QImage();
-	static auto ColoredDark = QImage();
-	auto &use = darkMode ? ColoredDark : Colored;
-	if (use.size() != Mask.size()) {
-		const auto color = darkMode ? 255 : 0;
-		const auto alpha = darkMode ? 255 : 228;
-		use = style::colorizeImage(Mask, { color, color, color, alpha });
-	}
-	return use;
-}
-
-[[nodiscard]] QImage MonochromeWithDot(QImage image, style::color color) {
-	auto p = QPainter(&image);
-	auto hq = PainterHighQualityEnabler(p);
-	const auto xm = image.width() / 16.;
-	const auto ym = image.height() / 16.;
-	p.setBrush(color);
-	p.setPen(Qt::NoPen);
-	p.drawEllipse(QRectF( // cx=3.9, cy=12.7, r=2.2
-		1.7 * xm,
-		9.5 * ym,
-		4.4 * xm,
-		4.4 * ym));
-	return image;
-}
-
 [[nodiscard]] QImage ImageIconWithCounter(
 		Window::CounterLayerArgs &&args,
 		bool supportMode,
 		bool smallIcon,
 		bool monochrome) {
-	static auto ScaledLogo = base::flat_map<int, QImage>();
-	static auto ScaledLogoNoMargin = base::flat_map<int, QImage>();
-	static auto ScaledLogoDark = base::flat_map<int, QImage>();
-	static auto ScaledLogoLight = base::flat_map<int, QImage>();
-
-	static auto lastUsedIcon = AyuAssets::currentAppLogoName();
-
-	if (lastUsedIcon != AyuAssets::currentAppLogoName()) {
-		ScaledLogo = base::flat_map<int, QImage>();
-		ScaledLogoNoMargin = base::flat_map<int, QImage>();
-		ScaledLogoDark = base::flat_map<int, QImage>();
-		ScaledLogoLight = base::flat_map<int, QImage>();
-	}
-
 	const auto &settings = AyuSettings::getInstance();
 	if (settings.hideNotificationBadge()) {
 		args.count = 0;
 	}
 
 	const auto darkMode = IsDarkTaskbar();
-	auto &scaled = (monochrome && darkMode)
-		? (*darkMode
-			? ScaledLogoDark
-			: ScaledLogoLight)
-		: smallIcon
-		? ScaledLogoNoMargin
-		: ScaledLogo;
+	const auto cnt = args.count.value();
+	const auto muted = Core::App().unreadBadgeMuted();
 
-	auto result = [&] {
-		if (const auto it = scaled.find(args.size); it != scaled.end()) {
-			return it->second;
-		} else if (monochrome && darkMode) {
-			return MonochromeIconFor(args.size, *darkMode);
-		}
-		return scaled.emplace(
-			args.size,
-			(smallIcon
-				? Window::LogoNoMargin()
-				: Window::Logo()
-			).scaledToWidth(args.size, Qt::SmoothTransformation)
-		).first->second;
-	}();
+	auto result = Window::TrayIconRasterBase(args.size, cnt, muted);
 	if ((!monochrome || !darkMode) && supportMode) {
 		Window::ConvertIconToBlack(result);
 	}
 	if (!args.count) {
 		return result;
 	} else if (smallIcon) {
-		if (monochrome && darkMode) {
-			return MonochromeWithDot(std::move(result), args.bg);
-		}
 		return Window::WithSmallCounter(std::move(result), std::move(args));
 	}
 	QPainter p(&result);
-	PainterHighQualityEnabler hq(p); // AyuGram: fix for lq icons
+	PainterHighQualityEnabler hq(p);
 	const auto half = args.size / 2;
 	args.size = half;
 	p.drawPixmap(

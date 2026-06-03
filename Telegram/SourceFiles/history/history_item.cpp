@@ -440,6 +440,39 @@ HistoryItem::HistoryItem(
 		? CheckMessageMedia(*media)
 		: MediaCheckResult::Good;
 	if (checked == MediaCheckResult::Unsupported) {
+		if (media) {
+			const auto outer = static_cast<uint32>(media->type());
+			auto details = QString();
+			media->match(
+				[&](const MTPDmessageMediaWebPage &w) {
+					const auto inner = static_cast<uint32>(w.vwebpage().type());
+					details = u"messageMediaWebPage inner_webpage=0x%1"_q.arg(
+						inner,
+						8,
+						16,
+						QChar('0'));
+					if (inner == mtpc_webPageNotModified) {
+						details += u" (webPageNotModified: client should not receive this inside a message; layer/cache bug)"_q;
+					}
+				},
+				[&](const MTPDmessageMediaUnsupported &) {
+					details = u"messageMediaUnsupported (server sent explicit unsupported media; "
+						"often a new MessageMedia constructor until api.tl is updated)"_q;
+				},
+				[&](const auto &) {
+					details = u"CheckMessageMedia=Unsupported but outer media is 0x%1 (unexpected)"_q.arg(
+						outer,
+						8,
+						16,
+						QChar('0'));
+				});
+			LOG(("TeleForge: unsupported message (lng_message_unsupported UI): "
+				"peer_id=%1 msg_id=%2 outer_media=0x%3 %4"
+				).arg(history->peer->id.value
+				).arg(id.bare
+				).arg(outer, 0, 16
+				).arg(details));
+		}
 		_flags &= ~MessageFlag::HasPostAuthor;
 		_flags |= MessageFlag::Legacy;
 		createComponents(data);
@@ -7004,6 +7037,9 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 		prepareNoForwardsToggle,
 		prepareNoForwardsRequest,
 		PrepareEmptyText<MTPDmessageActionRequestedPeerSentMe>,
+		PrepareEmptyText<MTPDmessageActionPollAppendAnswer>,
+		PrepareEmptyText<MTPDmessageActionPollDeleteAnswer>,
+		PrepareEmptyText<MTPDmessageActionManagedBotCreated>,
 		PrepareErrorText<MTPDmessageActionEmpty>));
 
 	processAction(action);

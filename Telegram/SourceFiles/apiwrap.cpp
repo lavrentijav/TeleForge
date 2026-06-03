@@ -4518,7 +4518,8 @@ void ApiWrap::uploadAlbumMedia(
 					fields.vid(),
 					fields.vaccess_hash(),
 					fields.vfile_reference()),
-				MTP_int(data.vttl_seconds().value_or_empty()));
+				MTP_int(data.vttl_seconds().value_or_empty()),
+				MTPInputDocument());
 			sendAlbumWithUploaded(item, groupId, media);
 		} break;
 

@@ -238,6 +238,9 @@ EntitiesInText EntitiesFromMTP(
 				d.vlength().v,
 				d.is_collapsed() ? u"1"_q : QString(),
 			});
+		}, [&](const MTPDmessageEntityDiffInsert &d) {
+		}, [&](const MTPDmessageEntityDiffReplace &d) {
+		}, [&](const MTPDmessageEntityDiffDelete &d) {
 		}, [&](const MTPDmessageEntityFormattedDate &d) {
 			auto flags = FormattedDateFlags();
 			if (d.is_relative()) {

@@ -48,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h"
 #include "styles/style_window.h"
+#include "logs.h"
 
 #include <QtGui/QWindow>
 
@@ -119,6 +120,7 @@ void MainWindow::applyInitialWorkMode() {
 	if (controller().isPrimary()) {
 		if (Core::App().settings().windowPosition().maximized) {
 			DEBUG_LOG(("Window Pos: First show, setting maximized."));
+			LOG(("MainWindow::applyInitialWorkMode: starting maximized"));
 			setWindowState(Qt::WindowMaximized);
 		}
 		if (cStartInTray()
@@ -128,8 +130,10 @@ void MainWindow::applyInitialWorkMode() {
 			DEBUG_LOG(("Window Pos: First show, setting minimized after."));
 			if (workMode == Core::Settings::WorkMode::TrayOnly
 				|| workMode == Core::Settings::WorkMode::WindowAndTray) {
+				LOG(("MainWindow::applyInitialWorkMode: hide() — cStartInTray/startMinimized + workMode Tray (window may be only in tray)"));
 				hide();
 			} else {
+				LOG(("MainWindow::applyInitialWorkMode: WindowMinimized (taskbar), not closed"));
 				setWindowState(windowState() | Qt::WindowMinimized);
 			}
 		}
@@ -138,6 +142,11 @@ void MainWindow::applyInitialWorkMode() {
 }
 
 void MainWindow::finishFirstShow() {
+	LOG(("MainWindow::finishFirstShow: apply work mode + global menu; passcodeWidget=%1 setupEmailWidget=%2 hasMain=%3 hasIntro=%4")
+		.arg(Logs::b(static_cast<bool>(_passcodeLock)))
+		.arg(Logs::b(static_cast<bool>(_setupEmailLock)))
+		.arg(Logs::b(static_cast<bool>(_main)))
+		.arg(Logs::b(static_cast<bool>(_intro))));
 	applyInitialWorkMode();
 	createGlobalMenu();
 

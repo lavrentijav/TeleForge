@@ -89,6 +89,14 @@ bool PollData::applyChanges(const MTPDpoll &poll) {
 				&session(),
 				answer.vtext());
 			return result;
+		}, [&](const MTPDinputPollAnswer &answer) {
+			auto result = PollAnswer();
+			result.text = Api::ParseTextWithEntities(
+				&session(),
+				answer.vtext());
+			return result;
+		}, [](const auto &) {
+			return PollAnswer();
 		});
 	}) | ranges::views::take(
 		kMaxOptions
@@ -118,6 +126,7 @@ bool PollData::applyChanges(const MTPDpoll &poll) {
 			}
 		}
 	}
+	hash = poll.vhash().v;
 	++version;
 	return true;
 }
@@ -206,9 +215,12 @@ bool PollData::applyResultToAnswers(
 		if (!answer) {
 			return false;
 		}
-		auto changed = (answer->votes != voters.vvoters().v);
-		if (changed) {
-			answer->votes = voters.vvoters().v;
+		auto changed = false;
+		if (const auto count = voters.vvoters()) {
+			if (answer->votes != count->v) {
+				answer->votes = count->v;
+				changed = true;
+			}
 		}
 		if (!isMinResults) {
 			if (answer->chosen != voters.is_chosen()) {
@@ -257,11 +269,12 @@ bool PollData::quiz() const {
 
 MTPPoll PollDataToMTP(not_null<const PollData*> poll, bool close) {
 	const auto convert = [&](const PollAnswer &answer) {
-		return MTP_pollAnswer(
+		return MTP_inputPollAnswer(
+			MTP_flags(MTPDinputPollAnswer::Flag(0)),
 			MTP_textWithEntities(
 				MTP_string(answer.text.text),
 				Api::EntitiesToMTP(&poll->session(), answer.text.entities)),
-			MTP_bytes(answer.option));
+			MTPInputMedia());
 	};
 	auto answers = QVector<MTPPollAnswer>();
 	answers.reserve(poll->answers.size());
@@ -269,13 +282,15 @@ MTPPoll PollDataToMTP(not_null<const PollData*> poll, bool close) {
 		poll->answers,
 		ranges::back_inserter(answers),
 		convert);
+	auto countries = QVector<MTPstring>();
 	using Flag = MTPDpoll::Flag;
 	const auto flags = ((poll->closed() || close) ? Flag::f_closed : Flag(0))
 		| (poll->multiChoice() ? Flag::f_multiple_choice : Flag(0))
 		| (poll->publicVotes() ? Flag::f_public_voters : Flag(0))
 		| (poll->quiz() ? Flag::f_quiz : Flag(0))
 		| (poll->closePeriod > 0 ? Flag::f_close_period : Flag(0))
-		| (poll->closeDate > 0 ? Flag::f_close_date : Flag(0));
+		| (poll->closeDate > 0 ? Flag::f_close_date : Flag(0))
+		| (countries.isEmpty() ? Flag(0) : Flag::f_countries_iso2);
 	return MTP_poll(
 		MTP_long(poll->id),
 		MTP_flags(flags),
@@ -284,7 +299,9 @@ MTPPoll PollDataToMTP(not_null<const PollData*> poll, bool close) {
 			Api::EntitiesToMTP(&poll->session(), poll->question.entities)),
 		MTP_vector<MTPPollAnswer>(answers),
 		MTP_int(poll->closePeriod),
-		MTP_int(poll->closeDate));
+		MTP_int(poll->closeDate),
+		MTP_vector<MTPstring>(std::move(countries)),
+		MTP_long(poll->hash));
 }
 
 MTPInputMedia PollDataToInputMedia(
@@ -294,10 +311,10 @@ MTPInputMedia PollDataToInputMedia(
 		| (poll->quiz()
 			? MTPDinputMediaPoll::Flag::f_correct_answers
 			: MTPDinputMediaPoll::Flag(0));
-	auto correct = QVector<MTPbytes>();
-	for (const auto &answer : poll->answers) {
-		if (answer.correct) {
-			correct.push_back(MTP_bytes(answer.option));
+	auto correct = QVector<MTPint>();
+	for (auto i = 0, count = int(poll->answers.size()); i != count; ++i) {
+		if (poll->answers[i].correct) {
+			correct.push_back(MTP_int(i));
 		}
 	}
 
@@ -318,7 +335,9 @@ MTPInputMedia PollDataToInputMedia(
 	return MTP_inputMediaPoll(
 		MTP_flags(inputFlags),
 		PollDataToMTP(poll, close),
-		MTP_vector<MTPbytes>(correct),
+		MTP_vector<MTPint>(correct),
+		MTPInputMedia(),
 		MTP_string(solution.text),
-		sentEntities);
+		sentEntities,
+		MTPInputMedia());
 }

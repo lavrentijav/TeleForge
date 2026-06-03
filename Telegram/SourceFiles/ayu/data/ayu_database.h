@@ -56,4 +56,11 @@ bool hasPerDialogFilters();
 
 void moveCurrentDatabase();
 
+void insertOnlineEvent(const OnlineEvent &event);
+[[nodiscard]] std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs);
+[[nodiscard]] std::optional<int> manualLastSeenForUser(ID userId);
+void upsertSpyTarget(ID userId, bool enabled);
+[[nodiscard]] bool isSpyTargetEnabled(ID userId);
+void purgeOnlineEventsBefore(int timestamp);
+
 }

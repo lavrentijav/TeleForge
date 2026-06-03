@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/notifications_manager.h"
 
+#include "ayu/features/sync/teleforge_sync_transport.h"
+
 #include "base/options.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "platform/platform_notifications_manager.h"
@@ -297,6 +299,9 @@ System::SkipState System::skipNotification(
 	const auto thread = item->maybeNotificationThread();
 	if (!thread
 		|| !thread->currentNotification()
+		|| TeleForge::Sync::IsSyncChannel(
+			&thread->session(),
+			thread->peer()->id)
 		|| (messageType && item->skipNotification())
 		|| (type == Data::ItemNotificationType::Reaction
 			&& skipReactionNotification(item))) {

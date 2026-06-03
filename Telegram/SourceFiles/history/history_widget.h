@@ -462,6 +462,7 @@ private:
 	void supportInitAutocomplete();
 	void supportInsertText(const QString &text);
 	void supportShareContact(Support::Contact contact);
+	void teleForgeSuggestReply();
 
 	auto computeSendButtonType() const;
 

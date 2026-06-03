@@ -16,6 +16,7 @@
 #include "features/translator/ayu_translator.h"
 #include "lang/lang_instance.h"
 #include "utils/rc_manager.h"
+#include "logs.h"
 
 #ifdef Q_OS_WIN
 #include "ayu/utils/windows_utils.h"
@@ -48,7 +49,9 @@ void initDatabase() {
 }
 
 void initTeleForge() {
+	LOG(("AyuInfra::initTeleForge — after AyuDatabase::initialize(); next: TeleForge SQLite + bootstrap"));
 	TeleForge::initialize();
+	LOG(("AyuInfra::initTeleForge done"));
 }
 
 void initWorker() {

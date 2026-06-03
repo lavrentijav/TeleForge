@@ -6,6 +6,9 @@
 
 cmake_minimum_required(VERSION 3.25...3.31)
 
+# ggml (via bundled llama.cpp) calls nested project(ASM); CMake 4.x treats unset CMP194 as fatal in dev mode.
+set(CMAKE_POLICY_DEFAULT_CMP194 NEW)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include(cmake/validate_special_target.cmake)

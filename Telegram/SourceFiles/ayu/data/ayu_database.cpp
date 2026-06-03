@@ -6,6 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "ayu/data/ayu_database.h"
 
+#include "ayu/data/ayu_content_hash.h"
 #include "ayu/data/entities.h"
 #include "ayu/libs/sqlite/sqlite_orm.h"
 #include "base/unixtime.h"
@@ -27,6 +28,10 @@ auto storage = make_storage(
 			   column<EditedMessage>(&EditedMessage::userId),
 			   column<EditedMessage>(&EditedMessage::dialogId),
 			   column<EditedMessage>(&EditedMessage::messageId)),
+	make_index("idx_deleted_message_contentHash",
+		column<DeletedMessage>(&DeletedMessage::contentHash)),
+	make_index("idx_edited_message_contentHash",
+		column<EditedMessage>(&EditedMessage::contentHash)),
 	make_table<DeletedMessage>(
 		"DeletedMessage",
 		make_column("fakeId", &DeletedMessage::fakeId, primary_key().autoincrement()),
@@ -61,7 +66,8 @@ auto storage = make_storage(
 		make_column("documentSerialized", &DeletedMessage::documentSerialized),
 		make_column("thumbsSerialized", &DeletedMessage::thumbsSerialized),
 		make_column("documentAttributesSerialized", &DeletedMessage::documentAttributesSerialized),
-		make_column("mimeType", &DeletedMessage::mimeType)
+		make_column("mimeType", &DeletedMessage::mimeType),
+		make_column("contentHash", &DeletedMessage::contentHash)
 	),
 	make_table<EditedMessage>(
 		"EditedMessage",
@@ -97,7 +103,8 @@ auto storage = make_storage(
 		make_column("documentSerialized", &EditedMessage::documentSerialized),
 		make_column("thumbsSerialized", &EditedMessage::thumbsSerialized),
 		make_column("documentAttributesSerialized", &EditedMessage::documentAttributesSerialized),
-		make_column("mimeType", &EditedMessage::mimeType)
+		make_column("mimeType", &EditedMessage::mimeType),
+		make_column("contentHash", &EditedMessage::contentHash)
 	),
 	make_table<DeletedDialog>(
 		"DeletedDialog",
@@ -141,7 +148,27 @@ auto storage = make_storage(
 		make_column("dialogId", &SpyMessageContentsRead::dialogId),
 		make_column("messageId", &SpyMessageContentsRead::messageId),
 		make_column("entityCreateDate", &SpyMessageContentsRead::entityCreateDate)
-	)
+	),
+	// NOTE: sqlite_orm's sync_schema processes schema objects in REVERSE
+	// declaration order, so an index must be declared BEFORE its table (same as
+	// the DeletedMessage/EditedMessage indexes above). Otherwise the index is
+	// created before the table exists -> "no such table: OnlineEvent".
+	make_index("idx_online_event_userId_timestamp",
+		column<OnlineEvent>(&OnlineEvent::userId),
+		column<OnlineEvent>(&OnlineEvent::timestamp)),
+	make_table<OnlineEvent>(
+		"OnlineEvent",
+		make_column("fakeId", &OnlineEvent::fakeId, primary_key().autoincrement()),
+		make_column("userId", &OnlineEvent::userId),
+		make_column("timestamp", &OnlineEvent::timestamp),
+		make_column("kind", &OnlineEvent::kind),
+		make_column("onlineTill", &OnlineEvent::onlineTill),
+		make_column("manualLastSeen", &OnlineEvent::manualLastSeen)),
+	make_table<SpyTarget>(
+		"SpyTarget",
+		make_column("userId", &SpyTarget::userId, primary_key()),
+		make_column("enabled", &SpyTarget::enabled),
+		make_column("since", &SpyTarget::since))
 );
 
 namespace AyuMigrations {
@@ -156,13 +183,34 @@ void migrateToV1(decltype(storage) &storage) {
 	}
 }
 
+void migrateToV2(decltype(storage) &storage) {
+	try {
+		for (auto &row : storage.get_all<EditedMessage>()) {
+			if (row.contentHash.empty()) {
+				row.contentHash = AyuContentHash::ComputeEdited(row);
+				storage.update(row);
+			}
+		}
+		for (auto &row : storage.get_all<DeletedMessage>()) {
+			if (row.contentHash.empty()) {
+				row.contentHash = AyuContentHash::ComputeDeleted(row);
+				storage.update(row);
+			}
+		}
+		LOG(("Migration to V2 successful."));
+	} catch (const std::exception &ex) {
+		LOG(("Migration to V2 failed: %1").arg(ex.what()));
+	}
+}
+
 }
 
 void runMigrations(decltype(storage) &storage) {
-	constexpr int kLatestVersion = 1;
+	constexpr int kLatestVersion = 2;
 
 	const std::map<int, Fn<void(decltype(storage) &)>> migrations = {
 		{1, AyuMigrations::migrateToV1},
+		{2, AyuMigrations::migrateToV2},
 	};
 
 	int currentVersion = 0;
@@ -244,8 +292,12 @@ void initialize() {
 
 void addEditedMessage(const EditedMessage &message) {
 	try {
+		auto row = message;
+		if (row.contentHash.empty()) {
+			row.contentHash = AyuContentHash::ComputeEdited(row);
+		}
 		storage.begin_transaction();
-		storage.insert(message);
+		storage.insert(row);
 		storage.commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
@@ -285,8 +337,12 @@ bool hasRevisions(ID userId, ID dialogId, ID messageId) {
 
 void addDeletedMessage(const DeletedMessage &message) {
 	try {
+		auto row = message;
+		if (row.contentHash.empty()) {
+			row.contentHash = AyuContentHash::ComputeDeleted(row);
+		}
 		storage.begin_transaction();
-		storage.insert(message);
+		storage.insert(row);
 		storage.commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
@@ -536,6 +592,76 @@ bool hasPerDialogFilters() {
 	} catch (std::exception &ex) {
 		LOG(("Failed to check if there's any filters: %1").arg(ex.what()));
 		return false;
+	}
+}
+
+void insertOnlineEvent(const OnlineEvent &event) {
+	try {
+		storage.insert(event);
+	} catch (const std::exception &ex) {
+		LOG(("Failed to insert OnlineEvent: %1").arg(ex.what()));
+	}
+}
+
+std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs) {
+	try {
+		return storage.get_all<OnlineEvent>(
+			where(
+				column<OnlineEvent>(&OnlineEvent::userId) == userId
+				and column<OnlineEvent>(&OnlineEvent::timestamp) >= sinceTs),
+			order_by(column<OnlineEvent>(&OnlineEvent::timestamp)).desc(),
+			limit(500));
+	} catch (const std::exception &ex) {
+		LOG(("Failed to load OnlineEvent: %1").arg(ex.what()));
+		return {};
+	}
+}
+
+std::optional<int> manualLastSeenForUser(ID userId) {
+	try {
+		const auto rows = storage.select(
+			columns(column<OnlineEvent>(&OnlineEvent::manualLastSeen)),
+			where(
+				column<OnlineEvent>(&OnlineEvent::userId) == userId
+				and column<OnlineEvent>(&OnlineEvent::manualLastSeen) > 0),
+			order_by(column<OnlineEvent>(&OnlineEvent::timestamp)).desc(),
+			limit(1));
+		if (rows.empty()) {
+			return std::nullopt;
+		}
+		return std::get<0>(rows.front());
+	} catch (const std::exception &ex) {
+		LOG(("Failed manualLastSeenForUser: %1").arg(ex.what()));
+		return std::nullopt;
+	}
+}
+
+void upsertSpyTarget(ID userId, bool enabled) {
+	try {
+		SpyTarget row{ userId, enabled, base::unixtime::now() };
+		storage.replace(row);
+	} catch (const std::exception &ex) {
+		LOG(("Failed upsertSpyTarget: %1").arg(ex.what()));
+	}
+}
+
+bool isSpyTargetEnabled(ID userId) {
+	try {
+		if (const auto row = storage.get_pointer<SpyTarget>(userId)) {
+			return row->enabled;
+		}
+	} catch (const std::exception &ex) {
+		LOG(("Failed isSpyTargetEnabled: %1").arg(ex.what()));
+	}
+	return false;
+}
+
+void purgeOnlineEventsBefore(int timestamp) {
+	try {
+		storage.remove_all<OnlineEvent>(
+			where(column<OnlineEvent>(&OnlineEvent::timestamp) < timestamp));
+	} catch (const std::exception &ex) {
+		LOG(("Failed purgeOnlineEventsBefore: %1").arg(ex.what()));
 	}
 }
 

@@ -7748,7 +7748,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram keys generated
 
-"ayu_AyuPreferences" = "TeleForge Preferences";
+"ayu_AyuPreferences" = "TeleForge";
 "ayu_DocsText" = "Documentation";
 "ayu_CategoryGeneral" = "General";
 "ayu_CategoryAppearance" = "Appearance";
@@ -8141,7 +8141,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_SupporterPopup" = "**{item}** supported **TeleForge** and received a unique badge.";
 "ayu_OfficialResourcePopup" = "**{item}** is an official **TeleForge** resource.";
 "ayu_SettingsWatermark" = "TeleForge is developed and maintained by the TeleForge team.";
-"ayu_SettingsDescription" = "Telegram Desktop fork focused on customization and ToS-breaking features.";
+"ayu_SettingsDescription" = "TeleForge — ИИ, память для диалогов и расширения поверх Telegram.";
 "ayu_ConfirmationSticker" = "Do you want to send this sticker?";
 "ayu_ConfirmationGIF" = "Do you want to send this GIF?";
 "ayu_ConfirmationVoice" = "Do you want to send this voice message?";

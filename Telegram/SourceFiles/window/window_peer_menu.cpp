@@ -133,6 +133,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_ayu_icons.h"
 #include "ayu/ui/context_menu/context_menu.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/ayu_settings.h"
 
 namespace Window {
 namespace {
@@ -305,6 +306,7 @@ private:
 	void addNewWindow(bool addSeparator = true);
 	void addToggleFolder();
 	void addToggleUnreadMark();
+	void addToggleUnreadBadgeExclude();
 	void addToggleArchive();
 	void addClearHistory();
 	void addDeleteChat();
@@ -695,6 +697,21 @@ void Filler::addToggleUnreadMark() {
 			peer->owner().histories().changeDialogUnreadMark(history, true);
 		}
 	}, (unread ? &st::menuIconMarkRead : &st::menuIconMarkUnread));
+}
+
+void Filler::addToggleUnreadBadgeExclude() {
+	if (!_peer || !_request.key.history()) {
+		return;
+	}
+	const auto peer = _peer;
+	const auto excluded = AyuSettings::getInstance().isUnreadBadgeExcluded(
+		peer->id.value);
+	const auto label = excluded
+		? u"Учитывать в счётчике непрочитанных"_q
+		: u"Исключить из счётчика непрочитанных"_q;
+	_addAction(label, [=] {
+		AyuSettings::getInstance().toggleUnreadBadgeExcluded(peer->id.value);
+	}, &st::menuIconMute);
 }
 
 void Filler::addNewWindow(bool addSeparator) {
@@ -1744,6 +1761,7 @@ void Filler::fillContextMenuActions() {
 	}
 	addToggleMuteSubmenu(false);
 	addToggleUnreadMark();
+	addToggleUnreadBadgeExclude();
 	addToggleTopicClosed();
 	addToggleFolder();
 	if (const auto user = _peer->asUser()) {

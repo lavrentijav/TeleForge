@@ -12,8 +12,11 @@
 #include "ayu/ayu_worker.h"
 #include "ayu/ui/ayu_logo.h"
 #include "core/application.h"
+#include "data/data_peer_id.h"
+#include "data/data_session.h"
 #include "features/filters/filters_cache_controller.h"
 #include "features/translator/ayu_translator.h"
+#include "history/history.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
 #include "rpl/combine.h"
@@ -440,6 +443,33 @@ void AyuSettings::removeShadowBan(int64 id) {
 		FiltersCacheController::fireUpdate();
 		save();
 	}
+}
+
+bool AyuSettings::isUnreadBadgeExcluded(uint64 peerSerialized) const {
+	return _unreadBadgeExcludedPeers.contains(peerSerialized);
+}
+
+void AyuSettings::setUnreadBadgeExcluded(uint64 peerSerialized, bool excluded) {
+	const auto changed = excluded
+		? _unreadBadgeExcludedPeers.insert(peerSerialized).second
+		: (_unreadBadgeExcludedPeers.erase(peerSerialized) > 0);
+	if (!changed) {
+		return;
+	}
+	save();
+	if (const auto session = Core::App().maybePrimarySession()) {
+		const auto peerId = PeerId(PeerIdHelper{ peerSerialized });
+		if (const auto peer = session->data().peerLoaded(peerId)) {
+			session->data().history(peer)->updateChatListEntry();
+		}
+	}
+	Core::App().tray().updateIconCounters();
+	Core::App().refreshApplicationIcon();
+	Core::App().domain().notifyUnreadBadgeChanged();
+}
+
+void AyuSettings::toggleUnreadBadgeExcluded(uint64 peerSerialized) {
+	setUnreadBadgeExcluded(peerSerialized, !isUnreadBadgeExcluded(peerSerialized));
 }
 
 void AyuSettings::validate() {
@@ -997,6 +1027,7 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"saveMessagesHistory", s._saveMessagesHistory.current()},
 		{"saveForBots", s._saveForBots.current()},
 		{"shadowBanIds", s._shadowBanIds},
+		{"unreadBadgeExcluded", s._unreadBadgeExcludedPeers},
 		{"filtersEnabled", s._filtersEnabled.current()},
 		{"filtersEnabledInChats", s._filtersEnabledInChats.current()},
 		{"hideFromBlocked", s._hideFromBlocked.current()},
@@ -1094,6 +1125,9 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._saveMessagesHistory = j.value("saveMessagesHistory", defaults._saveMessagesHistory.current());
 	s._saveForBots = j.value("saveForBots", defaults._saveForBots.current());
 	s._shadowBanIds = j.value("shadowBanIds", defaults._shadowBanIds);
+	s._unreadBadgeExcludedPeers = j.value(
+		"unreadBadgeExcluded",
+		defaults._unreadBadgeExcludedPeers);
 	s._filtersEnabled = j.value("filtersEnabled", defaults._filtersEnabled.current());
 	s._filtersEnabledInChats = j.value("filtersEnabledInChats", defaults._filtersEnabledInChats.current());
 	s._hideFromBlocked = j.value("hideFromBlocked", defaults._hideFromBlocked.current());

@@ -20,7 +20,7 @@ struct Entry {
 	const char *usernameOrId = "";
 };
 
-inline constexpr std::array<Entry, 3> kEntries = { {
+inline constexpr std::array<Entry, 4> kEntries = { {
 	{
 		.type = Type::Channel,
 		.id = "teleforge/channel",
@@ -38,8 +38,15 @@ inline constexpr std::array<Entry, 3> kEntries = { {
 	{
 		.type = Type::Website,
 		.id = "teleforge/website",
-		.label = "tele-forge.ru",
-		.url = "https://tele-forge.ru",
+		.label = "teleforge.github.io",
+		.url = "https://teleforgedesktop.github.io/TeleForge/",
+		.usernameOrId = "",
+	},
+	{
+		.type = Type::Website,
+		.id = "teleforge/github",
+		.label = "GitHub Releases",
+		.url = "https://github.com/TeleForgeDesktop/TeleForge/releases/latest",
 		.usernameOrId = "",
 	},
 } };

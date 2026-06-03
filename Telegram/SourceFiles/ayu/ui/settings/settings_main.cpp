@@ -16,6 +16,9 @@
 #include "ayu/ui/settings/settings_filters.h"
 #include "ayu/ui/settings/settings_general.h"
 #include "ayu/ui/settings/settings_other.h"
+#include "ayu/ui/settings/settings_teleforge_ai.h"
+#include "ayu/ui/settings/settings_teleforge_plugins.h"
+#include "ayu/ui/settings/settings_teleforge_sync.h"
 #include "ayu/utils/official_resources.h"
 #include "core/version.h"
 #include "settings/settings_builder.h"
@@ -102,7 +105,22 @@ void BuildCategories(SectionBuilder &builder) {
 	builder.addSubsectionTitle(tr::ayu_CategoriesHeader());
 
 	builder.addSectionButton({
-		.title = rpl::single(QString("TeleForge")),
+		.title = rpl::single(u"ИИ и память"_q),
+		.targetSection = TeleForgeAi::Id(),
+		.icon = { &st::menuIconIpAddress },
+	});
+	builder.addSectionButton({
+		.title = rpl::single(u"Плагины"_q),
+		.targetSection = TeleForgePlugins::Id(),
+		.icon = { &st::menuIconBot },
+	});
+	builder.addSectionButton({
+		.title = rpl::single(u"Синхронизация"_q),
+		.targetSection = TeleForgeSync::Id(),
+		.icon = { &st::menuIconDownload },
+	});
+	builder.addSectionButton({
+		.title = tr::ayu_GhostModeToggle(),
 		.targetSection = AyuGhost::Id(),
 		.icon = { &st::menuIconGroupReactions },
 	});
@@ -184,7 +202,7 @@ void BuildLinks(SectionBuilder &builder) {
 const auto kMeta = BuildHelper({
 	.id = AyuMain::Id(),
 	.parentId = MainId(),
-	.title = &tr::ayu_AyuPreferences,
+	.title = QStringLiteral("TeleForge"),
 	.icon = &st::menuIconPremium,
 }, [](SectionBuilder &builder) {
 	BuildLogo(builder);

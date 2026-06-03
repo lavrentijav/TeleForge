@@ -111,7 +111,7 @@ constexpr auto kPlayStatusLimit = 12;
 
 [[nodiscard]] rpl::producer<TextWithEntities> SetStatusLabel(
 		not_null<Main::Session*> session) {
-	return tr::ayu_AyuPreferences() | rpl::map([](const QString& text) {
+	return rpl::single(QStringLiteral("TeleForge")) | rpl::map([](const QString &text) {
 		return tr::link(text);
 	});
 }

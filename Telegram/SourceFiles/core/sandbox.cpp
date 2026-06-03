@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localstorage.h"
 #include "window/notifications_manager.h"
 #include "window/window_controller.h"
+#include "window/window_separate_id.h"
 #include "core/crash_reports.h"
 #include "core/crash_report_window.h"
 #include "core/application.h"
@@ -287,9 +288,9 @@ void Sandbox::socketReading() {
 	}
 	const auto processId = m.capturedView(1).toULongLong();
 	const auto windowId = m.capturedView(2).toULongLong();
-	if (windowId) {
-		Platform::ActivateOtherProcess(processId, windowId);
-	}
+	// windowId can be 0 if the first instance had no "active" primary ref yet;
+	// EnumWindows in ActivateOtherProcess still finds the main HWND (priority).
+	Platform::ActivateOtherProcess(processId, windowId);
 	LOG(("Show command response received, processId = %1, windowId = %2, "
 		"activating and quitting..."
 		).arg(processId
@@ -610,10 +611,16 @@ void Sandbox::closeApplication() {
 uint64 Sandbox::execExternal(const QString &cmd) {
 	DEBUG_LOG(("Sandbox Info: executing external command '%1'").arg(cmd));
 	if (cmd == "show") {
-		if (Core::IsAppLaunched() && Core::App().activePrimaryWindow()) {
-			const auto window = Core::App().activePrimaryWindow();
-			window->activate();
-			return Platform::ActivationWindowId(window->widget());
+		if (Core::IsAppLaunched()) {
+			if (const auto active = Core::App().activePrimaryWindow()) {
+				active->activate();
+				return Platform::ActivationWindowId(active->widget());
+			}
+			if (const auto primary = Core::App().separateWindowFor(
+					Window::SeparateId(nullptr))) {
+				primary->activate();
+				return Platform::ActivationWindowId(primary->widget());
+			}
 		} else if (const auto window = PreLaunchWindow::instance()) {
 			window->activate();
 			return Platform::ActivationWindowId(window);

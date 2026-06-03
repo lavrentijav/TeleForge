@@ -162,6 +162,12 @@ set(ayugram_files
         ayu/ui/settings/settings_filters.h
         ayu/ui/settings/settings_main.cpp
         ayu/ui/settings/settings_main.h
+        ayu/ui/settings/settings_teleforge_ai.cpp
+        ayu/ui/settings/settings_teleforge_ai.h
+        ayu/ui/settings/settings_teleforge_plugins.cpp
+        ayu/ui/settings/settings_teleforge_plugins.h
+        ayu/ui/settings/settings_teleforge_sync.cpp
+        ayu/ui/settings/settings_teleforge_sync.h
         ayu/ui/settings/settings_other.cpp
         ayu/ui/settings/settings_other.h
         ayu/ui/settings/filters/settings_filters_list.cpp
@@ -249,10 +255,67 @@ set(ayugram_files
         ayu/features/teleforge/teleforge_bootstrap.h
         ayu/features/teleforge/teleforge_core.cpp
         ayu/features/teleforge/teleforge_core.h
+        ayu/features/teleforge/teleforge_embeddings.cpp
+        ayu/features/teleforge/teleforge_embeddings.h
+        ayu/features/teleforge/teleforge_history_bridge.cpp
+        ayu/features/teleforge/teleforge_history_bridge.h
+        ayu/features/teleforge/teleforge_inference.cpp
+        ayu/features/teleforge/teleforge_inference.h
         ayu/features/teleforge/teleforge_lm_studio.cpp
         ayu/features/teleforge/teleforge_lm_studio.h
+        ayu/features/teleforge/teleforge_memory.cpp
+        ayu/features/teleforge/teleforge_memory.h
+        ayu/features/teleforge/teleforge_prompt_builder.cpp
+        ayu/features/teleforge/teleforge_prompt_builder.h
+        ayu/features/teleforge/teleforge_rerank.cpp
+        ayu/features/teleforge/teleforge_rerank.h
+        ayu/features/teleforge/teleforge_paths.cpp
+        ayu/features/teleforge/teleforge_paths.h
+        ayu/features/teleforge/teleforge_llama_runtime.cpp
+        ayu/features/teleforge/teleforge_llama_runtime.h
+        ayu/features/teleforge/teleforge_openai_models.cpp
+        ayu/features/teleforge/teleforge_openai_models.h
         ayu/features/teleforge/teleforge_storage.cpp
         ayu/features/teleforge/teleforge_storage.h
+        ayu/data/ayu_content_hash.cpp
+        ayu/data/ayu_content_hash.h
+        ayu/features/sync/teleforge_sync.cpp
+        ayu/features/sync/teleforge_sync.h
+        ayu/features/sync/teleforge_sync_crypto.cpp
+        ayu/features/sync/teleforge_sync_crypto.h
+        ayu/features/sync/teleforge_sync_files.cpp
+        ayu/features/sync/teleforge_sync_files.h
+        ayu/features/sync/teleforge_sync_merger.cpp
+        ayu/features/sync/teleforge_sync_merger.h
+        ayu/features/sync/teleforge_sync_snapshot.cpp
+        ayu/features/sync/teleforge_sync_snapshot.h
+        ayu/features/sync/teleforge_sync_transport.cpp
+        ayu/features/sync/teleforge_sync_transport.h
+        ayu/features/spy/online_tracker.cpp
+        ayu/features/spy/online_tracker.h
+        ayu/features/spy/online_history_storage.cpp
+        ayu/features/spy/online_history_storage.h
+        ayu/features/plugins/plugin_api.cpp
+        ayu/features/plugins/plugin_api.h
+        ayu/features/plugins/plugin_catalog.h
+        ayu/features/plugins/plugin_catalog_store.cpp
+        ayu/features/plugins/plugin_catalog_store.h
+        ayu/features/plugins/plugin_channel_install.cpp
+        ayu/features/plugins/plugin_channel_install.h
+        ayu/features/plugins/plugin_dev_mode.cpp
+        ayu/features/plugins/plugin_dev_mode.h
+        ayu/features/plugins/plugin_developers_store.cpp
+        ayu/features/plugins/plugin_developers_store.h
+        ayu/features/plugins/plugin_trust.cpp
+        ayu/features/plugins/plugin_trust.h
+        ayu/features/plugins/plugin_manager.cpp
+        ayu/features/plugins/plugin_manager.h
+        ayu/features/plugins/plugin_registry.cpp
+        ayu/features/plugins/plugin_registry.h
+        ayu/features/plugins/plugin_runner.cpp
+        ayu/features/plugins/plugin_runner.h
+        ayu/features/plugins/plugin_tool_registry.cpp
+        ayu/features/plugins/plugin_tool_registry.h
         ayu/data/messages_storage.cpp
         ayu/data/messages_storage.h
         ayu/data/entities.h
@@ -1280,6 +1343,8 @@ PRIVATE
     info/profile/info_profile_emoji_status_panel.h
     info/profile/info_profile_inner_widget.cpp
     info/profile/info_profile_inner_widget.h
+    info/profile/info_teleforge_peer_panel.cpp
+    info/profile/info_teleforge_peer_panel.h
     info/profile/info_profile_members.cpp
     info/profile/info_profile_members.h
     info/profile/info_profile_members_controllers.cpp
@@ -2095,6 +2160,69 @@ if (WIN32)
     endif()
 
     target_link_options(Telegram PRIVATE /PDBPAGESIZE:8192)
+
+    if (DESKTOP_APP_USE_LLAMA_CPP)
+        target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_LLAMA_CPP=1)
+        target_link_libraries(Telegram PRIVATE llama llama-common)
+    endif()
+    # TeleForge: embed CPython. Headers come from find_package (build-time
+    # convenience), but we link and ship the self-contained interpreter that is
+    # compiled once from the sources in Libraries (teleforge_build_python.bat),
+    # so the running app does not depend on a system Python.
+    #
+    # NOTE: the TELEFORGE_WITH_PYTHON define and include dirs are kept exactly as
+    # before to avoid invalidating the whole Telegram target (a full rebuild).
+    set(_tf_python_src "${CMAKE_CURRENT_SOURCE_DIR}/../../Libraries/win64/Python-3.14.0")
+    set(_tf_python_lib "${_tf_python_src}/PCbuild/amd64/python314.lib")
+    find_package(Python3 COMPONENTS Interpreter Development QUIET)
+    if (Python3_FOUND OR EXISTS "${_tf_python_lib}")
+        target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_PYTHON=1)
+        if (Python3_INCLUDE_DIRS)
+            target_include_directories(Telegram PRIVATE ${Python3_INCLUDE_DIRS})
+        endif()
+        # The two TUs that include <Python.h> need our headers and must not let
+        # Python.h auto-link a python lib by basename (we link it explicitly).
+        set_source_files_properties(
+            ayu/features/plugins/plugin_runner.cpp
+            ayu/features/plugins/plugin_api.cpp
+            PROPERTIES
+            INCLUDE_DIRECTORIES "${_tf_python_src}/Include;${_tf_python_src}/PC"
+            COMPILE_DEFINITIONS "Py_NO_LINK_LIB")
+        if (EXISTS "${_tf_python_lib}")
+            message(STATUS "TeleForge: linking bundled CPython ${_tf_python_lib}")
+            target_link_libraries(Telegram PRIVATE "${_tf_python_lib}")
+            # NOTE: python314.dll is loaded from the application directory thanks
+            # to DependentLoadFlag including LOAD_LIBRARY_SEARCH_APPLICATION_DIR
+            # (see cmake/options_win.cmake). Delay-load is NOT usable here because
+            # the Python C API imports data symbols (Py_None etc.).
+            add_custom_command(TARGET Telegram POST_BUILD
+                COMMAND ${CMAKE_COMMAND}
+                    -DPY_SRC=${_tf_python_src}
+                    -DEXE_DIR=$<TARGET_FILE_DIR:Telegram>
+                    -DPKG_SRC=${CMAKE_CURRENT_SOURCE_DIR}/Resources/teleforge_python/teleforge
+                    -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/teleforge_bundle_python.cmake
+                COMMAND ${CMAKE_COMMAND}
+                    -DPLUGINS_SRC=${CMAKE_CURRENT_SOURCE_DIR}/Resources/plugins
+                    -DEXE_DIR=$<TARGET_FILE_DIR:Telegram>
+                    -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/teleforge_bundle_plugins.cmake
+                COMMENT "TeleForge: bundling Python runtime and plugins"
+                VERBATIM)
+        else()
+            message(STATUS "TeleForge: bundled CPython not built yet; linking system Python. Run teleforge_build_python.bat.")
+            target_link_libraries(Telegram PRIVATE Python3::Python)
+        endif()
+    endif()
+elseif (LINUX)
+    if (DESKTOP_APP_USE_LLAMA_CPP)
+        target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_LLAMA_CPP=1)
+        target_link_libraries(Telegram PRIVATE llama llama-common)
+    endif()
+    find_package(Python3 COMPONENTS Interpreter Development QUIET)
+    if (Python3_FOUND)
+        target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_PYTHON=1)
+        target_include_directories(Telegram PRIVATE ${Python3_INCLUDE_DIRS})
+        target_link_libraries(Telegram PRIVATE Python3::Python)
+    endif()
 elseif (APPLE)
     if (NOT DESKTOP_APP_USE_PACKAGED)
         target_link_libraries(Telegram PRIVATE desktop-app::external_iconv)
@@ -2271,16 +2399,21 @@ PRIVATE
 )
 
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+# TeleForge on Windows/Linux (single-config): ship the runnable app under
+# ${CMAKE_BINARY_DIR}/bin so out-ninja stays a pure build tree (objects, cmake).
 if (APPLE
     OR is_multi_config
-    OR NOT CMAKE_EXECUTABLE_SUFFIX STREQUAL ""
     OR NOT "${output_name}" STREQUAL "TeleForge")
     set(output_folder ${CMAKE_BINARY_DIR})
 else()
     set(output_folder ${CMAKE_BINARY_DIR}/bin)
 endif()
 
-set_target_properties(Telegram PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${output_folder})
+set_target_properties(Telegram PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${output_folder}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${output_folder}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${output_folder}
+)
 
 if (MSVC)
     target_link_libraries(Telegram
