@@ -45,7 +45,8 @@ inline float64 InterpolationRatio(int from, int to, int result) {
 	case Brush::Tool::Pen: return 0;
 	case Brush::Tool::Arrow: return 1;
 	case Brush::Tool::Marker: return 2;
-	case Brush::Tool::Eraser: return 3;
+	case Brush::Tool::Blur: return 3;
+	case Brush::Tool::Eraser: return 4;
 	}
 	return 0;
 }
@@ -55,9 +56,24 @@ inline float64 InterpolationRatio(int from, int to, int result) {
 	case 0: return Brush::Tool::Pen;
 	case 1: return Brush::Tool::Arrow;
 	case 2: return Brush::Tool::Marker;
-	case 3: return Brush::Tool::Eraser;
+	case 3: return Brush::Tool::Blur;
+	case 4: return Brush::Tool::Eraser;
 	}
 	return Brush::Tool::Pen;
+}
+
+[[nodiscard]] bool FixedColorTool(Brush::Tool tool) {
+	return (tool == Brush::Tool::Eraser) || (tool == Brush::Tool::Blur);
+}
+
+[[nodiscard]] QColor FixedToolColor() {
+	return QColor(0, 0, 0);
+}
+
+void NormalizeBrushColor(Brush &brush) {
+	if (FixedColorTool(brush.tool)) {
+		brush.color = FixedToolColor();
+	}
 }
 
 class PlusCircle final : public Ui::AbstractButton {
@@ -266,7 +282,7 @@ std::vector<QColor> PaletteColors() {
 ColorPicker::ColorPicker(
 	not_null<Ui::RpWidget*> parent,
 	std::shared_ptr<Ui::Show> show,
-	const std::array<Brush, 4> &savedBrushes,
+	const std::array<Brush, 5> &savedBrushes,
 	Brush::Tool savedTool)
 : _parent(parent)
 , _show(std::move(show))
@@ -283,9 +299,11 @@ ColorPicker::ColorPicker(
 
 	for (auto i = 0; i != int(_toolBrushes.size()); ++i) {
 		_toolBrushes[i].tool = ToolFromIndex(i);
+		NormalizeBrushColor(_toolBrushes[i]);
 	}
 	_brush = _toolBrushes[ToolIndex(savedTool)];
 	_brush.tool = savedTool;
+	NormalizeBrushColor(_brush);
 	_colorButtonFrom = _brush.color;
 	_colorButtonTo = _brush.color;
 
@@ -322,6 +340,9 @@ ColorPicker::ColorPicker(
 		u":/animations/photo_editor_marker.tgs"_q));
 	_toolButtons.push_back(base::make_unique_q<ToolLottieButton>(
 		parent,
+		u":/animations/photo_editor_blur.tgs"_q));
+	_toolButtons.push_back(base::make_unique_q<ToolLottieButton>(
+		parent,
 		u":/animations/photo_editor_eraser.tgs"_q));
 	for (const auto &button : _toolButtons) {
 		button->resize(
@@ -330,9 +351,10 @@ ColorPicker::ColorPicker(
 		button->show();
 	}
 	const auto setToolRequest = [=](Brush::Tool tool) {
+		_toolClicks.fire({});
 		setTool(tool);
 	};
-	if (_toolButtons.size() >= 4) {
+	if (_toolButtons.size() >= 5) {
 		_toolButtons[0]->setClickedCallback([=] {
 			setToolRequest(Brush::Tool::Pen);
 		});
@@ -343,6 +365,9 @@ ColorPicker::ColorPicker(
 			setToolRequest(Brush::Tool::Marker);
 		});
 		_toolButtons[3]->setClickedCallback([=] {
+			setToolRequest(Brush::Tool::Blur);
+		});
+		_toolButtons[4]->setClickedCallback([=] {
 			setToolRequest(Brush::Tool::Eraser);
 		});
 	}
@@ -370,6 +395,9 @@ ColorPicker::ColorPicker(
 	_parent->sizeValue(
 	) | rpl::on_next([=](const QSize &size) {
 		moveSizeControl(size);
+		if (_paletteVisible) {
+			rebuildPalette();
+		}
 	}, _sizeControl->lifetime());
 
 	_sizeControlHoverArea->events(
@@ -482,7 +510,7 @@ void ColorPicker::updateToolButtonsGeometry() {
 }
 
 void ColorPicker::updateToolSelection(bool animated) {
-	if (_toolButtons.size() < 4) {
+	if (_toolButtons.size() < 5) {
 		return;
 	}
 	const auto index = ToolIndex(_brush.tool);
@@ -525,6 +553,7 @@ void ColorPicker::setTool(Brush::Tool tool) {
 	storeCurrentBrush();
 	_brush = _toolBrushes[ToolIndex(tool)];
 	_brush.tool = tool;
+	NormalizeBrushColor(_brush);
 	updateSizeControlPositionFromRatio(true);
 	updateColorButtonColor(_brush.color, true);
 	if (_paletteVisible) {
@@ -538,7 +567,26 @@ void ColorPicker::setTool(Brush::Tool tool) {
 }
 
 void ColorPicker::storeCurrentBrush() {
+	if (_toolSelectionSuppressed) {
+		return;
+	}
+	NormalizeBrushColor(_brush);
 	_toolBrushes[ToolIndex(_brush.tool)] = _brush;
+}
+
+void ColorPicker::setColor(const QColor &color) {
+	_brush.color = color;
+	updateColorButtonColor(color, true);
+	if (_paletteVisible) {
+		rebuildPalette();
+	} else {
+		_colorButton->update();
+	}
+}
+
+void ColorPicker::setToolSelectionVisible(bool visible) {
+	_toolSelectionSuppressed = !visible;
+	_toolSelection->setVisible(visible);
 }
 
 void ColorPicker::updateColorButtonColor(const QColor &color, bool animated) {
@@ -603,17 +651,24 @@ void ColorPicker::setVisible(bool visible) {
 	_paletteWrap->setVisible(visible && _paletteVisible);
 	_sizeControlHoverArea->setVisible(visible);
 	_sizeControl->setVisible(visible);
-	_toolSelection->setVisible(visible && !_paletteVisible);
+	const auto showTools = visible
+		&& !_paletteVisible
+		&& !_toolSelectionSuppressed;
+	_toolSelection->setVisible(showTools);
 	for (const auto &button : _toolButtons) {
 		button->setVisible(visible && !_paletteVisible);
 	}
-	if (visible && !_paletteVisible) {
+	if (showTools) {
 		updateToolSelection(false);
 	}
 }
 
 rpl::producer<Brush> ColorPicker::saveBrushRequests() const {
 	return _saveBrushRequests.events_starting_with_copy(_brush);
+}
+
+rpl::producer<> ColorPicker::toolClicks() const {
+	return _toolClicks.events();
 }
 
 bool ColorPicker::preventHandleKeyPress() const {
@@ -635,6 +690,23 @@ void ColorPicker::rebuildPalette() {
 	}
 	if (!hasCurrent) {
 		colors.push_back(_brush.color);
+
+		const auto &padding = st::photoEditorButtonBarPadding;
+		const auto size = st::photoEditorColorPaletteItemSize;
+		const auto gap = st::photoEditorColorPaletteGap;
+		const auto barWidth = std::min(
+				st::photoEditorButtonBarWidth,
+				_parent->width())
+			- rect::m::sum::h(padding)
+			- st::photoEditorUndoButton.width
+			- st::photoEditorRedoButton.width;
+		const auto count = int(colors.size());
+		const auto paletteWidth = count * size
+			+ (count - 1) * gap
+			+ (gap + size);
+		if (paletteWidth > barWidth && colors.size() > 2) {
+			colors.erase(colors.end() - 2);
+		}
 	}
 
 	auto index = uint8(0);
@@ -739,13 +811,14 @@ void ColorPicker::setPaletteVisible(bool visible) {
 	_paletteVisible = visible;
 	_paletteWrap->setVisible(visible);
 	_colorButton->setVisible(!visible);
-	_toolSelection->setVisible(!visible);
+	const auto showTools = !visible && !_toolSelectionSuppressed;
+	_toolSelection->setVisible(showTools);
 	for (const auto &button : _toolButtons) {
 		button->setVisible(!visible);
 	}
 	if (visible) {
 		rebuildPalette();
-	} else {
+	} else if (showTools) {
 		updateToolSelection(false);
 	}
 }
@@ -769,7 +842,8 @@ void ColorPicker::moveSizeControl(const QSize &size) {
 		areaWidth,
 		std::min(areaHeight, size.height()));
 
-	const auto collapsedCenterX = sizeControlCurrentCenterX(0.);
+	const auto collapsedCenterX = sizeControlCurrentCenterX(0.)
+		- st::photoEditorBrushSizeControlLeftSkip;
 	const auto collapsedLeft = collapsedCenterX
 		- (float64(st::photoEditorBrushSizeControlCollapsedWidth) / 2.);
 	const auto y = (_canvasRect.height() > 0)

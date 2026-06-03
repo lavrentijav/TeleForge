@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "data/data_cloud_file.h"
+#include "data/data_poll.h"
 #include "history/history_item.h"
 #include "spellcheck/spellcheck_types.h" // LanguageId.
 #include "ui/empty_userpic.h"
@@ -17,6 +18,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 struct WebPageData;
 struct TodoListItem;
+class DocumentData;
+class PhotoData;
 class VoiceSeekClickHandler;
 class ReplyKeyboard;
 
@@ -77,6 +80,18 @@ struct HistoryMessageVia : RuntimeComponent<HistoryMessageVia, HistoryItem> {
 	ClickHandlerPtr link;
 };
 
+struct HistoryMessageGuestChat
+: RuntimeComponent<HistoryMessageGuestChat, HistoryItem> {
+	void create(not_null<Data::Session*> owner, PeerId visitorId);
+	void resize(int32 availw) const;
+
+	PeerData *visitor = nullptr;
+	mutable QString text;
+	mutable int width = 0;
+	mutable int maxWidth = 0;
+	ClickHandlerPtr link;
+};
+
 struct HistoryMessageViews
 : RuntimeComponent<HistoryMessageViews, HistoryItem> {
 	static constexpr auto kMaxRecentRepliers = 3;
@@ -112,6 +127,13 @@ struct HistoryMessageFromRank
 struct HistoryMessageEdited
 : RuntimeComponent<HistoryMessageEdited, HistoryItem> {
 	TimeId date = 0;
+};
+
+struct HistoryMessageMediaForInstantView
+: RuntimeComponent<HistoryMessageMediaForInstantView, HistoryItem> {
+	QString url;
+	base::flat_set<not_null<DocumentData*>> documents;
+	base::flat_set<not_null<PhotoData*>> photos;
 };
 
 class HiddenSenderInfo {
@@ -286,6 +308,7 @@ struct ReplyFields {
 	MsgId topMessageId = 0;
 	StoryId storyId = 0;
 	int todoItemId = 0;
+	QByteArray pollOption;
 	uint32 quoteOffset : 30 = 0;
 	uint32 manualQuote : 1 = 0;
 	uint32 topicPost : 1 = 0;
@@ -317,6 +340,10 @@ struct HistoryMessageReply
 		MsgId topMessageId,
 		bool topicPost);
 	void updateData(not_null<HistoryItem*> holder, bool force = false);
+
+	void setInLogReplyTo(
+		not_null<HistoryItem*> holder,
+		not_null<HistoryItem*> message);
 
 	// Must be called before destructor.
 	void clearData(not_null<HistoryItem*> holder);
@@ -420,6 +447,8 @@ public:
 	void setFullDisplayed(bool full) {
 		_fullDisplayed = full;
 	}
+
+	QString dragText() const override;
 
 	// Copy to clipboard support.
 	QString copyToClipboardText() const override;
@@ -566,6 +595,7 @@ private:
 		int characters = 0;
 		float64 howMuchOver = 0.;
 		HistoryMessageMarkupButton::Type type = {};
+		HistoryMessageMarkupButton::Type iconType = {};
 		HistoryMessageMarkupButton::Color color = {};
 		std::shared_ptr<ReplyMarkupClickHandler> link;
 		mutable std::unique_ptr<Ui::RippleAnimation> ripple;
@@ -719,6 +749,18 @@ struct HistoryServiceTodoAppendTasks
 
 [[nodiscard]] TextWithEntities ComposeTodoTasksList(
 	not_null<HistoryServiceTodoAppendTasks*> append);
+
+struct HistoryServicePollAppendAnswer
+: RuntimeComponent<HistoryServicePollAppendAnswer, HistoryItem>
+, HistoryServiceDependentData {
+	PollAnswer answer;
+};
+
+struct HistoryServicePollDeleteAnswer
+: RuntimeComponent<HistoryServicePollDeleteAnswer, HistoryItem>
+, HistoryServiceDependentData {
+	PollAnswer answer;
+};
 
 struct HistoryServiceSuggestDecision
 : RuntimeComponent<HistoryServiceSuggestDecision, HistoryItem>

@@ -249,6 +249,7 @@ void SendExistingMedia(
 		.from = NewMessageFromId(action),
 		.replyTo = action.replyTo,
 		.date = NewMessageDate(action.options),
+		.scheduleRepeatPeriod = action.options.scheduleRepeatPeriod,
 		.shortcutId = action.options.shortcutId,
 		.starsPaid = starsPaid,
 		.postAuthor = NewMessagePostAuthor(action),
@@ -354,19 +355,12 @@ void SendExistingPhoto(
 		MessageToSend &&message,
 		not_null<PhotoData*> photo,
 		std::optional<MsgId> localMessageId) {
-	const auto clearReplyTo = prependPseudoReply(message);
-	if (clearReplyTo) {
-		message.action.replyTo.messageId = FullMsgId(
-			message.action.replyTo.messageId.peer,
-			message.action.replyTo.topicRootId);
-	}
-
 	const auto inputMedia = [=] {
 		return MTP_inputMediaPhoto(
 			MTP_flags(0),
 			photo->mtpInput(),
-			MTPint(),
-			MTPInputDocument());
+			MTPint(), // ttl_seconds
+			MTPInputDocument()); // video
 	};
 	SendExistingMedia(
 		std::move(message),
@@ -475,6 +469,7 @@ bool SendDice(MessageToSend &message) {
 		.from = NewMessageFromId(action),
 		.replyTo = action.replyTo,
 		.date = NewMessageDate(action.options),
+		.scheduleRepeatPeriod = action.options.scheduleRepeatPeriod,
 		.shortcutId = action.options.shortcutId,
 		.starsPaid = starsPaid,
 		.postAuthor = NewMessagePostAuthor(action),
@@ -667,8 +662,8 @@ void SendConfirmedFile(
 				MTP_flags(Flag::f_photo
 					| (file->spoiler ? Flag::f_spoiler : Flag())),
 				file->photo,
-				MTPint(),
-				MTP_documentEmpty(MTP_long(0)));
+				MTPint(), // ttl_seconds
+				MTPDocument()); // video
 		} else if (file->type == SendMediaType::File) {
 			using Flag = MTPDmessageMediaDocument::Flag;
 			return MTP_messageMediaDocument(
@@ -734,6 +729,7 @@ void SendConfirmedFile(
 			.from = NewMessageFromId(action),
 			.replyTo = file->to.replyTo,
 			.date = NewMessageDate(file->to.options),
+			.scheduleRepeatPeriod = file->to.options.scheduleRepeatPeriod,
 			.shortcutId = file->to.options.shortcutId,
 			.starsPaid = std::min(
 				history->peer->starsPerMessageChecked(),

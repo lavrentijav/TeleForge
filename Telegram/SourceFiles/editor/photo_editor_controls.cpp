@@ -12,10 +12,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image_prepare.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
+#include "ui/widgets/menu/menu_multiline_action.h"
+#include "ui/widgets/popup_menu.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "styles/style_editor.h"
+#include "styles/style_media_player.h" // mediaPlayerMenuCheck
 
 #include <QRegion>
 
@@ -200,12 +203,46 @@ ButtonBar::ButtonBar(
 	}, lifetime());
 }
 
+class TextToolButton final : public Ui::AbstractButton {
+public:
+	TextToolButton(not_null<QWidget*> parent)
+	: AbstractButton(parent) {
+		constexpr auto kSizeShrink = 6;
+		resize(
+			st::photoEditorStickersButton.width - kSizeShrink,
+			st::photoEditorStickersButton.height - kSizeShrink);
+		events(
+		) | rpl::on_next([=](not_null<QEvent*> event) {
+			if (event->type() == QEvent::Enter
+				|| event->type() == QEvent::Leave) {
+				update();
+			}
+		}, lifetime());
+	}
+
+private:
+	void paintEvent(QPaintEvent *) override {
+		auto p = QPainter(this);
+		auto hq = PainterHighQualityEnabler(p);
+		auto font = st::semiboldFont->f;
+		font.setPixelSize(QWidget::rect().height() / 2);
+		p.setFont(font);
+		p.setPen(isOver()
+			? st::photoEditorButtonIconFgOver
+			: st::photoEditorButtonIconFg);
+		p.translate(0, st::lineWidth * 3);
+		p.drawText(QWidget::rect(), style::al_center, u"A"_q);
+	}
+};
+
 PhotoEditorControls::PhotoEditorControls(
 	not_null<Ui::RpWidget*> parent,
 	std::shared_ptr<Controllers> controllers,
 	const PhotoModifications modifications,
-	const EditorData &data)
+	const EditorData &data,
+	const QSize &imageSize)
 : RpWidget(parent)
+, _imageSize(imageSize)
 , _bg(st::roundedBg)
 , _buttonHeight(st::photoEditorButtonBarHeight)
 , _transformButtons(base::make_unique_q<ButtonBar>(this, _bg))
@@ -235,6 +272,16 @@ PhotoEditorControls::PhotoEditorControls(
 , _paintModeButton(base::make_unique_q<Ui::IconButton>(
 	_transformButtons,
 	st::photoEditorPaintModeButton))
+, _cropRatioButton(data.keepAspectRatio
+	? nullptr
+	: base::make_unique_q<Ui::IconButton>(
+		_transformButtons,
+		st::photoEditorCropRatioButton))
+, _cornersButton((data.cropType == EditorData::CropType::RoundedRect)
+	? base::make_unique_q<Ui::IconButton>(
+		_transformButtons,
+		st::photoEditorCornersButton)
+	: nullptr)
 , _transformDone(base::make_unique_q<EdgeButton>(
 	_transformButtons,
 	(data.confirm.isEmpty() ? tr::lng_box_done(tr::now) : data.confirm),
@@ -263,6 +310,7 @@ PhotoEditorControls::PhotoEditorControls(
 			_paintBottomButtons,
 			st::photoEditorStickersButton)
 		: nullptr)
+, _textButton(base::make_unique_q<TextToolButton>(_paintBottomButtons))
 , _paintDone(base::make_unique_q<EdgeButton>(
 	_paintBottomButtons,
 	tr::lng_box_done(tr::now),
@@ -430,6 +478,114 @@ PhotoEditorControls::PhotoEditorControls(
 		_flipButton->setIconOverride(icon, icon);
 	}, _flipButton->lifetime());
 
+	if (_cropRatioButton) {
+		const auto imageRatio = float64(
+			_imageSize.width()) / _imageSize.height();
+		const auto ratiosMatch = [](float64 a, float64 b) {
+			return std::abs(a - b) < 0.01;
+		};
+		_cropRatioButton->setClickedCallback([=] {
+			_ratioMenu = base::make_unique_q<Ui::PopupMenu>(
+				_cropRatioButton.get(),
+				st::photoEditorCropRatioMenu);
+			_ratioMenu->setForcedOrigin(
+				Ui::PanelAnimation::Origin::BottomRight);
+			const auto check = &st::mediaPlayerMenuCheck;
+			const auto add = [&](const QString &text, float64 ratio) {
+				const auto selected = ratiosMatch(_currentRatio, ratio);
+				_ratioMenu->addAction(
+					text,
+					[=] {
+						if (ratiosMatch(_currentRatio, ratio)) {
+							return;
+						}
+						_currentRatio = ratio;
+						_aspectRatioChanges.fire_copy(ratio);
+						const auto locked = (ratio > 0.);
+						const auto icon = locked
+							? &st::photoEditorCropRatioIconActive
+							: nullptr;
+						_cropRatioButton->setIconOverride(icon, icon);
+					},
+					selected ? check : nullptr);
+			};
+			add(tr::lng_photo_editor_crop_original(tr::now), imageRatio);
+			add(tr::lng_photo_editor_crop_square(tr::now), 1.);
+			add(u"3:2"_q, 3. / 2.);
+			add(u"16:9"_q, 16. / 9.);
+			add(u"3:4"_q, 3. / 4.);
+			add(u"9:16"_q, 9. / 16.);
+			add(tr::lng_photo_editor_crop_free(tr::now), 0.);
+			const auto button = _cropRatioButton.get();
+			const auto bottomRight = button->mapToGlobal(
+				QPoint(button->width(), 0));
+			_ratioMenu->popup(bottomRight);
+		});
+	}
+
+	_currentCornersLevel = modifications.cornersLevel;
+	if (_cornersButton) {
+		const auto updateIcon = [=] {
+			const auto active = (_currentCornersLevel
+				!= RoundedCornersLevel::Large);
+			const auto icon = active
+				? &st::photoEditorCornersIconActive
+				: nullptr;
+			_cornersButton->setIconOverride(icon, icon);
+		};
+		updateIcon();
+		_cornersButton->setClickedCallback([=] {
+			_cornersMenu = base::make_unique_q<Ui::PopupMenu>(
+				_cornersButton.get(),
+				st::photoEditorCropRatioMenu);
+			_cornersMenu->setForcedOrigin(
+				Ui::PanelAnimation::Origin::BottomRight);
+			auto about = base::make_unique_q<Ui::Menu::MultilineAction>(
+				_cornersMenu->menu(),
+				_cornersMenu->menu()->st(),
+				st::photoEditorCornersMenuAboutLabel,
+				st::photoEditorCornersMenuAboutPosition,
+				TextWithEntities{
+					tr::lng_photo_editor_corners_about(tr::now),
+				});
+			_cornersMenu->addAction(std::move(about));
+			_cornersMenu->addSeparator();
+			const auto check = &st::mediaPlayerMenuCheck;
+			const auto add = [&](
+					const QString &text,
+					RoundedCornersLevel level) {
+				const auto selected = (_currentCornersLevel == level);
+				_cornersMenu->addAction(
+					text,
+					[=] {
+						if (_currentCornersLevel == level) {
+							return;
+						}
+						_currentCornersLevel = level;
+						updateIcon();
+						_cornersLevelChanges.fire_copy(level);
+					},
+					selected ? check : nullptr);
+			};
+			add(
+				tr::lng_photo_editor_corners_large(tr::now),
+				RoundedCornersLevel::Large);
+			add(
+				tr::lng_photo_editor_corners_medium(tr::now),
+				RoundedCornersLevel::Medium);
+			add(
+				tr::lng_photo_editor_corners_small(tr::now),
+				RoundedCornersLevel::Small);
+			add(
+				tr::lng_photo_editor_corners_none(tr::now),
+				RoundedCornersLevel::None);
+			const auto button = _cornersButton.get();
+			const auto bottomRight = button->mapToGlobal(
+				QPoint(button->width(), 0));
+			_cornersMenu->popup(bottomRight);
+		});
+	}
+
 	updateInputMask();
 
 }
@@ -444,6 +600,10 @@ rpl::producer<> PhotoEditorControls::flipRequests() const {
 
 rpl::producer<> PhotoEditorControls::paintModeRequests() const {
 	return _paintModeButton->clicks() | rpl::to_empty;
+}
+
+rpl::producer<> PhotoEditorControls::textRequests() const {
+	return _textButton->clicks() | rpl::to_empty;
 }
 
 rpl::producer<> PhotoEditorControls::doneRequests() const {
@@ -463,11 +623,20 @@ rpl::producer<> PhotoEditorControls::cancelRequests() const {
 		_transformCancel->clicks() | rpl::to_empty,
 		_paintCancel->clicks() | rpl::to_empty,
 		_keyPresses.events(
-		) | rpl::filter([=](not_null<QKeyEvent*> e) {
-			const auto key = e->key();
-			return (key == Qt::Key_Escape)
-				&& !_toggledBarAnimation.animating();
-		}) | rpl::to_empty);
+	) | rpl::filter([=](not_null<QKeyEvent*> e) {
+		const auto key = e->key();
+		return (key == Qt::Key_Escape)
+			&& !_toggledBarAnimation.animating();
+	}) | rpl::to_empty);
+}
+
+rpl::producer<float64> PhotoEditorControls::aspectRatioChanges() const {
+	return _aspectRatioChanges.events();
+}
+
+auto PhotoEditorControls::cornersLevelChanges() const
+-> rpl::producer<RoundedCornersLevel> {
+	return _cornersLevelChanges.events();
 }
 
 int PhotoEditorControls::bottomButtonsTop() const {

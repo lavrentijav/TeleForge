@@ -93,6 +93,7 @@ Widget::Widget(
 		this,
 		account,
 		rpl::single(true))) {
+	_settings->entity()->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 	controller->setDefaultFloatPlayerDelegate(floatPlayerDelegate());
 
 	getData()->country = ComputeNewAccountCountry();
@@ -318,6 +319,7 @@ void Widget::checkUpdateStatus() {
 				this,
 				tr::lng_menu_update(),
 				st::defaultBoxButton));
+		_update->entity()->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 		if (!_showAnimation) {
 			_update->setVisible(true);
 		}
@@ -492,6 +494,7 @@ void Widget::showResetButton() {
 			this,
 			tr::lng_signin_reset_account(),
 			st::introResetButton);
+		entity->setTextTransform(Ui::RoundButtonTextTransform::ToUpper);
 		_resetAccount.create(this, std::move(entity));
 		_resetAccount->hide(anim::type::instant);
 		_resetAccount->entity()->setClickedCallback([this] { resetAccount(); });
@@ -610,9 +613,9 @@ void Widget::resetAccount() {
 			} else if (type == u"2FA_RECENT_CONFIRM"_q) {
 				Ui::show(Ui::MakeInformBox(
 					tr::lng_signin_reset_cancelled()));
-			} else {
+			} else if (!MTP::IgnoreError(error)) {
 				getData()->controller->hideLayer();
-				getStep()->showError(rpl::single(Lang::Hard::ServerError()));
+				getStep()->showError(rpl::single(type));
 			}
 		}).send();
 	});
@@ -722,8 +725,6 @@ void Widget::showControls() {
 
 void Widget::setupNextButton() {
 	_next->entity()->setClickedCallback([=] { getStep()->submit(); });
-	_next->entity()->setTextTransform(
-		Ui::RoundButton::TextTransform::NoTransform);
 
 	_next->entity()->setText(getStep()->nextButtonText(
 	) | rpl::filter([](const QString &text) {

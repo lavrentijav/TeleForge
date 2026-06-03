@@ -47,7 +47,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "calls/calls_instance.h"
 #include "inline_bots/bot_attach_web_view.h" // InlineBots::PeerType.
 #include "ui/toast/toast.h"
-#include "ui/text/custom_emoji_helper.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/chat_filters_tabs_strip.h"
@@ -707,8 +706,8 @@ void Filler::addToggleUnreadBadgeExclude() {
 	const auto excluded = AyuSettings::getInstance().isUnreadBadgeExcluded(
 		peer->id.value);
 	const auto label = excluded
-		? u"Учитывать в счётчике непрочитанных"_q
-		: u"Исключить из счётчика непрочитанных"_q;
+		? u"╨г╤З╨╕╤В╤Л╨▓╨░╤В╤М ╨▓ ╤Б╤З╤С╤В╤З╨╕╨║╨╡ ╨╜╨╡╨┐╤А╨╛╤З╨╕╤В╨░╨╜╨╜╤Л╤Е"_q
+		: u"╨Ш╤Б╨║╨╗╤О╤З╨╕╤В╤М ╨╕╨╖ ╤Б╤З╤С╤В╤З╨╕╨║╨░ ╨╜╨╡╨┐╤А╨╛╤З╨╕╤В╨░╨╜╨╜╤Л╤Е"_q;
 	_addAction(label, [=] {
 		AyuSettings::getInstance().toggleUnreadBadgeExcluded(peer->id.value);
 	}, &st::menuIconMute);
@@ -1293,17 +1292,17 @@ void Filler::addCreatePoll() {
 			|| _peer->starsPerMessageChecked())
 		? SendMenu::Type::SilentOnly
 		: SendMenu::Type::Scheduled;
-	const auto flag = PollData::Flags();
 	const auto replyTo = _request.currentReplyTo;
 	const auto suggest = _request.currentSuggest;
+	const auto chosen = kDefaultPollCreateFlags;
 	auto callback = [=] {
 		PeerMenuCreatePoll(
 			controller,
 			peer,
 			replyTo,
 			suggest,
-			flag,
-			flag,
+			chosen,
+			PollData::Flags(),
 			source,
 			{ sendMenuType });
 	};
@@ -1456,7 +1455,11 @@ void ShowDisableSharingBox(
 
 void Filler::addToggleNoForwards() {
 	const auto user = _peer->asUser();
-	if (!user || user->isInaccessible() || user->isBot() || user->isSelf()) {
+	if (!user
+		|| user->isInaccessible()
+		|| user->isBot()
+		|| user->isServiceUser()
+		|| user->isSelf()) {
 		return;
 	}
 	const auto controller = _controller;
@@ -1954,7 +1957,6 @@ void Filler::addToggleFee() {
 	_addAction({ .isSeparator = true });
 	_addAction({ .make = [=](not_null<Ui::PopupMenu*> menuParent) {
 		const auto actionParent = menuParent->menu();
-		auto helper = Ui::Text::CustomEmojiHelper();
 		const auto text = feeRemoved
 			? tr::lng_context_fee_free(
 				tr::now,
@@ -1966,8 +1968,8 @@ void Filler::addToggleFee() {
 				lt_name,
 				TextWithEntities{ user->shortName() },
 				lt_amount,
-				helper.paletteDependent(
-					Ui::Earn::IconCurrencyEmojiSmall()
+				tr::marked().append(
+					st::starIconEmojiMiniFont
 				).append(Lang::FormatCountDecimal(
 					user->owner().commonStarsPerMessage(parent)
 				)),
@@ -1980,10 +1982,9 @@ void Filler::addToggleFee() {
 			action,
 			nullptr,
 			nullptr);
-		result->setMarkedText(
-			text,
-			QString(),
-			Core::TextContext({ .session = &user->session() }));
+		result->setMarkedText(text, QString(), Core::TextContext({
+			.session = &user->session(),
+		}));
 		return result;
 	} });
 }
@@ -2234,6 +2235,8 @@ void PeerMenuCreatePoll(
 	if (peer->isChannel() && !peer->isMegagroup()) {
 		chosen &= ~PollData::Flag::PublicVotes;
 		disabled |= PollData::Flag::PublicVotes;
+		chosen &= ~PollData::Flag::OpenAnswers;
+		disabled |= PollData::Flag::OpenAnswers;
 	}
 	auto starsRequired = peer->session().changes().peerFlagsValue(
 		peer,
@@ -2244,6 +2247,7 @@ void PeerMenuCreatePoll(
 	});
 	auto box = Box<CreatePollBox>(
 		controller,
+		peer,
 		chosen,
 		disabled,
 		std::move(starsRequired),
@@ -2289,13 +2293,22 @@ void PeerMenuCreatePoll(
 			action.clearDraft = false;
 		}
 		const auto api = &peer->session().api();
-		api->polls().create(result.poll, action, crl::guard(weak, [=] {
-			state->create = nullptr;
-			weak->closeBox();
-		}), crl::guard(weak, [=] {
-			state->lock = false;
-			weak->submitFailed(tr::lng_attach_failed(tr::now));
-		}));
+		api->polls().create(
+			result.poll,
+			result.text,
+			action,
+			crl::guard(weak, [=] {
+				state->create = nullptr;
+				weak->closeBox();
+			}),
+			crl::guard(weak, [=](bool fileReferenceExpired) {
+				state->lock = false;
+				if (fileReferenceExpired) {
+					weak->submitMediaExpired();
+				} else {
+					weak->submitFailed(tr::lng_attach_failed(tr::now));
+				}
+			}));
 	};
 	box->submitRequests(
 	) | rpl::on_next(state->create, box->lifetime());
@@ -2526,7 +2539,7 @@ void PeerMenuBlockUserBox(
 		: v::is<ClearReply>(suggestClear)
 		? box->addRow(object_ptr<Ui::Checkbox>(
 			box,
-			tr::lng_context_delete_msg(tr::now),
+			tr::lng_blocked_list_confirm_reply(tr::now),
 			true,
 			st::defaultBoxCheckbox))
 		: nullptr;
@@ -2536,7 +2549,7 @@ void PeerMenuBlockUserBox(
 	const auto allFromUser = v::is<ClearReply>(suggestClear)
 		? box->addRow(object_ptr<Ui::Checkbox>(
 			box,
-			tr::lng_delete_all_from_user(
+			tr::lng_blocked_list_confirm_reply_all(
 				tr::now,
 				lt_user,
 				tr::bold(peer->name()),
@@ -2655,9 +2668,11 @@ object_ptr<Ui::BoxContent> PrepareChooseRecipientBox(
 				return ChooseRecipientBoxController::rowClicked(row);
 			}
 			const auto count = delegate()->peerListSelectedRowsCount();
-			if (showLockedError(row) || (count && row->peer()->isForum())) {
+			const auto forum = row->peer()->isForum();
+			const auto monoforum = row->peer()->isMonoforum();
+			if (showLockedError(row) || (count && (forum || monoforum))) {
 				return;
-			} else if (row->peer()->isForum()) {
+			} else if (forum || monoforum) {
 				ChooseRecipientBoxController::rowClicked(row);
 			} else {
 				delegate()->peerListSetRowChecked(row, !row->checked());
@@ -2673,7 +2688,9 @@ object_ptr<Ui::BoxContent> PrepareChooseRecipientBox(
 					parent,
 					row);
 			}
-			if (!row->checked() && !row->peer()->isForum()) {
+			if (!row->checked()
+				&& !row->peer()->isForum()
+				&& !row->peer()->isMonoforum()) {
 				auto menu = base::make_unique_q<Ui::PopupMenu>(
 					parent,
 					st::popupMenuWithIcons);
@@ -2958,15 +2975,12 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 
 		void rowClicked(not_null<PeerListRow*> row) override final {
 			const auto count = delegate()->peerListSelectedRowsCount();
-			if (showLockedError(row) || (count && row->peer()->isForum())) {
+			const auto forum = row->peer()->isForum();
+			const auto monoforum = row->peer()->isMonoforum();
+			if (showLockedError(row) || (count && (forum || monoforum))) {
 				return;
-			} else if (!count || row->peer()->isForum()) {
-				if (base::IsCtrlPressed() || base::IsShiftPressed()) {
-					delegate()->peerListSetRowChecked(row, !row->checked());
-					_selectionChanges.fire({});
-				} else {
-					ChooseRecipientBoxController::rowClicked(row);
-				}
+			} else if (!count || forum || monoforum) {
+				ChooseRecipientBoxController::rowClicked(row);
 			} else if (count) {
 				delegate()->peerListSetRowChecked(row, !row->checked());
 				_selectionChanges.fire({});
@@ -2976,7 +2990,9 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 		base::unique_qptr<Ui::PopupMenu> rowContextMenu(
 				QWidget *parent,
 				not_null<PeerListRow*> row) override final {
-			if (!row->checked() && !row->peer()->isForum()) {
+			if (!row->checked()
+				&& !row->peer()->isForum()
+				&& !row->peer()->isMonoforum()) {
 				auto menu = base::make_unique_q<Ui::PopupMenu>(
 					parent,
 					st::popupMenuWithIcons);
@@ -3068,7 +3084,10 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 					*lastFilterId = id;
 					applyFilter(box, id);
 				},
-				Window::GifPauseReason::Layer);
+				Window::GifPauseReason::Layer,
+				nullptr,
+				false,
+				true);
 			chatsFilters->lower();
 			rpl::combine(
 				chatsFilters->heightValue(),
@@ -4043,6 +4062,12 @@ void FillSenderUserpicMenu(
 
 	if (const auto user = peer->asUser()) {
 		if (groupPeer) {
+			// Discussion group users may not be members,
+			// so editing their tag is not available.
+			const auto groupChannel = groupPeer->asChannel();
+			const auto isDiscussionGroup = groupChannel
+				&& groupChannel->isMegagroup()
+				&& groupChannel->discussionLink();
 			const auto canEditTarget = [&] {
 				if (const auto chat = groupPeer->asChat()) {
 					if (peerToUser(user->id) == chat->creator) {
@@ -4062,7 +4087,10 @@ void FillSenderUserpicMenu(
 				}
 				return false;
 			}();
-			if (groupPeer->canManageRanks() && canEditTarget && !user->isSelf()) {
+			if (!isDiscussionGroup
+				&& canEditTarget
+				&& groupPeer->canManageRanks()
+				&& !user->isSelf()) {
 				const auto currentRank = LookupMemberRank(
 					groupPeer,
 					user);
@@ -4109,13 +4137,23 @@ void AddSenderUserpicModerateAction(
 		&& CanCreateModerateMessagesBox(
 			HistoryItemsList{ not_null<HistoryItem*>(moderateItem) });
 	if (canDeleteAndBan) {
+		const auto itemId = moderateItem->fullId();
 		addAction({ .isSeparator = true });
 		addAction({
 			.text = tr::lng_context_delete_and_ban(tr::now),
 			.handler = [=] {
+				const auto item = controller->session().data().message(
+					itemId);
+				if (!item) {
+					return;
+				}
 				controller->show(Box(
 					CreateModerateMessagesBox,
-					HistoryItemsList{ not_null<HistoryItem*>(moderateItem) },
+					ModerateMessagesBoxEntry{
+						.items = HistoryItemsList{
+							not_null<HistoryItem*>(item),
+						},
+					},
 					nullptr,
 					ModerateMessagesBoxOptions{
 						.reportSpam = true,
@@ -4322,7 +4360,11 @@ void ForwardToSelf(
 					.to1 = session->user(),
 				})).current();
 				if (!phrase.empty()) {
-					show->showToast(std::move(phrase));
+					show->showToast({
+						.text = std::move(phrase),
+						.filter = ChatHelpers::ForwardedToSavedMessagesFilter(
+							session),
+					});
 				}
 			});
 	}

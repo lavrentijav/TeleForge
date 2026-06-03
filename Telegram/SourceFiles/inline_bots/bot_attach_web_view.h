@@ -252,7 +252,7 @@ private:
 		const QString &appname,
 		const QString &startparam,
 		ConfirmType confirmType);
-	void confirmOpen(Fn<void()> done);
+	void confirmOpen(Fn<void()> done, bool forceConfirmation = false);
 	void confirmAppOpen(
 		bool writeAccess,
 		Fn<void(bool allowWrite)> done,
@@ -300,10 +300,14 @@ private:
 		Ui::BotWebView::CustomMethodRequest request) override;
 	void botSendPreparedMessage(
 		Ui::BotWebView::SendPreparedMessageRequest request) override;
+	void botRequestChat(
+		Ui::BotWebView::RequestChatRequest request) override;
 	void botSetEmojiStatus(
 		Ui::BotWebView::SetEmojiStatusRequest request) override;
 	void botDownloadFile(
 		Ui::BotWebView::DownloadFileRequest request) override;
+	void botResolveButtonEmoji(
+		Ui::BotWebView::ResolveButtonEmojiRequest request) override;
 	void botVerifyAge(int age) override;
 	void botOpenPrivacyPolicy() override;
 	void botClose() override;

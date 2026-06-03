@@ -141,9 +141,7 @@ public:
 
 	void firstShow();
 	bool minimizeToTray();
-	void updateGlobalMenu() {
-		updateGlobalMenuHook();
-	}
+	void updateGlobalMenu();
 
 	[[nodiscard]] virtual rpl::producer<QPoint> globalForceClicks() {
 		return rpl::never<QPoint>();
@@ -215,6 +213,7 @@ private:
 
 	object_ptr<Ui::PlainShadow> _titleShadow = { nullptr };
 	object_ptr<Ui::RpWidget> _outdated;
+	object_ptr<Ui::RpWidget> _screenReaderBar;
 	object_ptr<Ui::RpWidget> _body;
 	object_ptr<Ui::RpWidget> _rightColumn = { nullptr };
 

@@ -719,9 +719,9 @@ SpeedController::SpeedController(
 	Fn<void(bool)> menuOverCallback,
 	Fn<float64(bool lastNonDefault)> value,
 	Fn<void(float64)> change,
-	std::vector<int> qualities,
+	std::vector<VideoQuality> qualities,
 	Fn<VideoQuality()> quality,
-	Fn<void(int)> changeQuality)
+	Fn<void(VideoQuality)> changeQuality)
 : WithDropdownController(
 	button,
 	menuParent,
@@ -762,6 +762,17 @@ rpl::producer<float64> SpeedController::realtimeValue() const {
 	return _speedChanged.events_starting_with(speed());
 }
 
+void SpeedController::reloadFromLookup() {
+	if (const auto lookup = _lookup) {
+		setSpeed(lookup(false));
+		_speed = lookup(true);
+	}
+}
+
+void SpeedController::setQualities(std::vector<VideoQuality> qualities) {
+	_qualities = std::move(qualities);
+}
+
 float64 SpeedController::speed() const {
 	return _isDefault ? 1. : _speed;
 }
@@ -795,7 +806,7 @@ void SpeedController::save() {
 
 void SpeedController::setQuality(VideoQuality quality) {
 	_quality = quality;
-	_changeQuality(quality.manual ? quality.height : 0);
+	_changeQuality(quality);
 }
 
 void SpeedController::fillMenu(not_null<Ui::DropdownMenu*> menu) {
@@ -817,9 +828,16 @@ void SpeedController::fillMenu(not_null<Ui::DropdownMenu*> menu) {
 		raw->addSeparator(&st.dropdown.menu.separator);
 	}
 
-	const auto add = [&](int quality) {
+	const auto add = [&](VideoQuality quality) {
 		const auto automatic = tr::lng_mediaview_quality_auto(tr::now);
-		const auto text = quality ? u"%1p"_q.arg(quality) : automatic;
+		const auto text = (!quality.height && !quality.original)
+			? automatic
+			: quality.original
+			? tr::lng_mediaview_quality_original(
+				tr::now,
+				lt_quality,
+				QString::number(quality.height))
+			: u"%1p"_q.arg(quality.height);
 		auto action = base::make_unique_q<Ui::Menu::Action>(
 			raw,
 			st.qualityMenu,
@@ -829,15 +847,15 @@ void SpeedController::fillMenu(not_null<Ui::DropdownMenu*> menu) {
 				[=] { _changeQuality(quality); }),
 			nullptr,
 			nullptr);
-		const auto raw = action.get();
-		const auto check = Ui::CreateChild<Ui::RpWidget>(raw);
+		const auto rawAction = action.get();
+		const auto check = Ui::CreateChild<Ui::RpWidget>(rawAction);
 		check->resize(st.activeCheck.size());
 		check->paintRequest(
 		) | rpl::on_next([check, icon = &st.activeCheck] {
 			auto p = QPainter(check);
 			icon->paint(p, 0, 0, check->width());
 		}, check->lifetime());
-		raw->sizeValue(
+		rawAction->sizeValue(
 		) | rpl::on_next([=, skip = st.activeCheckSkip](QSize size) {
 			check->moveToRight(
 				skip,
@@ -848,20 +866,22 @@ void SpeedController::fillMenu(not_null<Ui::DropdownMenu*> menu) {
 		_quality.value(
 		) | rpl::on_next([=](VideoQuality now) {
 			const auto chosen = now.manual
-				? (now.height == quality)
-				: !quality;
-			raw->action()->setEnabled(!chosen);
-			if (!quality) {
-				raw->action()->setText(automatic
-					+ (now.manual ? QString() : u"\t%1p"_q.arg(now.height)));
+				? (now == quality)
+				: (!quality.height && !quality.original);
+			rawAction->action()->setEnabled(!chosen);
+			if (!quality.height && !quality.original) {
+				const auto suffix = now.manual
+					? QString()
+					: u"\t%1p"_q.arg(now.height);
+				rawAction->action()->setText(automatic + suffix);
 			}
 			check->setVisible(chosen);
-		}, raw->lifetime());
+		}, rawAction->lifetime());
 		menu->addAction(std::move(action));
 	};
 
-	add(0);
-	for (const auto quality : _qualities) {
+	add(VideoQuality());
+	for (const auto &quality : _qualities) {
 		add(quality);
 	}
 }

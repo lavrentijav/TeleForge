@@ -9,14 +9,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/layers/generic_box.h"
 
-namespace Window {
-class SessionController;
-}
-
-void AboutBox(not_null<Ui::GenericBox*> box, Window::SessionController* controller);
+void AboutBox(not_null<Ui::GenericBox*> box);
 void ArchiveHintBox(
 	not_null<Ui::GenericBox*> box,
 	bool unarchiveOnNewMessage,
 	Fn<void()> onUnarchive);
 
+QString telegramFaqLink();
 QString currentVersionText();

@@ -27,9 +27,11 @@ Read `changelog.txt` from the repository root. Note the **latest version number*
 
 ### 3. Determine the new version number
 
-- **If a version was provided in arguments**, use it directly (append `.0` if only major.minor was given).
+**Important:** version numbers are shared across the beta and stable tracks — the sequence advances through both. The same `major.minor.patch` cannot be released as both beta and stable. A beta release "uses up" that number; the next stable must bump to a new patch.
+
+- **If a version was provided in arguments**, use it directly (append `.0` if only major.minor was given). If the latest changelog entry already used this exact number (regardless of beta/stable), warn the user — they likely want a bumped patch.
 - **If no version was provided**, auto-increment from the latest changelog version:
-  - If it was a beta, and the new release is **not** beta, reuse the same version number but drop "beta".
+  - If it was a beta, and the new release is **not** beta, bump the patch component by 1 (do **not** reuse the beta's number for stable).
   - If the new release is beta and the latest was also beta with the same major.minor, bump patch.
   - Otherwise bump the patch component by 1.
 - Present the chosen version to the user and ask for confirmation before proceeding. If the user suggests a different version, use that instead.
@@ -65,14 +67,15 @@ Use this exact format (date is today in DD.MM.YY):
 
 Prepend the new entry at the very top of `changelog.txt`, separated by a blank line from the previous first entry. Use the Edit tool.
 
-### 8. Show the entry and wait for approval
+**Never delete or edit existing entries**, even if the new stable entry merges bullets from prior beta(s). Prior beta blocks remain as historical record for beta-track users.
 
-Print the full changelog entry in chat and ask the user to review it. Tell them they can:
-- Approve as-is.
-- Edit `changelog.txt` directly in the IDE and tell you to continue.
-- Tell you what to change in chat.
+**For stable releases spanning prior beta(s):** the entry should cover everything since the last **stable** release (not just since the last beta), including noteworthy beta-shipped features, trimmed as needed to stay within 4–12 bullets.
 
-**Do NOT proceed until the user explicitly approves.** If they request changes, apply them and show the updated entry again.
+### 8. Wait for approval
+
+After writing the entry to `changelog.txt` (step 7), tell the user the changelog has been updated and ask them to review it in the IDE. They can edit it directly and tell you to continue, or tell you what to change in chat. Do **not** print the full entry in chat — the file itself is the review surface.
+
+**Do NOT proceed until the user explicitly approves.**
 
 ### 9. Run set_version
 
@@ -96,7 +99,7 @@ Stage all changes and create a commit. The commit message format:
 - For stable: `Version <major>.<minor>.` if patch is 0, otherwise `Version <major>.<minor>.<patch>.`
 - For beta: `Beta version <major>.<minor>.<patch>.`
 
-**Then an empty line, then the changelog bullets.** Each bullet line (starting with `- `) must be wrapped at around 77-78 characters. When wrapping, break at logically correct places (between words/phrases) and indent continuation lines with two spaces.
+**Then an empty line, then the changelog bullets.** Copy bullet lines from the changelog as-is. Only wrap lines that exceed 72 characters; shorter lines must stay on a single line. When wrapping is needed, break at logically correct places (between words/phrases) and indent continuation lines with two spaces.
 
 Example commit message:
 ```

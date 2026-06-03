@@ -36,6 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_instance.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_icon.h"
+#include "menu/menu_checked_action.h"
 #include "main/main_account.h"
 #include "main/main_app_config.h"
 #include "main/main_domain.h"
@@ -113,8 +114,9 @@ public:
 private:
 	void setupChildGeometry();
 	void initViewers();
+	void updatePhoneText();
 	void refreshNameGeometry(int newWidth);
-	void refreshIdGeometry(int newWidth);
+	void refreshPhoneGeometry(int newWidth);
 	void refreshUsernameGeometry(int newWidth);
 	void refreshQrButtonGeometry(int newWidth);
 
@@ -122,11 +124,11 @@ private:
 	const not_null<UserData*> _user;
 	Info::Profile::EmojiStatusPanel _emojiStatusPanel;
 	Info::Profile::Badge _badge;
-	Info::Profile::Badge _exteraBadge;
 
 	object_ptr<Ui::UserpicButton> _userpic;
 	object_ptr<Ui::FlatLabel> _name = { nullptr };
-	object_ptr<Ui::FlatLabel> _id = { nullptr };
+	object_ptr<Ui::FlatLabel> _phone = { nullptr };
+	QString _phoneText;
 	object_ptr<Ui::FlatLabel> _username = { nullptr };
 	object_ptr<Ui::IconButton> _qrButton = { nullptr };
 
@@ -175,27 +177,45 @@ Cover::Cover(
 	Ui::UserpicButton::Source::PeerPhoto,
 	st::infoProfileCover.photo)
 , _name(this, st::infoProfileCover.name)
-, _id(this, st::defaultFlatLabel)
+, _phone(this, st::defaultFlatLabel, st::popupMenuWithIcons)
 , _username(this, st::infoProfileMegagroupCover.status) {
 	_user->updateFull();
 
 	_name->setSelectable(true);
 	_name->setContextCopyText(tr::lng_profile_copy_fullname(tr::now));
 
-	_id->setSelectable(true);
-	_id->setContextCopyText(tr::ayu_ContextCopyID(tr::now));
+	_phone->setSelectable(true);
+	_phone->setContextCopyText(tr::lng_profile_copy_phone(tr::now));
 	const auto hook = [=](Ui::FlatLabel::ContextMenuRequest request) {
 		if (request.selection.empty()) {
-			const auto c = [=] {
-				auto id = IDString(_user);
-				TextUtilities::SetClipboardText({ id });
+			const auto callback = [=] {
+				auto phone = rpl::variable<TextWithEntities>(
+					Info::Profile::PhoneValue(_user)).current().text;
+				phone.replace(' ', QString()).replace('-', QString());
+				TextUtilities::SetClipboardText({ phone });
 			};
-			request.menu->addAction(tr::ayu_ContextCopyID(tr::now), c);
+			request.menu->addAction(
+				tr::lng_profile_copy_phone(tr::now),
+				callback,
+				&st::menuIconCopy);
 		} else {
-			_id->fillContextMenu(request);
+			_phone->fillContextMenu(request);
 		}
+		const auto hidden = _user->session().settings().phoneNumberHidden();
+		const auto toggle = [=] {
+			_user->session().settings().setPhoneNumberHidden(
+				!_user->session().settings().phoneNumberHidden());
+			_user->session().saveSettingsDelayed();
+			updatePhoneText();
+		};
+		Menu::AddCheckedAction(
+			request.menu,
+			tr::lng_context_spoiler_effect(tr::now),
+			toggle,
+			&st::menuIconSpoiler,
+			hidden);
 	};
-	_id->setContextMenuHook(hook);
+	_phone->setContextMenuHook(hook);
 
 	initViewers();
 	setupChildGeometry();
@@ -204,6 +224,7 @@ Cover::Cover(
 			Ui::UserpicButton::ChosenImage chosen) {
 		auto &image = chosen.image;
 		_userpic->showCustom(base::duplicate(image));
+		const auto isMarkup = (chosen.markup.documentId != 0);
 		_user->session().api().peerPhoto().upload(
 			_user,
 			{
@@ -211,6 +232,9 @@ Cover::Cover(
 				chosen.markup.documentId,
 				chosen.markup.colors,
 			});
+		if (!isMarkup) {
+			_userpic->showUploadProgress();
+		}
 	});
 
 	_badge.setPremiumClickCallback([=] {
@@ -271,11 +295,11 @@ void Cover::initViewers() {
 		refreshNameGeometry(width());
 	}, lifetime());
 
-	rpl::single(
-		tr::marked(IDString(_user))
+	Info::Profile::PhoneValue(
+		_user
 	) | rpl::on_next([=](const TextWithEntities &value) {
-		_id->setText(value.text);
-		refreshIdGeometry(width());
+		_phoneText = value.text;
+		updatePhoneText();
 	}, lifetime());
 
 	Info::Profile::UsernameValue(
@@ -315,30 +339,32 @@ void Cover::refreshNameGeometry(int newWidth) {
 	if (const auto width = _badge.widget() ? _badge.widget()->width() : 0) {
 		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
 	}
-	if (const auto width = _exteraBadge.widget() ? _exteraBadge.widget()->width() : 0) {
-		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
-	}
 	_name->resizeToNaturalWidth(nameWidth);
 	_name->moveToLeft(nameLeft, nameTop, newWidth);
 	const auto badgeLeft = nameLeft + _name->width();
 	const auto badgeTop = nameTop;
 	const auto badgeBottom = nameTop + _name->height();
 	_badge.move(badgeLeft, badgeTop, badgeBottom);
-	const auto exteraBadgeLeft = badgeLeft
-		+ (_badge.widget()
-			   ? (_badge.widget()->width() + st::infoVerifiedCheckPosition.x())
-			   : 0);
-	_exteraBadge.move(exteraBadgeLeft, badgeTop, badgeBottom);
 }
 
-void Cover::refreshIdGeometry(int newWidth) {
-	const auto idLeft = st::settingsPhoneLeft;
-	const auto idTop = st::settingsPhoneTop;
-	const auto idWidth = newWidth
-		- idLeft
+void Cover::updatePhoneText() {
+	if (_user->session().settings().phoneNumberHidden()) {
+		_phone->setMarkedText(
+			Ui::Text::Wrapped({ _phoneText }, EntityType::Spoiler));
+	} else {
+		_phone->setText(_phoneText);
+	}
+	refreshPhoneGeometry(width());
+}
+
+void Cover::refreshPhoneGeometry(int newWidth) {
+	const auto phoneLeft = st::settingsPhoneLeft;
+	const auto phoneTop = st::settingsPhoneTop;
+	const auto phoneWidth = newWidth
+		- phoneLeft
 		- st::infoProfileCover.rightSkip;
-	_id->resizeToWidth(idWidth);
-	_id->moveToLeft(idLeft, idTop, newWidth);
+	_phone->resizeToWidth(phoneWidth);
+	_phone->moveToLeft(phoneLeft, phoneTop, newWidth);
 }
 
 void Cover::refreshUsernameGeometry(int newWidth) {
@@ -892,7 +918,7 @@ void SetupValidatePhoneNumberSuggestion(
 		wrap,
 		tr::lng_box_yes(),
 		st::inviteLinkButton);
-	yes->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
+	yes->setFullRadius(true);
 	yes->setClickedCallback([=] {
 		controller->session().promoSuggestions().dismiss(
 			kSugValidatePhone.utf8());
@@ -902,7 +928,7 @@ void SetupValidatePhoneNumberSuggestion(
 		wrap,
 		tr::lng_box_no(),
 		st::inviteLinkButton);
-	no->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
+	no->setFullRadius(true);
 	no->setClickedCallback([=] {
 		const auto sharedLabel = std::make_shared<base::weak_qptr<Ui::FlatLabel>>();
 		const auto height = st::boxLabel.style.font->height;
@@ -994,7 +1020,7 @@ void SetupValidatePasswordSuggestion(
 		wrap,
 		tr::lng_settings_suggestion_password_yes(),
 		st::inviteLinkButton);
-	yes->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
+	yes->setFullRadius(true);
 	yes->setClickedCallback([=] {
 		controller->session().promoSuggestions().dismiss(
 			Data::PromoSuggestions::SugValidatePassword());
@@ -1004,7 +1030,7 @@ void SetupValidatePasswordSuggestion(
 		wrap,
 		tr::lng_settings_suggestion_password_no(),
 		st::inviteLinkButton);
-	no->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
+	no->setFullRadius(true);
 	no->setClickedCallback([=] {
 		showOther(Settings::CloudPasswordSuggestionInputId());
 	});

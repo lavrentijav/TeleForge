@@ -1,11 +1,7 @@
 name: Snap.
-# Trigger marker: 2026-04-02 16:00 MSK
 
 on:
-  workflow_dispatch:
   push:
-    tags:
-      - '*'
     paths-ignore:
       - 'docs/**'
       - '**.md'
@@ -44,9 +40,7 @@ jobs:
 
   snap:
     name: Ubuntu
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-ubuntu-latest-16' || 'ubuntu-latest' }}
 
     env:
       UPLOAD_ARTIFACT: "true"
@@ -91,14 +85,3 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifact
-          if-no-files-found: error
-          compression-level: 0
-
-      - name: Publish release assets.
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "artifact/*"
-          artifactErrorsFailBuild: true
-          allowUpdates: true
-          removeArtifacts: false

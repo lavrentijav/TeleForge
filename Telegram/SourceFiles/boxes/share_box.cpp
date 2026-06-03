@@ -372,7 +372,10 @@ void ShareBox::prepare() {
 				_inner->applyChatFilter(id);
 				scrollToY(0);
 			},
-			Window::GifPauseReason::Layer);
+			Window::GifPauseReason::Layer,
+			nullptr,
+			false,
+			true);
 		chatsFilters->lower();
 		chatsFilters->heightValue() | rpl::on_next([this](int h) {
 			updateScrollSkips();
@@ -1899,7 +1902,12 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 							ChatHelpers::ForwardedMessagePhrase(
 								donePhraseArgs)).current();
 						if (!phrase.empty()) {
-							show->showToast(std::move(phrase));
+							show->showToast({
+								.text = std::move(phrase),
+								.filter = ChatHelpers
+									::ForwardedToSavedMessagesFilter(
+										&history->session()),
+							});
 						}
 						show->hideLayer();
 					}
@@ -1951,7 +1959,12 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 					ChatHelpers::ForwardedMessagePhrase(
 						donePhraseArgs)).current();
 				if (!phrase.empty()) {
-					show->showToast(std::move(phrase));
+					show->showToast({
+						.text = std::move(phrase),
+						.filter = ChatHelpers
+							::ForwardedToSavedMessagesFilter(
+								&history->session()),
+					});
 				}
 				show->hideLayer();
 			}
@@ -2076,23 +2089,29 @@ void FastShareMessageToSelf(
 		std::shared_ptr<Main::SessionShow> show,
 		not_null<HistoryItem*> item) {
 	const auto self = show->session().user();
+	auto &owner = self->owner();
+	const auto items = owner.idsToItems(owner.itemOrItsGroup(item));
 	const auto donePhraseArgs = ChatHelpers::ForwardedMessagePhraseArgs{
 		.toCount = 1,
-		.singleMessage = true,
+		.singleMessage = (items.size() == 1),
 		.to1 = self,
 		.to2 = nullptr,
 	};
-	auto sendAction = Api::SendAction(self->owner().history(self));
+	auto sendAction = Api::SendAction(owner.history(self));
 	sendAction.clearDraft = false;
 	show->session().api().forwardMessages(
-		Data::ResolvedForwardDraft{ .items = {item} },
+		Data::ResolvedForwardDraft{ .items = items },
 		std::move(sendAction),
 		[=] {
 			auto phrase = rpl::variable<TextWithEntities>(
 				ChatHelpers::ForwardedMessagePhrase(
 					donePhraseArgs)).current();
 			if (!phrase.empty()) {
-				show->showToast(std::move(phrase));
+				show->showToast({
+					.text = std::move(phrase),
+					.filter = ChatHelpers::ForwardedToSavedMessagesFilter(
+						&show->session()),
+				});
 			}
 		});
 }

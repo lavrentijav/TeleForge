@@ -122,12 +122,15 @@ float64 ItemCanvas::strokeWidth(float64 pressure) const {
 	auto width = _brushData.size * pressure;
 	if (_brushData.tool == Brush::Tool::Marker) {
 		width *= st::photoEditorMarkerSizeMultiplier;
+	} else if (_brushData.tool == Brush::Tool::Blur) {
+		width *= st::photoEditorBlurSizeMultiplier;
 	}
 	return width;
 }
 
 QColor ItemCanvas::strokeColor() const {
-	if (_brushData.tool == Brush::Tool::Eraser) {
+	if (_brushData.tool == Brush::Tool::Eraser
+		|| _brushData.tool == Brush::Tool::Blur) {
 		return QColor(0, 0, 0, 255);
 	}
 	auto color = _brushData.color;
@@ -254,7 +257,7 @@ void ItemCanvas::drawArrowHead() {
 	}
 	direction /= length;
 	const auto angle = qDegreesToRadians(
-		double(st::photoEditorArrowHeadAngleDegrees));
+		float64(st::photoEditorArrowHeadAngleDegrees));
 	const auto sinA = std::sin(angle);
 	const auto cosA = std::cos(angle);
 	const auto rotate = [&](const QPointF &v, float64 s, float64 c) {
@@ -398,6 +401,7 @@ void ItemCanvas::handleMouseReleaseEvent(
 			.pixmap = _pixmap.copy(scaledContentRect.toRect()),
 			.position = _contentRect.topLeft(),
 			.clear = (_brushData.tool == Brush::Tool::Eraser),
+			.blur = (_brushData.tool == Brush::Tool::Blur),
 		});
 	}
 	_currentStroke.clear();
@@ -416,6 +420,11 @@ void ItemCanvas::paint(
 	if (_brushData.tool == Brush::Tool::Eraser) {
 		p->save();
 		p->setOpacity(st::photoEditorEraserPreviewOpacity);
+		p->drawPixmap(0, 0, _pixmap);
+		p->restore();
+	} else if (_brushData.tool == Brush::Tool::Blur) {
+		p->save();
+		p->setOpacity(st::photoEditorBlurPreviewOpacity);
 		p->drawPixmap(0, 0, _pixmap);
 		p->restore();
 	} else {

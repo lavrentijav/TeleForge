@@ -31,6 +31,8 @@ public:
 		const QSizeF &scaledImageSize);
 	[[nodiscard]] QRect saveCropRect();
 	[[nodiscard]] style::margins cropMargins() const;
+	void setAspectRatio(float64 ratio);
+	void setCornersLevel(RoundedCornersLevel level);
 
 protected:
 	void mousePressEvent(QMouseEvent *e) override;
@@ -97,6 +99,8 @@ private:
 	bool _gridVisible = false;
 
 	bool _keepAspectRatio = false;
+
+	RoundedCornersLevel _cornersLevel = RoundedCornersLevel::Large;
 
 };
 

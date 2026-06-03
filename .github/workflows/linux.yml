@@ -1,11 +1,7 @@
 name: Linux.
-# Trigger marker: 2026-04-02 16:00 MSK
 
 on:
-  workflow_dispatch:
   push:
-    tags:
-      - '*'
     paths-ignore:
       - 'docs/**'
       - '**.md'
@@ -48,9 +44,7 @@ jobs:
 
   linux:
     name: Rocky Linux 8
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-ubuntu-latest-16' || 'ubuntu-latest' }}
 
     strategy:
       matrix:
@@ -115,20 +109,20 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo "ARTIFACT_NAME=TeleForge ${{ matrix.defines }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Telegram ${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=TeleForge" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Telegram" >> $GITHUB_ENV
           fi
 
           docker run --rm \
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
-          -e CONFIG=Release \
+          -e CONFIG=Debug \
           $IMAGE_TAG \
           /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Release \
-          -D CMAKE_C_FLAGS_RELEASE="-O2 -fuse-ld=lld" \
-          -D CMAKE_CXX_FLAGS_RELEASE="-O2 -fuse-ld=lld" \
+          -D CMAKE_CONFIGURATION_TYPES=Debug \
+          -D CMAKE_C_FLAGS_DEBUG="-O0 -fuse-ld=lld" \
+          -D CMAKE_CXX_FLAGS_DEBUG="-O0 -fuse-ld=lld" \
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON \
           -D TDESKTOP_API_TEST=ON \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
@@ -138,7 +132,7 @@ jobs:
       - name: Check.
         if: env.ONLY_CACHE == 'false'
         run: |
-          filePath="out/Release/TeleForge"
+          filePath="out/Debug/Telegram"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -152,26 +146,12 @@ jobs:
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd out/Release
+          cd out/Debug
           mkdir artifact
-          mv TeleForge artifact/
-          if test -f Updater; then
-            mv Updater artifact/
-          fi
+          mv {Telegram,Updater} artifact/
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: out/Release/artifact/
-          if-no-files-found: error
-          compression-level: 0
-
-      - name: Publish release assets.
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "out/Release/artifact/*"
-          artifactErrorsFailBuild: true
-          allowUpdates: true
-          removeArtifacts: false
+          path: out/Debug/artifact/

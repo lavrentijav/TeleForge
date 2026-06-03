@@ -32,16 +32,23 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session_settings.h"
 #include "base/options.h"
 #include "base/crc32hash.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/toast/toast.h"
 #include "ui/widgets/shadow.h"
 #include "ui/controls/window_outdated_bar.h"
+#include "ui/controls/window_screen_reader_bar.h"
 #include "ui/painter.h"
+#include "ui/screen_reader_mode.h"
 #include "ui/ui_utility.h"
 #include "apiwrap.h"
 #include "mainwidget.h" // session->content()->windowShown().
 #include "tray.h"
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h" // ChildSkip().x() for new child windows.
+
+#ifdef Q_OS_MAC
+#include "platform/mac/global_menu_mac.h"
+#endif // Q_OS_MAC
 
 #include <QtCore/QFile>
 #include <QtCore/QMimeData>
@@ -165,7 +172,9 @@ QImage TrayIconRasterBase(int size, int unreadCount, bool muted) {
 	if (!content.isEmpty()) {
 		auto p = QPainter(&image);
 		auto hq = PainterHighQualityEnabler(p);
-		QSvgRenderer(content).render(&p, QRectF(0, 0, size, size));
+		auto renderer = QSvgRenderer(content);
+		renderer.setViewBox(QRectF(160, 32, 768, 768));
+		renderer.render(&p, QRectF(0, 0, size, size));
 	}
 	return TrayRasterCaches[variant].emplace(size, std::move(image)).first->second;
 }
@@ -407,6 +416,20 @@ MainWindow::MainWindow(not_null<Controller*> controller)
 : _controller(controller)
 , _positionUpdatedTimer([=] { savePosition(); })
 , _outdated(Ui::CreateOutdatedBar(body(), cWorkingDir()))
+, _screenReaderBar(Ui::CreateScreenReaderBar(body(), [=] {
+	controller->show(Ui::MakeConfirmBox({
+		.text = tr::lng_screen_reader_confirm_text(tr::now),
+		.confirmed = [=](Fn<void()> close) {
+			Core::App().settings().writePref<bool>(
+				Core::kScreenReaderModeDisabledKey,
+				true);
+			Core::App().saveSettingsDelayed();
+			Ui::SetScreenReaderModeDisabled(true);
+			close();
+		},
+		.confirmText = tr::lng_screen_reader_confirm_disable(),
+	}));
+}))
 , _body(body()) {
 	style::PaletteChanged(
 	) | rpl::on_next([=] {
@@ -456,6 +479,13 @@ MainWindow::MainWindow(not_null<Controller*> controller)
 			}
 			updateControlsGeometry();
 		}, _outdated->lifetime());
+	}
+
+	if (_screenReaderBar) {
+		_screenReaderBar->heightValue(
+		) | rpl::on_next([=](int height) {
+			updateControlsGeometry();
+		}, _screenReaderBar->lifetime());
 	}
 
 	Shortcuts::Listen(this);
@@ -513,6 +543,14 @@ bool MainWindow::hideNoQuit() {
 void MainWindow::clearWidgets() {
 	clearWidgetsHook();
 	updateGlobalMenu();
+}
+
+void MainWindow::updateGlobalMenu() {
+#ifdef Q_OS_MAC
+	Platform::RequestUpdateGlobalMenu();
+#else // Q_OS_MAC
+	updateGlobalMenuHook();
+#endif // Q_OS_MAC
 }
 
 void MainWindow::updateIsActive() {
@@ -645,7 +683,14 @@ int MainWindow::computeMinHeight() const {
 		_outdated->resizeToWidth(st::windowMinWidth);
 		return _outdated->height();
 	}();
-	return outdated + st::windowMinHeight;
+	const auto screenReader = [&] {
+		if (!_screenReaderBar) {
+			return 0;
+		}
+		_screenReaderBar->resizeToWidth(st::windowMinWidth);
+		return _screenReaderBar->height();
+	}();
+	return outdated + screenReader + st::windowMinHeight;
 }
 
 void MainWindow::refreshTitleWidget() {
@@ -807,6 +852,12 @@ void MainWindow::updateControlsGeometry() {
 		_outdated->resizeToWidth(inner.width());
 		_outdated->moveToLeft(inner.x(), bodyTop);
 		bodyTop += _outdated->height();
+	}
+	if (_screenReaderBar) {
+		Ui::SendPendingMoveResizeEvents(_screenReaderBar.data());
+		_screenReaderBar->resizeToWidth(inner.width());
+		_screenReaderBar->moveToLeft(inner.x(), bodyTop);
+		bodyTop += _screenReaderBar->height();
 	}
 	if (_rightColumn) {
 		bodyWidth -= _rightColumn->width();

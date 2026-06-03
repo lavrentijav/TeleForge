@@ -34,6 +34,7 @@ TeleForge is built as a separate client identity, not as a simple rebrand. The c
 
 ## Official Resources
 
+- Repository: [github.com/lavrentijav/TeleForge](https://github.com/lavrentijav/TeleForge)
 - Channel: [t.me/teleforge_official](https://t.me/teleforge_official)
 - Chat: [t.me/teleforgechat](https://t.me/teleforgechat)
 - Website: [tele-forge.ru](https://tele-forge.ru)
@@ -67,6 +68,8 @@ These assets define the current visual identity of the client across the app win
     </table>
   </details>
 </h3>
+
+To sync with official Telegram Desktop, see [docs/UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md).
 
 ## Downloads
 

@@ -1,185 +1,67 @@
 name: Windows.
-# Trigger marker
 
 on:
   push:
-    tags:
-      - '*'
     paths-ignore:
-      - '!docs/building-win*.md'
-      - '!.github/workflows/win.yml'
       - 'docs/**'
       - '**.md'
+      - '!docs/building-win*.md'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
       - '.github/**'
+      - '!.github/workflows/win.yml'
       - 'lib/xdg/**'
       - 'snap/**'
       - 'Telegram/build/docker/**'
       - 'Telegram/Resources/uwp/**'
       - 'Telegram/SourceFiles/platform/linux/**'
       - 'Telegram/SourceFiles/platform/mac/**'
+      - 'Telegram/Telegram/**'
       - 'Telegram/configure.sh'
       - 'Telegram/Telegram.plist'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '!docs/building-win*.md'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/win.yml'
+      - 'lib/xdg/**'
+      - 'snap/**'
+      - 'Telegram/build/docker/**'
+      - 'Telegram/Resources/uwp/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
+      - 'Telegram/SourceFiles/platform/mac/**'
+      - 'Telegram/Telegram/**'
+      - 'Telegram/configure.sh'
+      - 'Telegram/Telegram.plist'
+
 jobs:
-
-  windows-deps:
-    name: Windows Dependencies
-    runs-on: windows-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64]
-        qt: [""]
-        config: [Debug, Release]
-
-    env:
-      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
-
-    defaults:
-      run:
-        shell: cmd
-
-    steps:
-      - name: Prepare directories.
-        run: |
-          mkdir %userprofile%\TBuild\Libraries
-          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
-          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
-          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries${{ matrix.arch == 'x64' && '\win64' || '' }}>>%GITHUB_ENV%
-
-      - name: Get repository name.
-        shell: bash
-        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
-
-      - name: Clone.
-        uses: actions/checkout@v6
-        with:
-          submodules: recursive
-          path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
-
-      - name: First set up.
-        shell: bash
-        run: |
-          DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
-          SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
-          echo "SDK=$SDK" >> $GITHUB_ENV
-
-          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake
-
-          echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
-          echo "$SDK" >> CACHE_KEY.txt
-          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
-
-      - uses: ilammy/msvc-dev-cmd@v1.13.0
-        name: Native Tools Command Prompt.
-        with:
-          arch: ${{ matrix.arch }}
-          sdk: ${{ env.SDK }}
-
-      - name: NuGet sources.
-        run: |
-          nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
-          nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
-
-      - name: ThirdParty cache.
-        id: cache-third-party
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.TBUILD }}\ThirdParty
-          key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ runner.arch }}-third-party-
-
-      - name: Libraries cache.
-        id: cache-libs
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ env.LibrariesPath }}\*
-            !${{ env.LibrariesPath }}\cache_keys
-            !${{ env.LibrariesPath }}\ffmpeg
-            !${{ env.LibrariesPath }}\ffmpeg\**
-            !${{ env.LibrariesPath }}\tg_owt
-            !${{ env.LibrariesPath }}\tg_owt\**
-            !${{ env.LibrariesPath }}\tde2e
-            !${{ env.LibrariesPath }}\tde2e\**
-            !${{ env.LibrariesPath }}\protobuf
-            !${{ env.LibrariesPath }}\protobuf\**
-            !${{ env.LibrariesPath }}\[qQ]t[_-]*
-            ${{ env.LibrariesPath }}\cache_keys\*
-            !${{ env.LibrariesPath }}\cache_keys\ffmpeg
-            !${{ env.LibrariesPath }}\cache_keys\tg_owt
-            !${{ env.LibrariesPath }}\cache_keys\tde2e
-            !${{ env.LibrariesPath }}\cache_keys\protobuf
-            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
-
-      - name: Heavy libraries cache.
-        id: cache-heavy-libs
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ env.LibrariesPath }}\ffmpeg
-            ${{ env.LibrariesPath }}\tg_owt
-            ${{ env.LibrariesPath }}\tde2e
-            ${{ env.LibrariesPath }}\protobuf
-            ${{ env.LibrariesPath }}\cache_keys\ffmpeg
-            ${{ env.LibrariesPath }}\cache_keys\tg_owt
-            ${{ env.LibrariesPath }}\cache_keys\tde2e
-            ${{ env.LibrariesPath }}\cache_keys\protobuf
-          key: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-
-
-      - name: Qt cache.
-        id: cache-qt
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ env.LibrariesPath }}\[qQ]t[_-]*
-            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
-
-      - name: Libraries for Debug.
-        if: matrix.config == 'Debug'
-        env:
-          GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\'
-          GYP_MSVS_VERSION: 2022
-        run: |
-          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent ${{ matrix.qt }}
-
-      - name: Libraries for Release.
-        if: matrix.config == 'Release'
-        env:
-          GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\'
-          GYP_MSVS_VERSION: 2022
-        run: |
-          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat silent ${{ matrix.qt }}
 
   windows:
     name: Windows
-    needs: windows-deps
-    runs-on: windows-latest
-    permissions:
-      contents: write
+    runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || ((github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-windows-latest-16' || 'windows-latest') }}
 
     strategy:
-      fail-fast: false
       matrix:
-        arch: [x64]
-        qt: [""]
-        generator: [""]
-        config: [Debug, Release]
+        arch: [x64_x86, x64, arm64]
+        qt: ["", qt6]
+        generator: ["", "Ninja Multi-Config"]
+        exclude:
+          - arch: arm64
+            qt: ""
+          - arch: x64_x86
+            qt: qt6
 
     env:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
-      SCCACHE_GHA_ENABLED: "true"
-      SCCACHE_CACHE_SIZE: "10G"
+
     defaults:
       run:
         shell: cmd
@@ -219,14 +101,11 @@ jobs:
           git config --global user.email "you@example.com"
           git config --global user.name "Sample"
 
-      - uses: ilammy/msvc-dev-cmd@v1.13.0
+      - uses: Eden-CI/msvc-dev-cmd@master
         name: Native Tools Command Prompt.
         with:
           arch: ${{ matrix.arch }}
           sdk: ${{ env.SDK }}
-
-      - name: Set up sccache.
-        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: NuGet sources.
         run: |
@@ -248,39 +127,11 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\*
             !${{ env.LibrariesPath }}\cache_keys
-            !${{ env.LibrariesPath }}\ffmpeg
-            !${{ env.LibrariesPath }}\ffmpeg\**
-            !${{ env.LibrariesPath }}\tg_owt
-            !${{ env.LibrariesPath }}\tg_owt\**
-            !${{ env.LibrariesPath }}\tde2e
-            !${{ env.LibrariesPath }}\tde2e\**
-            !${{ env.LibrariesPath }}\protobuf
-            !${{ env.LibrariesPath }}\protobuf\**
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
-            !${{ env.LibrariesPath }}\cache_keys\ffmpeg
-            !${{ env.LibrariesPath }}\cache_keys\tg_owt
-            !${{ env.LibrariesPath }}\cache_keys\tde2e
-            !${{ env.LibrariesPath }}\cache_keys\protobuf
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
-
-      - name: Heavy libraries cache.
-        id: cache-heavy-libs
-        uses: actions/cache@v5
-        with:
-          path: |
-            ${{ env.LibrariesPath }}\ffmpeg
-            ${{ env.LibrariesPath }}\tg_owt
-            ${{ env.LibrariesPath }}\tde2e
-            ${{ env.LibrariesPath }}\protobuf
-            ${{ env.LibrariesPath }}\cache_keys\ffmpeg
-            ${{ env.LibrariesPath }}\cache_keys\tg_owt
-            ${{ env.LibrariesPath }}\cache_keys\tde2e
-            ${{ env.LibrariesPath }}\cache_keys\protobuf
-          key: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-heavy-libs-${{ matrix.config == 'Release' && 'release-v1' || 'debug-v1' }}-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-
 
       - name: Qt cache.
         id: cache-qt
@@ -289,13 +140,20 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ matrix.config == 'Release' && 'full-release-v2' || 'debug-only-v1' }}-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-
+
+      - name: Libraries.
+        env:
+          GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\'
+          GYP_MSVS_VERSION: 2022
+        run: |
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent ${{ matrix.qt }}
 
       - name: Read configuration matrix.
         shell: bash
         run: |
-          ARTIFACT_NAME="TeleForge"
+          ARTIFACT_NAME="Telegram"
 
           ARCH=""
           if [ -n "${{ matrix.arch }}" ]; then
@@ -311,8 +169,6 @@ jobs:
           if [ -n "${{ matrix.qt }}" ]; then
             ARTIFACT_NAME="${ARTIFACT_NAME} ${{ matrix.qt }}"
           fi
-
-          ARTIFACT_NAME="${ARTIFACT_NAME} ${{ matrix.config }}"
 
           GENERATOR=""
           if [ -n "${{ matrix.generator }}" ]; then
@@ -335,41 +191,12 @@ jobs:
 
           echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
 
-          APP_ID='${{ secrets.APP_ID }}'
-          APP_HASH='${{ secrets.APP_HASH }}'
-          if [ -z "$APP_ID" ] || [ -z "$APP_HASH" ]; then
-            echo "Missing APP_ID or APP_HASH GitHub secrets."
-            exit 1
+          API="-D TDESKTOP_API_TEST=ON"
+          if [ $GITHUB_REF == 'refs/heads/nightly' ]; then
+            echo "Use the open credentials."
+            API="-D TDESKTOP_API_ID=611335 -D TDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c"
           fi
-
-          API="-D TDESKTOP_API_ID=$APP_ID -D TDESKTOP_API_HASH=$APP_HASH"
           echo "TDESKTOP_BUILD_API=$API" >> $GITHUB_ENV
-
-          VERSION_FILE="$TBUILD/$REPO_NAME/Telegram/build/version"
-          APP_VERSION="$(awk '$1=="AppVersionStrSmall"{print $2}' "$VERSION_FILE")"
-          APP_VERSION_FULL="$(awk '$1=="AppVersionOriginal"{print $2}' "$VERSION_FILE")"
-          if [ -z "$APP_VERSION" ] || [ -z "$APP_VERSION_FULL" ]; then
-            echo "Failed to read app version from $VERSION_FILE."
-            exit 1
-          fi
-          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
-          echo "APP_VERSION_FULL=$APP_VERSION_FULL" >> $GITHUB_ENV
-
-          PORTABLE_NAME=""
-          if [ "${{ matrix.config }}" = "Release" ]; then
-            case "${{ matrix.arch }}" in
-              x64_x86)
-                PORTABLE_NAME="teleforge-portable.${APP_VERSION_FULL}.zip"
-                ;;
-              x64)
-                PORTABLE_NAME="teleforge-portable-x64.${APP_VERSION_FULL}.zip"
-                ;;
-              arm64)
-                PORTABLE_NAME="teleforge-portable-arm64.${APP_VERSION_FULL}.zip"
-                ;;
-            esac
-          fi
-          echo "PORTABLE_NAME=$PORTABLE_NAME" >> $GITHUB_ENV
 
       - name: Free up some disk space.
         shell: bash
@@ -385,77 +212,25 @@ jobs:
           %TDESKTOP_BUILD_ARCH% ^
           ${{ matrix.qt }} ^
           %TDESKTOP_BUILD_API% ^
-          -D CMAKE_CONFIGURATION_TYPES=${{ matrix.config }} ^
+          -D CMAKE_CONFIGURATION_TYPES=Debug ^
           -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
-          -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
-          -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
           %TDESKTOP_BUILD_DEFINE%
 
-          cmake --build ..\out --config ${{ matrix.config }} --parallel
+          cmake --build ..\out --config Debug --parallel
 
-      - name: sccache stats.
-        if: always()
-        run: |
-          where sccache
-          if errorlevel 1 (
-            echo sccache is not available, skipping stats.
-            exit /b 0
-          )
-          sccache --show-stats
-
-      - name: Stage artifact.
+      - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
-          set OUT=%TBUILD%\%REPO_NAME%\out\${{ matrix.config }}
-          set ARTIFACT_DIR=%GITHUB_WORKSPACE%\artifact
-          set RAW_DIR=%ARTIFACT_DIR%\TeleForge
-          if exist "%ARTIFACT_DIR%" rmdir /Q /S "%ARTIFACT_DIR%"
-          mkdir "%ARTIFACT_DIR%"
-          mkdir "%RAW_DIR%"
-
-          if not exist "%OUT%\TeleForge.exe" (
-            echo TeleForge.exe not found in "%OUT%".
-            exit /b 1
-          )
-
-          copy /Y "%OUT%\TeleForge.exe" "%RAW_DIR%\"
-
-          if /I not "${{ matrix.config }}"=="Release" (
-            if exist "%OUT%\TeleForge.pdb" copy /Y "%OUT%\TeleForge.pdb" "%ARTIFACT_DIR%\"
-            if exist "%OUT%\Updater.exe" copy /Y "%OUT%\Updater.exe" "%ARTIFACT_DIR%\"
-            if exist "%OUT%\Updater.pdb" copy /Y "%OUT%\Updater.pdb" "%ARTIFACT_DIR%\"
-          )
-
-          if /I not "%Platform%"=="arm64" (
-            if exist "%OUT%\modules\%Platform%\d3d\d3dcompiler_47.dll" (
-              mkdir "%RAW_DIR%\modules\%Platform%\d3d"
-              copy /Y "%OUT%\modules\%Platform%\d3d\d3dcompiler_47.dll" "%RAW_DIR%\modules\%Platform%\d3d\"
-            )
-          )
-
-          if /I "${{ matrix.config }}"=="Release" (
-            powershell -NoProfile -Command "Compress-Archive -Path '%RAW_DIR%\\*' -DestinationPath '%ARTIFACT_DIR%\\%PORTABLE_NAME%' -Force"
-            if errorlevel 1 exit /b 1
-            rmdir /Q /S "%RAW_DIR%"
-          )
-
+          set OUT=%TBUILD%\%REPO_NAME%\out\Debug
+          mkdir artifact
+          move %OUT%\Telegram.exe artifact/
+          move %OUT%\Updater.exe artifact/
       - uses: actions/upload-artifact@v7
         name: Upload artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ github.workspace }}\artifact\
-          if-no-files-found: error
-          compression-level: 0
-
-      - name: Publish release assets.
-        if: startsWith(github.ref, 'refs/tags/') && matrix.config == 'Release'
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "artifact/*.zip"
-          artifactErrorsFailBuild: true
-          allowUpdates: true
-          removeArtifacts: false
+          path: artifact\

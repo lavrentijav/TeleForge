@@ -113,7 +113,7 @@ std::optional<MTPMessageReplyHeader> PrepareLogReply(
 					MTPVector<MTPMessageEntity>(), // quote_entities
 					MTPint(), // quote_offset
 					MTPint(), // todo_item_id
-					MTP_bytes()); // poll_option
+					MTPbytes()); // poll_option
 			}
 		}
 		return {};
@@ -179,7 +179,7 @@ MTPMessage PrepareLogMessage(const MTPMessage &message, TimeId newDate) {
 			data.vfwd_from() ? *data.vfwd_from() : MTPMessageFwdHeader(),
 			MTP_long(data.vvia_bot_id().value_or_empty()),
 			MTP_long(data.vvia_business_bot_id().value_or_empty()),
-			MTPPeer(), // guestchat_via_from
+			data.vguestchat_via_from() ? *data.vguestchat_via_from() : MTPPeer(),
 			reply.value_or(MTPMessageReplyHeader()),
 			MTP_int(newDate),
 			data.vmessage(),
@@ -338,6 +338,7 @@ QString GeneratePermissionsChangeText(
 			| Flag::SendInline
 			| Flag::SendGames, tr::lng_admin_log_banned_send_stickers },
 		{ Flag::EmbedLinks, tr::lng_admin_log_banned_embed_links },
+		{ Flag::SendReactions, tr::lng_admin_log_banned_send_reactions },
 		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls },
 		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
 		{ Flag::AddParticipants, tr::lng_admin_log_admin_invite_users },

@@ -139,7 +139,8 @@ public:
 	void listMarkContentsRead(
 		const base::flat_set<not_null<HistoryItem*>> &items) override;
 	MessagesBarData listMessagesBar(
-		const std::vector<not_null<Element*>> &elements) override;
+		const std::vector<not_null<Element*>> &elements,
+		bool markLastAsRead) override;
 	void listContentRefreshed() override;
 	void listUpdateDateLink(
 		ClickHandlerPtr &link,
@@ -178,6 +179,8 @@ public:
 	History *listTranslateHistory() override;
 	void listAddTranslatedItems(
 		not_null<TranslateTracker*> tracker) override;
+	Ui::ScrollArea *listScrollArea() const override;
+	bool listThanosEffectEnabled() const override;
 
 	// CornerButtonsDelegate delegate.
 	void cornerButtonsShowAtPosition(
@@ -238,7 +241,8 @@ private:
 		bool spoilered);
 	void highlightSingleNewMessage(const Data::MessagesSlice &slice);
 	void chooseAttach();
-	[[nodiscard]] SendMenu::Details sendMenuDetails() const;
+	[[nodiscard]] SendMenu::Details sendMenuDetails() const override;
+	bool processChosenSticker(ChatHelpers::FileChosen &&chosen) override;
 
 	void pushReplyReturn(not_null<HistoryItem*> item);
 	void checkReplyReturns();

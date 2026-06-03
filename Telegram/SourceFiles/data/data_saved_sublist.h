@@ -90,6 +90,7 @@ public:
 
 	void hasUnreadMentionChanged(bool has) override;
 	void hasUnreadReactionChanged(bool has) override;
+	void hasUnreadPollVoteChanged(bool has) override;
 
 	[[nodiscard]] HistoryItem *lastMessage() const;
 	[[nodiscard]] HistoryItem *lastServerMessage() const;
@@ -192,8 +193,6 @@ private:
 	MsgId _sentReadTill = 0;
 
 	bool _restorePinnedWhenNonEmpty = false;
-
-	mtpRequestId _reloadUnreadCountRequestId = 0;
 
 	rpl::lifetime _lifetime;
 

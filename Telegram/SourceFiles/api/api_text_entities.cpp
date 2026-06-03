@@ -267,6 +267,9 @@ EntitiesInText EntitiesFromMTP(
 				d.vlength().v,
 				SerializeFormattedDateData(d.vdate().v, flags),
 			});
+		}, [&](const MTPDmessageEntityDiffInsert &) {
+		}, [&](const MTPDmessageEntityDiffReplace &) {
+		}, [&](const MTPDmessageEntityDiffDelete &) {
 		});
 	}
 	return result;

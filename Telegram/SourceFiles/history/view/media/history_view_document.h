@@ -72,6 +72,8 @@ public:
 
 	QSize sizeForGroupingOptimal(int maxWidth, bool last) const override;
 	QSize sizeForGrouping(int width) const override;
+	int widenGroupingMaxWidth(int current, bool last) override;
+	int contributedMaxMonospaceWidth() const override;
 	void drawGrouped(
 		Painter &p,
 		const PaintContext &context,
@@ -175,6 +177,8 @@ private:
 	mutable TooltipFilename _tooltipFilename;
 
 	TtlPaintCallback _drawTtl;
+
+	mutable float64 _voiceHoverProgress = -1;
 
 	bool _transcribedRound = false;
 
