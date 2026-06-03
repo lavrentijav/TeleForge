@@ -294,8 +294,7 @@ void FillPluginInfoBox(
 				chipsContainer,
 				rpl::single(dep),
 				st::defaultTableSmallButton);
-			chip->setTextTransform(
-				Ui::RoundButton::TextTransform::NoTransform);
+			chip->setTextTransform(Ui::RoundButtonTextTransform::NoTransform);
 			chip->setClickedCallback([dep] {
 				File::OpenUrl(
 					u"https://pypi.org/project/"_q + dep + u"/"_q);

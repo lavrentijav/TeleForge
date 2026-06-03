@@ -4,6 +4,7 @@
 #include "ayu/features/teleforge/teleforge_llama_runtime.h"
 #include "ayu/features/teleforge/teleforge_memory.h"
 #include "ayu/features/teleforge/teleforge_prompt_builder.h"
+#include "ayu/features/teleforge/teleforge_openai_models.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
 
 #include "logs.h"
@@ -51,8 +52,11 @@ constexpr auto kFactSplitShortMessageMaxChars = 100;
 } // namespace
 
 void ApplyPersonalityEndpoints(const PersonalityCore &core) {
-	const auto embeddingEndpoint = core.embeddingEndpointUrl.trimmed();
-	const auto embeddingModelId = core.embeddingModelId.trimmed();
+	const auto parsedEmbedding = ParseOpenAiEndpointUrl(
+		core.embeddingEndpointUrl,
+		core.embeddingModelId);
+	const auto embeddingEndpoint = parsedEmbedding.url;
+	const auto embeddingModelId = parsedEmbedding.modelId;
 	const auto embeddingEndpointSet = !embeddingEndpoint.isEmpty();
 	if (embeddingEndpointSet) {
 		const auto url = QUrl(embeddingEndpoint);
@@ -100,7 +104,11 @@ void ApplyPersonalityEndpoints(const PersonalityCore &core) {
 	if (rerankPath.isEmpty()) {
 		rerankPath = DefaultTeleForgeRerankGgufPath();
 	}
-	const auto rerankEndpoint = core.rerankEndpointUrl.trimmed();
+	const auto parsedRerank = ParseOpenAiEndpointUrl(
+		core.rerankEndpointUrl,
+		core.rerankModelId);
+	const auto rerankEndpoint = parsedRerank.url;
+	const auto rerankModelId = parsedRerank.modelId;
 	const auto apiKey = core.openAiApiKey.trimmed();
 
 	if (!rerankEndpoint.isEmpty()) {
@@ -114,7 +122,7 @@ void ApplyPersonalityEndpoints(const PersonalityCore &core) {
 			Qt::CaseInsensitive);
 		SetRerankRuntimeConfig({
 			.endpointUrl = rerankEndpoint,
-			.modelId = core.rerankModelId.trimmed(),
+			.modelId = rerankModelId,
 			.modelPath = rerankPath,
 			.apiKey = apiKey,
 			.apiKind = useOpenAiEmbeddings
@@ -125,15 +133,15 @@ void ApplyPersonalityEndpoints(const PersonalityCore &core) {
 		ShutdownNativeEmbedLlama();
 		SetRerankRuntimeConfig({
 			.endpointUrl = embeddingEndpoint,
-			.modelId = core.rerankModelId.trimmed().isEmpty()
+			.modelId = rerankModelId.isEmpty()
 				? embeddingModelId
-				: core.rerankModelId.trimmed(),
+				: rerankModelId,
 			.modelPath = rerankPath,
 			.apiKey = apiKey,
 			.apiKind = RerankApiKind::OpenAiEmbeddings,
 		});
 	} else if (!rerankPath.isEmpty() && QFileInfo::exists(rerankPath)) {
-		const auto modelIdCopy = core.rerankModelId.trimmed();
+		const auto modelIdCopy = rerankModelId;
 		const auto pathCopy = rerankPath;
 		LOG(("TeleForge: native embed/rerank model load on worker thread"));
 		EnsureNativeEmbedLlamaLoadedAsync(pathCopy, [=](bool ok, const QString &error) {
@@ -171,7 +179,7 @@ void ApplyPersonalityEndpoints(const PersonalityCore &core) {
 		}
 		SetRerankRuntimeConfig({
 			.endpointUrl = {},
-			.modelId = core.rerankModelId.trimmed(),
+			.modelId = rerankModelId,
 			.modelPath = rerankPath,
 			.apiKey = apiKey,
 			.apiKind = RerankApiKind::JsonBody,

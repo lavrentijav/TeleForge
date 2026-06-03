@@ -535,8 +535,18 @@ void InnerWidget::elementStartStickerLoop(not_null<const Element*> view) {
 }
 
 void InnerWidget::elementShowPollResults(
-	not_null<PollData*> poll,
-	FullMsgId context) {
+		not_null<PollData*> poll,
+		FullMsgId context) {
+}
+
+void InnerWidget::elementShowAddPollOption(
+		not_null<Element*> view,
+		not_null<PollData*> poll,
+		FullMsgId context,
+		QRect optionRect) {
+}
+
+void InnerWidget::elementSubmitAddPollOption(FullMsgId context) {
 }
 
 void InnerWidget::elementOpenPhoto(

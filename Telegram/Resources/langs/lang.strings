@@ -8275,6 +8275,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_HideReactionsInPrivateChats" = "Private Chats";
 "ayu_QuickAdminShortcuts" = "Quick Admin Shortcuts";
 "ayu_TranslationProvider" = "Translation Provider";
+"ayu_AiTranslationEnabled" = "AI Translation";
+"ayu_AiTranslationEnabledDescription" = "Show AI translation in the message menu. Uses the TeleForge chat model to preserve tone and meaning, including transliterated text.";
+"ayu_AiCompressionEnabled" = "AI message compression";
+"ayu_AiCompressMessage" = "Compress with AI";
+"ayu_DeleteWithContentReplacement" = "Replace with stub before delete";
+"ayu_DeleteWithContentReplacementAbout" = "Edit your message to a placeholder before deleting so anti-recall clients save the stub instead of the original text.";
+"ayu_DeleteStubText" = "Delete stub text";
+"ayu_DeleteStubTextDescription" = "Placeholder text used when deleting with content replacement.";
+"ayu_ForceTranslateChat" = "Translate Chat (Force)";
+"ayu_ForceTranslateMessage" = "Translate (Force)";
+"ayu_ForceTranslateSelected" = "Translate Selection (Force)";
+"ayu_AiTranslateMessage" = "Translate with AI";
+"ayu_AiTranslateSelected" = "Translate Selection with AI";
 "ayu_LinksHeader" = "Official Resources";
 "ayu_LinksChannel" = "Official channel";
 "ayu_LinksChats" = "Official chat";
@@ -8599,3 +8612,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_AboutText1" = "ToS breaking Telegram client based on {api_link}.";
 "ayu_UpdateAyuGram" = "Update TeleForge";
 "ayu_UtilityRestartRequired" = "The app will close in 5 seconds.";
+
+"ayu_CategoryTeleForgeAi" = "AI & memory";
+"ayu_CategoryTeleForgePlugins" = "Plugins";
+"ayu_CategoryTeleForgeSync" = "Sync";

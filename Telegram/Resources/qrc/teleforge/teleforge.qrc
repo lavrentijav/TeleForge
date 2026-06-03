@@ -9,5 +9,6 @@
         <file alias="icons/teleforge/donates/solana.svg">../../icons/ayu/donates/solana.svg</file>
         <file alias="icons/teleforge/donates/tron.svg">../../icons/ayu/donates/tron.svg</file>
         <file alias="icons/teleforge/donates/support_logo.svg">../../icons/ayu/donates/support_logo.svg</file>
+        <file alias="langs/teleforge_ru.json">../../langs/teleforge_ru.json</file>
     </qresource>
 </RCC>

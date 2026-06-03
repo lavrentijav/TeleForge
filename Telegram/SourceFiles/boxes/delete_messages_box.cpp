@@ -33,6 +33,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
+// AyuGram includes
+#include "ayu/utils/ayu_delete_actions.h"
+#include "lang_auto.h"
+
 namespace {
 
 constexpr auto kDeleteMessagesBoxAnimationDuration = crl::time(80);
@@ -236,6 +240,16 @@ void DeleteMessagesBox::prepare() {
 				});
 			}
 		}
+		if (AyuDelete::AnyMessageSupportsStubReplace(_session, _ids)) {
+			_deleteWithStub.create(
+				this,
+				tr::ayu_DeleteWithContentReplacement(tr::now),
+				false,
+				st::defaultBoxCheckbox);
+			appendDetails({
+				tr::ayu_DeleteWithContentReplacementAbout(tr::now)
+			});
+		}
 	}
 	_text.create(this, rpl::single(std::move(details)), st::boxLabel);
 	_text->resizeToWidth(st::boxWidth - rect::m::sum::h(st::boxPadding));
@@ -280,6 +294,9 @@ void DeleteMessagesBox::prepare() {
 			+ st::boxPadding.bottom();
 		if (_revoke) {
 			fullHeight += st::boxMediumSkip + _revoke->heightNoMargins();
+		}
+		if (_deleteWithStub) {
+			fullHeight += st::boxMediumSkip + _deleteWithStub->heightNoMargins();
 		}
 		if (_autoDeleteSettings) {
 			fullHeight += st::boxMediumSkip
@@ -428,6 +445,11 @@ void DeleteMessagesBox::resizeEvent(QResizeEvent *e) {
 			top += _revokeRemember->heightNoMargins();
 		}
 	}
+	if (_deleteWithStub) {
+		const auto availableWidth = width() - 2 * padding.left();
+		_deleteWithStub->resizeToNaturalWidth(availableWidth);
+		_deleteWithStub->moveToLeft(padding.left(), top);
+	}
 	if (_autoDeleteSettings) {
 		top += st::boxMediumSkip - st::boxLittleSkip;
 		_autoDeleteSettings->moveToLeft(padding.left(), top);
@@ -555,7 +577,7 @@ void DeleteMessagesBox::deleteAndClear() {
 		return;
 	}
 	const auto ids = _ids;
+	const auto replaceWithStub = _deleteWithStub && _deleteWithStub->checked();
 	invokeCallbackAndClose();
-	session->data().histories().deleteMessages(ids, revoke);
-	session->data().sendHistoryChangeNotifications();
+	AyuDelete::DeleteMessages(session, ids, revoke, replaceWithStub);
 }

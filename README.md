@@ -75,6 +75,8 @@ To sync with official Telegram Desktop, see [docs/UPSTREAM_SYNC.md](docs/UPSTREA
 
 Prebuilt binaries may be distributed through GitHub Releases, GitHub Actions artifacts, or official TeleForge resources when available.
 
+To sync with official Telegram Desktop (currently **6.8.x** upstream vs **6.6.x** in this tree), see [docs/UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md).
+
 If you need a local build, use the build documentation from this repository:
 
 - Windows x64: [docs/building-win-x64.md](docs/building-win-x64.md)

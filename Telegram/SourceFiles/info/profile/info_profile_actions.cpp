@@ -676,7 +676,6 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 			inner,
 			object_ptr<Ui::VerticalLayout>(inner)));
-	other->ease = anim::easeOutCubic;
 	other->toggleOn(state->expanded.value(), anim::type::normal);
 	constexpr auto kSlideDuration = float64(st::slideWrapDuration);
 	other->setDuration(kSlideDuration);
@@ -1343,6 +1342,85 @@ void ReportReactionBox(
 	});
 }
 
+template <typename FitLabel>
+void AddRegistrationOrCreationButton(
+		const not_null<Window::SessionController*> controller,
+		not_null<PeerData*> peer,
+		TextWithLabel &idInfo,
+		const FitLabel &fitLabelToButton) {
+	if (peer->isBot() || peer->isServiceUser()) {
+		return;
+	}
+
+	const auto registrationDateButton = Ui::CreateChild<Ui::IconButton>(
+		idInfo.text->parentWidget(),
+		st::infoProfileLabeledButtonRegistrationDate);
+	const auto rightSkip = st::infoProfileLabeledButtonQrRightSkip;
+	fitLabelToButton(registrationDateButton, idInfo.text, rightSkip);
+	fitLabelToButton(registrationDateButton, idInfo.subtext, rightSkip);
+	registrationDateButton->setClickedCallback([=]
+	{
+		getRegistrationDate(
+			peer,
+			[=](const TextWithEntities &result)
+			{
+				if (result.empty()) {
+					return;
+				}
+				const auto parent = registrationDateButton->window();
+				const auto tooltip = Ui::CreateChild<Ui::ImportantTooltip>(
+					parent,
+					Ui::MakeNiceTooltipLabel(
+						parent,
+						rpl::single(result),
+						st::boxWideWidth,
+						st::registrationDateImportantTooltipLabel),
+					st::defaultImportantTooltip);
+				tooltip->toggleFast(false);
+
+				const auto geometry = Ui::MapFrom(
+					parent,
+					registrationDateButton,
+					registrationDateButton->rect());
+				const auto countPosition = [=](QSize size)
+				{
+					const auto left = geometry.x()
+						+ (geometry.width() - size.width()) / 2;
+					const auto right = parent->width()
+						- st::normalFont->spacew;
+					return QPoint(
+						std::max(std::min(left, right - size.width()), 0),
+						geometry.y() - size.height() - st::normalFont->descent);
+				};
+				tooltip->pointAt(geometry, RectPart::Top, countPosition);
+
+				const auto weak = QPointer(tooltip);
+				tooltip->setHiddenCallback([weak]
+				{
+					if (weak) {
+						weak->deleteLater();
+					}
+				});
+
+				base::install_event_filter(
+					tooltip,
+					qApp,
+					[weak](not_null<QEvent*> e)
+					{
+						if (e->type() == QEvent::MouseButtonPress) {
+							if (weak) {
+								weak->toggleAnimated(false);
+							}
+						}
+						return base::EventFilterResult::Continue;
+					});
+
+				tooltip->toggleAnimated(true);
+			});
+		return false;
+	});
+}
+
 DetailsFiller::DetailsFiller(
 	not_null<Controller*> controller,
 	not_null<SectionStack*> stack,
@@ -1736,7 +1814,9 @@ Section DetailsFiller::makeInfo() {
 				user
 			) | rpl::map([](TextWithEntities &&text)
 			{
-				return Ui::Text::Code(text.text);
+				return Ui::Text::Wrapped(
+					TextWithEntities{ text.text },
+					EntityType::Code);
 			});
 			auto idInfo = addInfoOneLine(
 				rpl::single(idLabel),

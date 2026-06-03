@@ -38,15 +38,15 @@ inline constexpr std::array<Entry, 4> kEntries = { {
 	{
 		.type = Type::Website,
 		.id = "teleforge/website",
-		.label = "teleforge.github.io",
-		.url = "https://teleforgedesktop.github.io/TeleForge/",
+		.label = "tele-forge.ru",
+		.url = "https://tele-forge.ru/",
 		.usernameOrId = "",
 	},
 	{
 		.type = Type::Website,
 		.id = "teleforge/github",
-		.label = "GitHub Releases",
-		.url = "https://github.com/TeleForgeDesktop/TeleForge/releases/latest",
+		.label = "GitHub",
+		.url = "https://github.com/lavrentijav/TeleForge/releases/latest",
 		.usernameOrId = "",
 	},
 } };

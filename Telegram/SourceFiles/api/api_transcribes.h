@@ -47,6 +47,10 @@ public:
 	void toggleSummary(not_null<HistoryItem*> item);
 	[[nodiscard]] const SummaryEntry &summary(
 		not_null<const HistoryItem*> item) const;
+	void applyLocalSummary(
+		not_null<HistoryItem*> item,
+		TextWithEntities result,
+		LanguageId languageId = {});
 	void checkSummaryToTranslate(FullMsgId id);
 
 	void apply(const MTPDupdateTranscribedAudio &update);

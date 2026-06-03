@@ -50,10 +50,30 @@ void ScheduleFlush() {
 	return 0;
 }
 
+[[nodiscard]] int ManualLastSeenFromStatus(
+		not_null<UserData*> user,
+		Data::LastseenStatus status,
+		TimeId now) {
+	if (status.isOnline(now)) {
+		return now;
+	}
+	if (const auto till = status.onlineTill(); till > 0) {
+		return int(till);
+	}
+	const auto prev = user->lastseen();
+	if (prev.isOnline(now)) {
+		return now;
+	}
+	if (const auto existing = manualLastSeenForUser(user->id.value)) {
+		return *existing;
+	}
+	return now;
+}
+
 } // namespace
 
 void recordUserStatus(not_null<UserData*> user, Data::LastseenStatus status) {
-	if (!spyModeGloballyEnabled() && !isSpyTargetEnabled(user->id.value)) {
+	if (!isSpyEnabledForUser(user->id.value)) {
 		return;
 	}
 	if (user->isSelf()) {
@@ -65,17 +85,21 @@ void recordUserStatus(not_null<UserData*> user, Data::LastseenStatus status) {
 		.timestamp = now,
 		.kind = KindFromStatus(status, now),
 		.onlineTill = int(status.onlineTill()),
+		.manualLastSeen = ManualLastSeenFromStatus(user, status, now),
 	};
-	if (event.kind == 1) {
-		event.manualLastSeen = now;
-	} else if (const auto till = status.onlineTill(); till > 0) {
-		event.manualLastSeen = int(till);
-	}
+	noteManualLastSeen(event.userId, event.manualLastSeen);
 	{
 		const auto lock = std::unique_lock(g_mutex);
 		g_pending.push_back(event);
 	}
 	ScheduleFlush();
+}
+
+Data::LastseenStatus applyLastseen(
+		not_null<UserData*> user,
+		Data::LastseenStatus status) {
+	recordUserStatus(user, status);
+	return effectiveLastseen(user->id.value, status);
 }
 
 } // namespace TeleForge::Spy

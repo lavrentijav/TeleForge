@@ -6,10 +6,11 @@
 #include "ayu/features/teleforge/teleforge_core.h"
 #include "ayu/features/teleforge/teleforge_openai_models.h"
 #include "ayu/features/teleforge/teleforge_paths.h"
-#include "ayu/features/spy/online_history_storage.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
+#include "ayu/ayu_settings.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "lang_auto.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "base/basic_types.h"
 #include "base/unixtime.h"
@@ -95,6 +96,33 @@ void ShowStringPickMenu(
 	}
 	menu->deleteOnHide(true);
 	menu->popup(globalPos);
+}
+
+void BuildAiTranslation(SectionBuilder &builder, AyuSectionBuilder &ayu) {
+	auto *settings = &AyuSettings::getInstance();
+
+	ayu.addToggle({
+		.id = u"ayu/aiTranslationEnabled"_q,
+		.title = tr::ayu_AiTranslationEnabled(),
+		.getter = [=] {
+			return settings->aiTranslationEnabled();
+		},
+		.setter = [=](bool enabled) {
+			settings->setAiTranslationEnabled(enabled);
+		},
+	});
+	ayu.addToggle({
+		.id = u"ayu/aiCompressionEnabled"_q,
+		.title = tr::ayu_AiCompressionEnabled(),
+		.getter = [=] {
+			return settings->aiCompressionEnabled();
+		},
+		.setter = [=](bool enabled) {
+			settings->setAiCompressionEnabled(enabled);
+		},
+	});
+	builder.addSkip();
+	builder.addDividerText(tr::ayu_AiTranslationEnabledDescription());
 }
 
 const auto kMeta = BuildHelper({
@@ -292,7 +320,7 @@ const auto kMeta = BuildHelper({
 			c->add(
 				object_ptr<Ui::FlatLabel>(
 					c,
-					u"Полный URL POST …/v1/embeddings. Пусто: встроенный хэш или эмбеддинги с GGUF реранкера (если задан ниже)."_q,
+					u"Полный URL POST …/v1/embeddings. Можно указать ?model=… в URL. Пусто: встроенный хэш или эмбеддинги с GGUF реранкера (если задан ниже)."_q,
 					st::boxDividerLabel),
 				st::boxRowPadding);
 
@@ -351,7 +379,7 @@ const auto kMeta = BuildHelper({
 			c->add(
 				object_ptr<Ui::FlatLabel>(
 					c,
-					u"HTTP POST (JSON query + documents). Пустой URL — только косинус по эмбеддингам."_q,
+					u"HTTP POST (JSON query + documents). Можно указать ?model=… в URL. Пустой URL — только косинус по эмбеддингам."_q,
 					st::boxDividerLabel),
 				st::boxRowPadding);
 
@@ -479,10 +507,16 @@ const auto kMeta = BuildHelper({
 					4,
 					128,
 					40);
-				p.embeddingEndpointUrl = emb->getLastText().trimmed();
-				p.embeddingModelId = embModel->getLastText().trimmed();
-				p.rerankEndpointUrl = rerankUrl->getLastText().trimmed();
-				p.rerankModelId = rerankModel->getLastText().trimmed();
+				const auto embParsed = TeleForge::ParseOpenAiEndpointUrl(
+					emb->getLastText(),
+					embModel->getLastText());
+				const auto rerankParsed = TeleForge::ParseOpenAiEndpointUrl(
+					rerankUrl->getLastText(),
+					rerankModel->getLastText());
+				p.embeddingEndpointUrl = embParsed.url;
+				p.embeddingModelId = embParsed.modelId;
+				p.rerankEndpointUrl = rerankParsed.url;
+				p.rerankModelId = rerankParsed.modelId;
 				p.rerankModelPath = rerankPath->getLastText().trimmed();
 				p.updatedAt = QDateTime::currentDateTimeUtc();
 				TeleForge::PersistPersonalityCore(p);
@@ -501,17 +535,11 @@ const auto kMeta = BuildHelper({
 		}, [](const SearchContext &) {});
 	});
 
-	ayu.addToggle({
-		.id = u"teleforge/spyMode"_q,
-		.title = rpl::single(u"Режим шпиона (глобально)"_q),
-		.getter = [] {
-			return TeleForge::Spy::spyModeGloballyEnabled();
-		},
-		.setter = [](bool v) {
-			TeleForge::Spy::setSpyModeGloballyEnabled(v);
-		},
-	});
+	ayu.addSectionDivider();
+	builder.addSubsectionTitle(rpl::single(u"Перевод через ИИ"_q));
+	BuildAiTranslation(builder, ayu);
 
+	ayu.addSectionDivider();
 	builder.addSubsectionTitle(rpl::single(u"Системный промпт"_q));
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -797,25 +825,25 @@ const auto kMeta = BuildHelper({
 			};
 
 			const auto fGk = addNumRow(
-				u"Global memory top-K"_q,
+				u"Глобальная память, top-K"_q,
 				QString::number(r.globalMemoryTopK));
 			const auto fCk = addNumRow(
-				u"Chat memory top-K"_q,
+				u"Память чата, top-K"_q,
 				QString::number(r.chatMemoryTopK));
 			const auto fUk = addNumRow(
-				u"User memory top-K"_q,
+				u"Память пользователя, top-K"_q,
 				QString::number(r.userMemoryTopK));
 			const auto fAk = addNumRow(
-				u"Semantic appendix top-K"_q,
+				u"Семантическое приложение, top-K"_q,
 				QString::number(r.memoryAppendixTopK));
 			const auto fRx = addNumRow(
-				u"Recent summaries count (X)"_q,
+				u"Число сводок (X)"_q,
 				QString::number(r.recentSummaryLimit));
 			const auto fSy = addNumRow(
-				u"Stable facts count (Y)"_q,
+				u"Число стабильных фактов (Y)"_q,
 				QString::number(r.stableFactsLimit));
 			const auto fDec = addNumRow(
-				u"Linear decay per day"_q,
+				u"Линейное затухание в день"_q,
 				QString::number(r.memoryDecayPerDay, 'g', 4));
 			const auto fMax = addNumRow(
 				u"Max chars на блок памяти в промпте"_q,
@@ -824,7 +852,7 @@ const auto kMeta = BuildHelper({
 			c->add(
 				object_ptr<Ui::FlatLabel>(
 					c,
-					u"Directory whitelist (JSON массив путей, для агента ПК)"_q,
+					u"Белый список папок (JSON-массив путей, для агента ПК)"_q,
 					st::boxDividerLabel),
 				st::boxRowPadding);
 			const auto fWl = c->add(

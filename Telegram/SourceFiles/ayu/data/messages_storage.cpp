@@ -136,7 +136,14 @@ void addDeletedMessage(not_null<HistoryItem*> item) {
 	map(item, message);
 
 	if (message.text.empty()) {
-		return;
+		const auto revisions = getEditedMessages(item, 0, 0, 128);
+		if (revisions.empty()) {
+			return;
+		}
+		const auto &fallback = revisions.front();
+		message.text = fallback.text;
+		message.textEntities = fallback.textEntities;
+		message.editDate = fallback.editDate;
 	}
 
 	AyuDatabase::addDeletedMessage(message);

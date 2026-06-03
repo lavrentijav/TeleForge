@@ -8,11 +8,11 @@ namespace TeleForge::Plugins::Catalog {
 
 // Trusted plugin developers (TeleForge root attestation). Host on your VPS / Pages.
 inline constexpr auto kDevelopersUrl =
-	"https://teleforgedesktop.github.io/TeleForge/developers.txt";
+	"https://lavrentijav.github.io/TeleForge/developers.txt";
 
 // Optional plugin index (must be signed by a trusted developer).
 inline constexpr auto kCatalogUrl =
-	"https://teleforgedesktop.github.io/TeleForge/plugins.txt";
+	"https://lavrentijav.github.io/TeleForge/plugins.txt";
 
 // developers.txt: dev_id|channel|title|ed25519_pubkey_hex|root_signature_hex
 // plugins.txt:    file.py|Title|https://url|dev_id|plugin_signature_hex

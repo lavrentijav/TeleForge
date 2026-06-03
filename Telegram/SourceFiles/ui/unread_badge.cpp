@@ -18,7 +18,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/rect.h"
 #include "ui/power_saving.h"
 #include "ui/unread_badge_paint.h"
+#include "ayu/ayu_settings.h"
+#include "ayu/utils/telegram_helpers.h"
 #include "styles/style_dialogs.h"
+#include "styles/style_info.h"
 
 namespace Ui {
 namespace {

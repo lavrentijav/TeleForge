@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item_components.h"
 #include "history/view/history_view_message.h"
+#include "ayu/ui/ayu_userpic.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "settings/sections/settings_premium.h"
@@ -1183,9 +1184,7 @@ object_ptr<Ui::RpWidget> ProfilePhotoPrivacyController::setupMiddleWidget(
 				userpicSize * style::DevicePixelRatio(),
 				Qt::KeepAspectRatio,
 				Qt::SmoothTransformation);
-			result = Images::Round(
-				std::move(result),
-				ImageRoundRadius::AyuUserpic);
+			result = AyuUserpic::RoundImage(std::move(result));
 			result.setDevicePixelRatio(style::DevicePixelRatio());
 			(local ? localPhoto : photo) = std::move(result);
 			if (local) {

@@ -207,13 +207,7 @@ QIcon IconGraphic::trayIcon() {
 			}
 		}
 
-		result.addPixmap(Ui::PixmapFromImage(_new.counter > 0
-			? Window::WithSmallCounter(std::move(currentImageBack), {
-				.size = iconSize,
-				.count = _new.counter,
-				.bg = _new.muted ? st::trayCounterBgMute : st::trayCounterBg,
-				.fg = st::trayCounterFg,
-			}) : std::move(currentImageBack)));
+		result.addPixmap(Ui::PixmapFromImage(std::move(currentImageBack)));
 	}
 
 	_trayIcon = result;

@@ -15,6 +15,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "dialogs/dialogs_entry.h"
 #include "dialogs/ui/dialogs_layout.h"
+#include "ayu/ui/ayu_userpic.h"
+#include "ui/image/image_prepare.h"
 #include "ui/painter.h"
 #include "styles/style_dialogs.h"
 
@@ -97,12 +99,24 @@ void VideoUserpic::paintLeft(
 }
 
 Media::Clip::FrameRequest VideoUserpic::request(int size) const {
-	return {
+	auto result = Media::Clip::FrameRequest{
 		.frame = { size, size },
 		.outer = { size, size },
-		.factor = style::DevicePixelRatio(),
-		.radius = ImageRoundRadius::AyuUserpic,
 	};
+	if (AyuUserpic::ShouldOverrideShape(Ui::PeerUserpicShape::Circle)) {
+		if (AyuUserpic::IsCircle()) {
+			result.radius = ImageRoundRadius::Ellipse;
+		} else if (AyuUserpic::ComputeRadius(size) <= 0) {
+			result.radius = ImageRoundRadius::None;
+		} else {
+			result.radius = (AyuUserpic::ComputeRadius(size) >= size / 4)
+				? ImageRoundRadius::Large
+				: ImageRoundRadius::Small;
+		}
+	} else {
+		result.radius = ImageRoundRadius::Ellipse;
+	}
+	return result;
 }
 
 bool VideoUserpic::startReady(int size) {

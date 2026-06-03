@@ -113,6 +113,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/translator/ayu_translate_actions.h"
 #include "ayu/ui/context_menu/context_menu.h"
 
 
@@ -1498,6 +1499,18 @@ void FillContextMenuItems(
 			}
 		}, &st::menuIconTranslate);
 	}
+	if (request.overSelection
+		&& !list->getSelectedText().empty()
+		&& view) {
+		if (const auto item = view->data()) {
+			AyuUi::AddForceTranslateSelectedActions(
+				result,
+				item,
+				list->controller(),
+				list->getSelectedText().rich,
+				list->hasCopyRestrictionForSelected());
+		}
+	}
 
 	AddTopMessageActions(result, request, list);
 	if (lnkPhoto && request.selectedItems.empty()) {
@@ -1558,6 +1571,13 @@ void FillContextMenuItems(
 							list->hasCopyRestriction(view->data())));
 					}
 				}, &st::menuIconTranslate);
+			}
+			if (const auto item = owner->message(itemId)) {
+				AyuUi::AddForceTranslateMessageActions(
+					result,
+					item,
+					list->controller(),
+					list->hasCopyRestriction(view->data()));
 			}
 		}
 	}

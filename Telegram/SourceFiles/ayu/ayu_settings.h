@@ -322,6 +322,11 @@ public:
 	[[nodiscard]] bool gifConfirmation() const { return _gifConfirmation.current(); }
 	[[nodiscard]] bool voiceConfirmation() const { return _voiceConfirmation.current(); }
 	[[nodiscard]] TranslationProvider translationProvider() const { return _translationProvider.current(); }
+	[[nodiscard]] bool aiTranslationEnabled() const { return _aiTranslationEnabled.current(); }
+	[[nodiscard]] bool aiCompressionEnabled() const { return _aiCompressionEnabled.current(); }
+	[[nodiscard]] QString deleteStubText() const { return _deleteStubText.current(); }
+	[[nodiscard]] bool spyModeGloballyEnabled() const { return _spyModeGloballyEnabled.current(); }
+	[[nodiscard]] int spyRetentionDays() const { return _spyRetentionDays.current(); }
 	[[nodiscard]] bool adaptiveCoverColor() const { return _adaptiveCoverColor.current(); }
 	[[nodiscard]] bool improveLinkPreviews() const { return _improveLinkPreviews.current(); }
 	[[nodiscard]] bool crashReporting() const { return _crashReporting.current(); }
@@ -403,6 +408,11 @@ public:
 	void setGifConfirmation(bool val);
 	void setVoiceConfirmation(bool val);
 	void setTranslationProvider(TranslationProvider val);
+	void setAiTranslationEnabled(bool val);
+	void setAiCompressionEnabled(bool val);
+	void setDeleteStubText(const QString &val);
+	void setSpyModeGloballyEnabled(bool val);
+	void setSpyRetentionDays(int val);
 	void setAdaptiveCoverColor(bool val);
 	void setImproveLinkPreviews(bool val);
 	void setCrashReporting(bool val);
@@ -561,6 +571,12 @@ public:
 	[[nodiscard]] rpl::producer<bool> voiceConfirmationChanges() const { return _voiceConfirmation.changes(); }
 	[[nodiscard]] rpl::producer<TranslationProvider> translationProviderValue() const { return _translationProvider.value(); }
 	[[nodiscard]] rpl::producer<TranslationProvider> translationProviderChanges() const { return _translationProvider.changes(); }
+	[[nodiscard]] rpl::producer<bool> aiTranslationEnabledValue() const { return _aiTranslationEnabled.value(); }
+	[[nodiscard]] rpl::producer<bool> aiTranslationEnabledChanges() const { return _aiTranslationEnabled.changes(); }
+	[[nodiscard]] rpl::producer<bool> aiCompressionEnabledValue() const { return _aiCompressionEnabled.value(); }
+	[[nodiscard]] rpl::producer<bool> aiCompressionEnabledChanges() const { return _aiCompressionEnabled.changes(); }
+	[[nodiscard]] rpl::producer<QString> deleteStubTextValue() const { return _deleteStubText.value(); }
+	[[nodiscard]] rpl::producer<QString> deleteStubTextChanges() const { return _deleteStubText.changes(); }
 	[[nodiscard]] rpl::producer<bool> adaptiveCoverColorValue() const { return _adaptiveCoverColor.value(); }
 	[[nodiscard]] rpl::producer<bool> adaptiveCoverColorChanges() const { return _adaptiveCoverColor.changes(); }
 	[[nodiscard]] rpl::producer<bool> improveLinkPreviewsValue() const { return _improveLinkPreviews.value(); }
@@ -657,6 +673,11 @@ private:
 	rpl::variable<bool> _gifConfirmation = false;
 	rpl::variable<bool> _voiceConfirmation = false;
 	rpl::variable<TranslationProvider> _translationProvider = TranslationProvider::Telegram;
+	rpl::variable<bool> _aiTranslationEnabled = true;
+	rpl::variable<bool> _aiCompressionEnabled = true;
+	rpl::variable<QString> _deleteStubText = QStringLiteral(".");
+	rpl::variable<bool> _spyModeGloballyEnabled = true;
+	rpl::variable<int> _spyRetentionDays = 30;
 	rpl::variable<bool> _adaptiveCoverColor = true;
 	rpl::variable<bool> _improveLinkPreviews = false;
 	rpl::variable<bool> _crashReporting = true;

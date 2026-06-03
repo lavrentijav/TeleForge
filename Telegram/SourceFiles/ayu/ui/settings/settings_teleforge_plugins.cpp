@@ -21,6 +21,7 @@
 #include "ui/layers/box_content.h"
 #include "ui/layers/generic_box.h"
 #include "ui/widgets/buttons.h"
+#include "ui/vertical_list.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
 #include "ui/wrap/vertical_layout.h"
@@ -35,6 +36,24 @@ namespace Settings {
 
 using namespace Builder;
 using namespace AyBuilder;
+
+namespace {
+
+[[nodiscard]] not_null<Ui::Checkbox*> AddWrappedSettingsCheckbox(
+		not_null<Ui::VerticalLayout*> parent,
+		const QString &text,
+		const bool checked) {
+	const auto row = parent->add(object_ptr<Ui::Checkbox>(
+		parent,
+		rpl::single(text),
+		checked,
+		st::settingsCheckbox));
+	row->setAllowTextLines();
+	row->setTextBreakEverywhere(true);
+	return row;
+}
+
+} // namespace
 
 namespace {
 
@@ -511,19 +530,18 @@ const auto kMeta = BuildHelper({
 				updateUi();
 			};
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					rpl::single(
-						u"Позволяет ставить плагины без проверки подписи. Только для отладки своих скриптов. "
-						"Включение намеренно замедлено, чтобы случайно не активировать."_q),
-					st::boxDividerLabel));
+			Ui::AddDividerText(
+				c,
+				rpl::single(
+					u"Позволяет ставить плагины без проверки подписи. "
+					u"Только для отладки своих скриптов. "
+					u"Включение намеренно замедлено, чтобы случайно не активировать."_q),
+				st::defaultBoxDividerLabelPadding);
 
-			state->status = c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					rpl::single(QString()),
-					st::boxDividerLabel));
+			state->status = Ui::AddDividerText(
+				c,
+				rpl::single(QString()),
+				st::defaultBoxDividerLabelPadding);
 
 			const auto onAckChanged = [=](bool checked, bool &slot) {
 				slot = checked;
@@ -538,12 +556,11 @@ const auto kMeta = BuildHelper({
 			};
 
 			if (TeleForge::Plugins::DevMode::allowUnverifiedInstalls()) {
-				state->finalSwitch = c->add(object_ptr<Ui::Checkbox>(
+				Ui::AddSkip(c, st::settingsCheckboxesSkip);
+				state->finalSwitch = AddWrappedSettingsCheckbox(
 					c,
-					rpl::single(
-						u"Разрешить установку непроверенных плагинов"_q),
-					true,
-					st::settingsCheckbox));
+					u"Разрешить установку непроверенных плагинов"_q,
+					true);
 				state->finalSwitch->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
 					if (!checked) {
@@ -561,45 +578,47 @@ const auto kMeta = BuildHelper({
 					}
 				}, state->finalSwitch->lifetime());
 			} else {
-				const auto ack1 = c->add(object_ptr<Ui::Checkbox>(
+				Ui::AddSkip(c, st::settingsCheckboxesSkip);
+
+				const auto ack1 = AddWrappedSettingsCheckbox(
 					c,
-					rpl::single(
-						u"Я понимаю: непроверенный плагин может читать tdata и отправлять данные."_q),
-					false,
-					st::settingsCheckbox));
+					u"Я понимаю: непроверенный плагин может читать tdata "
+					u"и отправлять данные."_q,
+					false);
 				ack1->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
 					onAckChanged(checked, state->ackRisk);
 				}, ack1->lifetime());
 
-				const auto ack2 = c->add(object_ptr<Ui::Checkbox>(
+				Ui::AddSkip(c, st::settingsCheckboxesSkip);
+
+				const auto ack2 = AddWrappedSettingsCheckbox(
 					c,
-					rpl::single(
-						u"Я не буду устанавливать чужие плагины из неизвестных источников."_q),
-					false,
-					st::settingsCheckbox));
+					u"Я не буду устанавливать чужие плагины "
+					u"из неизвестных источников."_q,
+					false);
 				ack2->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
 					onAckChanged(checked, state->ackNoSupport);
 				}, ack2->lifetime());
 
-				const auto ack3 = c->add(object_ptr<Ui::Checkbox>(
+				Ui::AddSkip(c, st::settingsCheckboxesSkip);
+
+				const auto ack3 = AddWrappedSettingsCheckbox(
 					c,
-					rpl::single(
-						u"Мне это нужно только для своих тестов / разработки."_q),
-					false,
-					st::settingsCheckbox));
+					u"Мне это нужно только для своих тестов и разработки."_q,
+					false);
 				ack3->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
 					onAckChanged(checked, state->ackTesting);
 				}, ack3->lifetime());
 
-				state->finalSwitch = c->add(object_ptr<Ui::Checkbox>(
+				Ui::AddSkip(c, st::settingsCheckboxesSkip);
+
+				state->finalSwitch = AddWrappedSettingsCheckbox(
 					c,
-					rpl::single(
-						u"Разрешить установку непроверенных плагинов"_q),
-					false,
-					st::settingsCheckbox));
+					u"Разрешить установку непроверенных плагинов"_q,
+					false);
 				state->finalSwitch->setEnabled(false);
 				state->finalSwitch->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -752,7 +771,7 @@ const auto kMeta = BuildHelper({
 					st::settingsButtonNoIcon));
 			site->setClickedCallback([=] {
 				QDesktopServices::openUrl(QUrl(
-					u"https://teleforgedesktop.github.io/TeleForge/"_q));
+					u"https://lavrentijav.github.io/TeleForge/"_q));
 			});
 		}, [](const SearchContext &) {});
 	});

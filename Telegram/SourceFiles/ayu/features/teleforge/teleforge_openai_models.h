@@ -13,6 +13,15 @@ namespace TeleForge {
 
 [[nodiscard]] QString EmbeddingsUrlFromChatBase(const QString &urlOrBase);
 
+struct ParsedOpenAiEndpoint {
+	QString url;
+	QString modelId;
+};
+
+[[nodiscard]] ParsedOpenAiEndpoint ParseOpenAiEndpointUrl(
+	const QString &urlOrBase,
+	const QString &explicitModelId = {});
+
 void FetchOpenAiModelIdsAsync(
 	const QString &baseUrl,
 	Fn<void(QStringList ids, QString error)> onMainThread,

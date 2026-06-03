@@ -116,6 +116,7 @@ struct SendFilesBoxDescriptor {
 	const style::ComposeControls *stOverride = nullptr;
 	SendFilesConfirmed confirmed;
 	Fn<void()> cancelled;
+	Fn<void(const TextWithTags &text)> cancelled2;
 	FullReplyTo replyTo;
 };
 

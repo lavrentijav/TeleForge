@@ -239,25 +239,25 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 	};
 
 	const auto fGk = addNumRow(
-		u"Global memory top-K"_q,
+		u"Глобальная память, top-K"_q,
 		QString::number(r.globalMemoryTopK));
 	const auto fCk = addNumRow(
-		u"Chat memory top-K"_q,
+		u"Память чата, top-K"_q,
 		QString::number(r.chatMemoryTopK));
 	const auto fUk = addNumRow(
-		u"User memory top-K"_q,
+		u"Память пользователя, top-K"_q,
 		QString::number(r.userMemoryTopK));
 	const auto fAk = addNumRow(
-		u"Semantic appendix top-K"_q,
+		u"Семантическое приложение, top-K"_q,
 		QString::number(r.memoryAppendixTopK));
 	const auto fRx = addNumRow(
-		u"Recent summaries count (X)"_q,
+		u"Число сводок (X)"_q,
 		QString::number(r.recentSummaryLimit));
 	const auto fSy = addNumRow(
-		u"Stable facts count (Y)"_q,
+		u"Число стабильных фактов (Y)"_q,
 		QString::number(r.stableFactsLimit));
 	const auto fDec = addNumRow(
-		u"Linear decay per day"_q,
+		u"Линейное затухание в день"_q,
 		QString::number(r.memoryDecayPerDay, 'g', 4));
 	const auto fMax = addNumRow(
 		u"Max chars на блок памяти в промпте"_q,
@@ -266,7 +266,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 	inner->add(
 		object_ptr<Ui::FlatLabel>(
 			inner,
-			u"Directory whitelist (JSON)"_q,
+			u"Белый список папок (JSON)"_q,
 			st::boxDividerLabel),
 		st::boxRowPadding);
 	const auto fWl = inner->add(

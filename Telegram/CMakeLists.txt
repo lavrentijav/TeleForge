@@ -119,6 +119,8 @@ set(teleforge_extension_files
         ayu/utils/ayu_mapper.h
         ayu/utils/qt_key_modifiers_extended.h
         ayu/utils/telegram_helpers.cpp
+        ayu/utils/ayu_delete_actions.cpp
+        ayu/utils/ayu_delete_actions.h
         ayu/utils/telegram_helpers.h
         ayu/utils/windows_utils.cpp
         ayu/utils/windows_utils.h
@@ -233,6 +235,8 @@ set(teleforge_extension_files
         ayu/features/forward/ayu_sync.h
         ayu/features/translator/ayu_translator.cpp
         ayu/features/translator/ayu_translator.h
+        ayu/features/translator/ayu_translate_actions.cpp
+        ayu/features/translator/ayu_translate_actions.h
         ayu/features/translator/html_parser.cpp
         ayu/features/translator/html_parser.h
         ayu/features/translator/implementations/google.cpp

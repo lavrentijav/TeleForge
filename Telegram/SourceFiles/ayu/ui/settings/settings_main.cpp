@@ -105,29 +105,9 @@ void BuildCategories(SectionBuilder &builder) {
 	builder.addSubsectionTitle(tr::ayu_CategoriesHeader());
 
 	builder.addSectionButton({
-		.title = rpl::single(u"ИИ и память"_q),
-		.targetSection = TeleForgeAi::Id(),
-		.icon = { &st::menuIconIpAddress },
-	});
-	builder.addSectionButton({
-		.title = rpl::single(u"Плагины"_q),
-		.targetSection = TeleForgePlugins::Id(),
-		.icon = { &st::menuIconBot },
-	});
-	builder.addSectionButton({
-		.title = rpl::single(u"Синхронизация"_q),
-		.targetSection = TeleForgeSync::Id(),
-		.icon = { &st::menuIconDownload },
-	});
-	builder.addSectionButton({
 		.title = tr::ayu_GhostModeToggle(),
 		.targetSection = AyuGhost::Id(),
 		.icon = { &st::menuIconGroupReactions },
-	});
-	builder.addSectionButton({
-		.title = tr::ayu_CategoryFilters(),
-		.targetSection = AyuFilters::Id(),
-		.icon = { &st::menuIconTagFilter },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryGeneral(),
@@ -135,14 +115,34 @@ void BuildCategories(SectionBuilder &builder) {
 		.icon = { &st::menuIconShowAll },
 	});
 	builder.addSectionButton({
+		.title = tr::ayu_CategoryChats(),
+		.targetSection = AyuChats::Id(),
+		.icon = { &st::menuIconChatBubble },
+	});
+	builder.addSectionButton({
 		.title = tr::ayu_CategoryAppearance(),
 		.targetSection = AyuAppearance::Id(),
 		.icon = { &st::menuIconPalette },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryChats(),
-		.targetSection = AyuChats::Id(),
-		.icon = { &st::menuIconChatBubble },
+		.title = tr::ayu_CategoryFilters(),
+		.targetSection = AyuFilters::Id(),
+		.icon = { &st::menuIconTagFilter },
+	});
+	builder.addSectionButton({
+		.title = tr::ayu_CategoryTeleForgeAi(),
+		.targetSection = TeleForgeAi::Id(),
+		.icon = { &st::menuIconIpAddress },
+	});
+	builder.addSectionButton({
+		.title = tr::ayu_CategoryTeleForgePlugins(),
+		.targetSection = TeleForgePlugins::Id(),
+		.icon = { &st::menuIconBot },
+	});
+	builder.addSectionButton({
+		.title = tr::ayu_CategoryTeleForgeSync(),
+		.targetSection = TeleForgeSync::Id(),
+		.icon = { &st::menuIconDownload },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryOther(),

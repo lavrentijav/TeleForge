@@ -102,6 +102,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_worker.h"
 #include "ayu/utils/telegram_helpers.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/spy/online_tracker.h"
 
 
 namespace {
@@ -2111,7 +2112,7 @@ void ApiWrap::updatePrivacyLastSeens() {
 				const auto status = LastseenFromMTP(
 					data.vstatus(),
 					user->lastseen());
-				if (user->updateLastseen(status)) {
+				if (user->updateLastseen(TeleForge::Spy::applyLastseen(user, status))) {
 					session().changes().peerUpdated(
 						user,
 						Data::PeerUpdate::Flag::OnlineStatus);

@@ -124,6 +124,7 @@ private:
 	const not_null<UserData*> _user;
 	Info::Profile::EmojiStatusPanel _emojiStatusPanel;
 	Info::Profile::Badge _badge;
+	Info::Profile::Badge _exteraBadge;
 
 	object_ptr<Ui::UserpicButton> _userpic;
 	object_ptr<Ui::FlatLabel> _name = { nullptr };
@@ -281,7 +282,6 @@ void Cover::setupChildGeometry() {
 			st::settingsPhotoTop,
 			newWidth);
 		refreshNameGeometry(newWidth);
-		refreshIdGeometry(newWidth);
 		refreshUsernameGeometry(newWidth);
 		refreshQrButtonGeometry(newWidth);
 	}, lifetime());
@@ -336,8 +336,15 @@ void Cover::refreshNameGeometry(int newWidth) {
 		- nameLeft
 		- st::infoProfileCover.rightSkip
 		- qrButtonWidth;
-	if (const auto width = _badge.widget() ? _badge.widget()->width() : 0) {
-		nameWidth -= st::infoVerifiedCheckPosition.x() + width;
+	const auto premiumWidth = _badge.widget() ? _badge.widget()->width() : 0;
+	if (premiumWidth) {
+		nameWidth -= st::infoVerifiedCheckPosition.x() + premiumWidth;
+	}
+	const auto exteraWidth = _exteraBadge.widget()
+		? _exteraBadge.widget()->width()
+		: 0;
+	if (exteraWidth) {
+		nameWidth -= st::infoVerifiedCheckPosition.x() + exteraWidth;
 	}
 	_name->resizeToNaturalWidth(nameWidth);
 	_name->moveToLeft(nameLeft, nameTop, newWidth);
@@ -345,6 +352,12 @@ void Cover::refreshNameGeometry(int newWidth) {
 	const auto badgeTop = nameTop;
 	const auto badgeBottom = nameTop + _name->height();
 	_badge.move(badgeLeft, badgeTop, badgeBottom);
+	if (exteraWidth) {
+		_exteraBadge.move(
+			badgeLeft + premiumWidth + st::infoVerifiedCheckPosition.x(),
+			badgeTop,
+			badgeBottom);
+	}
 }
 
 void Cover::updatePhoneText() {

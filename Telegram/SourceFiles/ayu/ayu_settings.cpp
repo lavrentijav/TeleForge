@@ -982,6 +982,37 @@ void AyuSettings::setTranslationProvider(TranslationProvider val) {
 	save();
 }
 
+void AyuSettings::setAiTranslationEnabled(bool val) {
+	if (_aiTranslationEnabled.current() == val) return;
+	_aiTranslationEnabled = val;
+	save();
+}
+
+void AyuSettings::setAiCompressionEnabled(bool val) {
+	if (_aiCompressionEnabled.current() == val) return;
+	_aiCompressionEnabled = val;
+	save();
+}
+
+void AyuSettings::setDeleteStubText(const QString &val) {
+	if (_deleteStubText.current() == val) return;
+	_deleteStubText = val;
+	save();
+}
+
+void AyuSettings::setSpyModeGloballyEnabled(bool val) {
+	if (_spyModeGloballyEnabled.current() == val) return;
+	_spyModeGloballyEnabled = val;
+	save();
+}
+
+void AyuSettings::setSpyRetentionDays(int val) {
+	const auto clamped = std::clamp(val, 1, 365);
+	if (_spyRetentionDays.current() == clamped) return;
+	_spyRetentionDays = clamped;
+	save();
+}
+
 void AyuSettings::setAdaptiveCoverColor(bool val) {
 	if (_adaptiveCoverColor.current() == val) return;
 	_adaptiveCoverColor = val;
@@ -1099,6 +1130,11 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"gifConfirmation", s._gifConfirmation.current()},
 		{"voiceConfirmation", s._voiceConfirmation.current()},
 		{"translationProvider", s._translationProvider.current()},
+		{"aiTranslationEnabled", s._aiTranslationEnabled.current()},
+		{"aiCompressionEnabled", s._aiCompressionEnabled.current()},
+		{"deleteStubText", s._deleteStubText.current()},
+		{"spyModeGloballyEnabled", s._spyModeGloballyEnabled.current()},
+		{"spyRetentionDays", s._spyRetentionDays.current()},
 		{"adaptiveCoverColor", s._adaptiveCoverColor.current()},
 		{"improveLinkPreviews", s._improveLinkPreviews.current()},
 		{"crashReporting", s._crashReporting.current()},
@@ -1199,6 +1235,11 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._gifConfirmation = j.value("gifConfirmation", defaults._gifConfirmation.current());
 	s._voiceConfirmation = j.value("voiceConfirmation", defaults._voiceConfirmation.current());
 	s._translationProvider = j.value("translationProvider", defaults._translationProvider.current());
+	s._aiTranslationEnabled = j.value("aiTranslationEnabled", defaults._aiTranslationEnabled.current());
+	s._aiCompressionEnabled = j.value("aiCompressionEnabled", defaults._aiCompressionEnabled.current());
+	s._deleteStubText = j.value("deleteStubText", defaults._deleteStubText.current());
+	s._spyModeGloballyEnabled = j.value("spyModeGloballyEnabled", defaults._spyModeGloballyEnabled.current());
+	s._spyRetentionDays = j.value("spyRetentionDays", defaults._spyRetentionDays.current());
 	s._adaptiveCoverColor = j.value("adaptiveCoverColor", defaults._adaptiveCoverColor.current());
 	s._improveLinkPreviews = j.value("improveLinkPreviews", defaults._improveLinkPreviews.current());
 	s._crashReporting = j.value("crashReporting", defaults._crashReporting.current());

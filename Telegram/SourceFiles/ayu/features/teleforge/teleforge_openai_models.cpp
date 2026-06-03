@@ -8,6 +8,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QUrl>
+#include <QtCore/QUrlQuery>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
@@ -72,6 +73,42 @@ QString EmbeddingsUrlFromChatBase(const QString &urlOrBase) {
 		return {};
 	}
 	return n + QStringLiteral("/v1/embeddings");
+}
+
+ParsedOpenAiEndpoint ParseOpenAiEndpointUrl(
+		const QString &urlOrBase,
+		const QString &explicitModelId) {
+	auto result = ParsedOpenAiEndpoint{
+		.url = urlOrBase.trimmed(),
+		.modelId = explicitModelId.trimmed(),
+	};
+	if (result.url.isEmpty()) {
+		return result;
+	}
+	const auto parsed = QUrl::fromUserInput(result.url);
+	if (!parsed.isValid() || parsed.scheme().isEmpty()) {
+		return result;
+	}
+	const auto keys = {
+		QStringLiteral("model"),
+		QStringLiteral("model_id"),
+		QStringLiteral("modelId"),
+	};
+	for (const auto &key : keys) {
+		const auto value = QUrlQuery(parsed).queryItemValue(key);
+		if (!value.isEmpty()) {
+			if (result.modelId.isEmpty()) {
+				result.modelId = value;
+			}
+			QUrlQuery query(parsed);
+			query.removeAllQueryItems(key);
+			auto cleaned = parsed;
+			cleaned.setQuery(query);
+			result.url = cleaned.toString(QUrl::RemoveFragment);
+			break;
+		}
+	}
+	return result;
 }
 
 void FetchOpenAiModelIdsAsync(

@@ -9,6 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "media/clip/media_clip_reader.h"
 
+#include <array>
+
 class Painter;
 
 namespace Data {

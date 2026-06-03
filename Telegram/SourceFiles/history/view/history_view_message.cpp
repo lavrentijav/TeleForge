@@ -29,6 +29,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_summary_header.h"
 #include "history/view/history_view_view_button.h" // ViewButton.
 #include "history/history.h"
+#include "ayu/ayu_settings.h"
+#include "ayu/features/message_shot/message_shot.h"
 #include "boxes/premium_preview_box.h"
 #include "boxes/share_box.h"
 #include "boxes/peers/tag_info_box.h"
@@ -1847,6 +1849,7 @@ void Message::paintFromName(
 	if (!displayFromName()) {
 		return;
 	}
+	const auto hidePremiumStatuses = AyuSettings::getInstance().hidePremiumStatuses();
 	const auto badgeWidth = rightBadgeWidth();
 	auto availableLeft = trect.left();
 	auto availableWidth = trect.width();

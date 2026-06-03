@@ -827,9 +827,8 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 		const auto lastseen = status
 			? LastseenFromMTP(*status, result->lastseen())
 			: Data::LastseenStatus::LongAgo(false);
-		if (result->updateLastseen(lastseen)) {
+		if (result->updateLastseen(TeleForge::Spy::applyLastseen(result, lastseen))) {
 			flags |= UpdateFlag::OnlineStatus;
-			TeleForge::Spy::recordUserStatus(result, lastseen);
 		}
 	}
 
@@ -2931,19 +2930,30 @@ void Session::unregisterMessageTTL(
 }
 
 void Session::checkTTLs() {
+	const auto &settings = AyuSettings::getInstance();
+
 	_ttlCheckTimer.cancel();
 	const auto now = base::unixtime::now();
-	auto expired = std::vector<not_null<HistoryItem*>>();
-	for (const auto &[when, items] : _ttlMessages) {
-		if (when > now) {
-			break;
+
+	if (settings.saveDeletedMessages()) {
+		auto toBeRemoved = ranges::views::take_while(
+			_ttlMessages,
+			[now](const auto &pair) {
+				return pair.first <= now;
+			}) | ranges::views::transform([](const auto &pair) {
+				return pair.second;
+			}) | ranges::views::join;
+
+		auto itemsToProcess = toBeRemoved | ranges::to_vector;
+		for (const auto &item : itemsToProcess) {
+			// remove message from `_ttlMessages` to avoid calling this method infinitely
+			item->applyTTL(0);
+
+			processMessageDelete(item);
 		}
-		expired.insert(expired.end(), items.begin(), items.end());
-	}
-	if (!expired.empty()) {
-		notifyItemsAboutToBeDestroyed(expired);
-		for (const auto &item : expired) {
-			item->destroy();
+	} else {
+		while (!_ttlMessages.empty() && _ttlMessages.begin()->first <= now) {
+			_ttlMessages.begin()->second.front()->destroy();
 		}
 	}
 	scheduleNextTTLs();
@@ -3001,51 +3011,41 @@ void Session::processMessagesDeleted(
 		return;
 	}
 
-	auto toDestroy = std::vector<not_null<HistoryItem*>>();
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
 		const auto i = list ? list->find(messageId.v) : Messages::iterator();
 		if (list && i != list->end()) {
 			const auto history = i->second->history();
-			toDestroy.push_back(i->second);
-			historiesToCheck.emplace(history);
+
+			processMessageDelete(i->second);
+
+			if (!history->chatListMessageKnown()) {
+				historiesToCheck.emplace(history);
+			}
 		} else if (affected) {
 			affected->unknownMessageDeleted(messageId.v);
 		}
 	}
-	if (!toDestroy.empty()) {
-		notifyItemsAboutToBeDestroyed(toDestroy);
-		for (const auto &item : toDestroy) {
-			item->destroy();
-		}
-	}
 	for (const auto &history : historiesToCheck) {
-		if (!history->chatListMessageKnown()) {
-			history->requestChatListMessage();
-		}
+		history->requestChatListMessage();
 	}
 }
 
 void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
-	auto toDestroy = std::vector<not_null<HistoryItem*>>();
 	auto historiesToCheck = base::flat_set<not_null<History*>>();
 	for (const auto &messageId : data) {
 		if (const auto item = nonChannelMessage(messageId.v)) {
 			const auto history = item->history();
-			toDestroy.push_back(item);
-			historiesToCheck.emplace(history);
-		}
-	}
-	if (!toDestroy.empty()) {
-		notifyItemsAboutToBeDestroyed(toDestroy);
-		for (const auto &item : toDestroy) {
-			item->destroy();
+
+			processMessageDelete(item);
+
+			if (!history->chatListMessageKnown()) {
+				historiesToCheck.emplace(history);
+			}
 		}
 	}
 	for (const auto &history : historiesToCheck) {
-		if (!history->chatListMessageKnown()) {
-			history->requestChatListMessage();
-		}
+		history->requestChatListMessage();
 	}
 }
 

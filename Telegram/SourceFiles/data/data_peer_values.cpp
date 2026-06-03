@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
+#include "ayu/features/spy/online_history_storage.h"
 
 
 namespace Data {
@@ -484,12 +485,18 @@ QString OnlineText(not_null<UserData*> user, TimeId now) {
 	if (const auto special = OnlineTextSpecial(user)) {
 		return *special;
 	}
+	if (const auto spy = TeleForge::Spy::spyOnlineText(user, now)) {
+		return *spy;
+	}
 	return OnlineText(user->lastseen(), now);
 }
 
 QString OnlineTextFull(not_null<UserData*> user, TimeId now) {
 	if (const auto special = OnlineTextSpecial(user)) {
 		return *special;
+	}
+	if (const auto spy = TeleForge::Spy::spyOnlineText(user, now)) {
+		return *spy;
 	} else if (const auto common = OnlineTextCommon(user->lastseen(), now)) {
 		return *common;
 	}

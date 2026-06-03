@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_user_privacy.h"
 #include "api/api_unread_things.h"
 #include "api/api_transcribes.h"
+#include "ayu/features/spy/online_tracker.h"
 #include "main/main_session.h"
 #include "main/main_account.h"
 #include "mtproto/mtp_instance.h"
@@ -2047,7 +2048,7 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 		auto &d = update.c_updateUserStatus();
 		if (const auto user = session().data().userLoaded(d.vuser_id())) {
 			const auto now = LastseenFromMTP(d.vstatus(), user->lastseen());
-			if (user->updateLastseen(now)) {
+			if (user->updateLastseen(TeleForge::Spy::applyLastseen(user, now))) {
 				session().changes().peerUpdated(
 					user,
 					Data::PeerUpdate::Flag::OnlineStatus);

@@ -149,6 +149,27 @@ const SummaryEntry &Transcribes::summary(
 	return (i != _summaries.end()) ? i->second : empty;
 }
 
+void Transcribes::applyLocalSummary(
+		not_null<HistoryItem*> item,
+		TextWithEntities result,
+		LanguageId languageId) {
+	if (!item->isHistoryEntry() || item->isLocal()) {
+		return;
+	}
+	const auto id = item->fullId();
+	auto &entry = _summaries[id];
+	entry.requestId = 0;
+	entry.shown = true;
+	entry.loading = false;
+	entry.premiumRequired = false;
+	entry.languageId = languageId;
+	entry.result = std::move(result);
+	item->setHasSummaryEntry();
+	_session->data().requestItemTextRefresh(item);
+	_session->data().requestItemResize(item);
+	_session->data().requestItemShowHighlight(item);
+}
+
 void Transcribes::apply(const MTPDupdateTranscribedAudio &update) {
 	const auto id = update.vtranscription_id().v;
 	const auto i = _ids.find(id);

@@ -592,6 +592,7 @@ private:
 	bool _mouseActive = false;
 	bool _dragStateUserpic = false;
 	bool _pressWasInactive = false;
+	bool _wasForceClickPreview = false;
 	bool _recountedAfterPendingResizedItems = false;
 	bool _useCornerReply = false;
 	bool _useCornerReaction = false;

@@ -29,11 +29,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <private/qhighdpiscaling_p.h>
 #include <QBuffer>
 
-// AyuGram includes
-#include "ayu/ayu_settings.h"
-
-
-
 namespace Platform {
 
 namespace {
@@ -85,32 +80,15 @@ bool DarkTasbarValueValid/* = false*/;
 		bool supportMode,
 		bool smallIcon,
 		bool monochrome) {
-	const auto &settings = AyuSettings::getInstance();
-	if (settings.hideNotificationBadge()) {
-		args.count = 0;
-	}
-
 	const auto darkMode = IsDarkTaskbar();
-	const auto cnt = args.count.value();
+	const auto unread = Core::App().unreadBadge();
 	const auto muted = Core::App().unreadBadgeMuted();
 
-	auto result = Window::TrayIconRasterBase(args.size, cnt, muted);
+	auto result = Window::TrayIconRasterBase(args.size, unread, muted);
 	if ((!monochrome || !darkMode) && supportMode) {
 		Window::ConvertIconToBlack(result);
 	}
-	if (!args.count) {
-		return result;
-	} else if (smallIcon) {
-		return Window::WithSmallCounter(std::move(result), std::move(args));
-	}
-	QPainter p(&result);
-	PainterHighQualityEnabler hq(p);
-	const auto half = args.size / 2;
-	args.size = half;
-	p.drawPixmap(
-		half,
-		half,
-		Ui::PixmapFromImage(Window::GenerateCounterLayer(std::move(args))));
+	// TeleForge: unread/mute are shown via alternate tray SVGs only.
 	return result;
 }
 
@@ -179,10 +157,13 @@ void Tray::updateIcon() {
 
 	// Force Qt to use right icon size, not the larger one.
 	QIcon forTrayIcon;
+	const auto trayIconSize = std::max(
+		GetSystemMetrics(SM_CXSMICON),
+		22);
 	forTrayIcon.addPixmap(
 		Tray::IconWithCounter(
 			CounterLayerArgs(
-				GetSystemMetrics(SM_CXSMICON),
+				trayIconSize,
 				Core::App().unreadBadge(),
 				Core::App().unreadBadgeMuted()),
 			true,

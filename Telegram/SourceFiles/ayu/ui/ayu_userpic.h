@@ -8,6 +8,7 @@
 
 #include "ui/userpic_view.h"
 
+#include <QImage>
 #include <QRect>
 
 namespace Media::Streaming { struct FrameRequest; }
@@ -18,6 +19,8 @@ namespace AyuUserpic {
 [[nodiscard]] int ComputeRadius(int pixelSize);
 [[nodiscard]] double ComputeRadiusF(double size);
 [[nodiscard]] bool IsCircle();
+
+[[nodiscard]] QImage RoundImage(QImage &&image);
 
 [[nodiscard]] uint8 PackedState();
 

@@ -34,6 +34,7 @@ TeleForge развивается как отдельный клиент, а не
 
 ## Официальные ресурсы
 
+- Репозиторий: [github.com/lavrentijav/TeleForge](https://github.com/lavrentijav/TeleForge)
 - Канал: [t.me/teleforge_official](https://t.me/teleforge_official)
 - Чат: [t.me/teleforgechat](https://t.me/teleforgechat)
 - Сайт: [tele-forge.ru](https://tele-forge.ru)
@@ -71,6 +72,8 @@ TeleForge использует собственные branding assets, кото�
 ## Загрузка и сборка
 
 Готовые бинарники могут распространяться через GitHub Releases, GitHub Actions artifacts или через официальные ресурсы TeleForge, когда они доступны.
+
+Синхронизация с официальным Telegram Desktop (upstream **6.8.x**, в этой ветке **6.6.x**): [docs/UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md).
 
 Если нужна локальная сборка, используйте инструкции из этого репозитория:
 

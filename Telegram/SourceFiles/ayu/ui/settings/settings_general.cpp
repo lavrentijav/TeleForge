@@ -207,6 +207,19 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.setter = &AyuSettings::setShowMessageSeconds,
 	});
 
+	ayu.addSettingToggle({
+		.id = u"ayu/localPremium"_q,
+		.title = tr::ayu_LocalPremium(),
+		.getter = &AyuSettings::localPremium,
+		.setter = &AyuSettings::setLocalPremium,
+	});
+	ayu.addSettingToggle({
+		.id = u"ayu/disableAds"_q,
+		.title = tr::ayu_DisableAds(),
+		.getter = &AyuSettings::disableAds,
+		.setter = &AyuSettings::setDisableAds,
+	});
+
 	BuildShowPeerId(builder);
 
 	ayu.addSectionDivider();

@@ -35,11 +35,37 @@ constexpr auto postfixes = {
 
 AyuLanguage *AyuLanguage::instance = nullptr;
 
+namespace {
+
+[[nodiscard]] bool IsRussianUiLanguage() {
+	const auto check = [](const QString &packId) {
+		return packId.startsWith(u"ru"_q, Qt::CaseInsensitive);
+	};
+	return check(Lang::GetInstance().id())
+		|| check(Lang::GetInstance().baseId());
+}
+
+void ApplyBundledRussianOverlay() {
+	auto file = QFile(u":/gui/langs/teleforge_ru.json"_q);
+	if (!file.open(QIODevice::ReadOnly)) {
+		return;
+	}
+	const auto doc = QJsonDocument::fromJson(file.readAll());
+	if (doc.isObject()) {
+		AyuLanguage::currentInstance()->applyLanguageJson(doc);
+	}
+}
+
+} // namespace
+
 AyuLanguage::AyuLanguage() = default;
 
 void AyuLanguage::init() {
 	if (!instance) instance = new AyuLanguage;
 	instance->loadCachedLanguage();
+	if (IsRussianUiLanguage()) {
+		ApplyBundledRussianOverlay();
+	}
 }
 
 AyuLanguage *AyuLanguage::currentInstance() {
@@ -156,6 +182,9 @@ void AyuLanguage::fetchFinished() {
 		if (error.error == QJsonParseError::NoError) {
 			saveCachedLanguage(result, _currentLangId);
 			applyLanguageJson(doc);
+			if (IsRussianUiLanguage()) {
+				ApplyBundledRussianOverlay();
+			}
 		} else {
 			LOG(("Incorrect language JSON File."));
 		}

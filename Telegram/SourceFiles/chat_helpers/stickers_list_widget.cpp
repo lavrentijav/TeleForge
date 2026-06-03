@@ -44,6 +44,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/sticker_set_box.h"
 #include "boxes/stickers_box.h"
 #include "ui/boxes/confirm_box.h"
+#include "boxes/abstract_box.h"
+#include "ayu/ayu_settings.h"
+#include "styles/style_ayu_styles.h"
 #include "ui/text/text_entity.h"
 #include "ui/painter.h"
 #include "window/window_session_controller.h" // GifPauseReason.
