@@ -8,193 +8,44 @@
 
 #include "ayu/data/ayu_content_hash.h"
 #include "ayu/data/entities.h"
-#include "ayu/libs/sqlite/sqlite_orm.h"
+#include "ayu/features/teleforge/teleforge_unified_db.h"
 #include "base/unixtime.h"
+#include "logs.h"
+
+#include <QtCore/QFile>
 
 using namespace sqlite_orm;
-auto storage = make_storage(
-	"./tdata/ayudata.db",
-	make_table<SchemaVersion>(
-		"SchemaVersion",
-		make_column("id", &SchemaVersion::id, primary_key()),
-		make_column("version", &SchemaVersion::version)
-	),
-	make_index("idx_deleted_message_userId_dialogId_topicId_messageId",
-			   column<DeletedMessage>(&DeletedMessage::userId),
-			   column<DeletedMessage>(&DeletedMessage::dialogId),
-			   column<DeletedMessage>(&DeletedMessage::topicId),
-			   column<DeletedMessage>(&DeletedMessage::messageId)),
-	make_index("idx_edited_message_userId_dialogId_messageId",
-			   column<EditedMessage>(&EditedMessage::userId),
-			   column<EditedMessage>(&EditedMessage::dialogId),
-			   column<EditedMessage>(&EditedMessage::messageId)),
-	make_index("idx_deleted_message_contentHash",
-		column<DeletedMessage>(&DeletedMessage::contentHash)),
-	make_index("idx_edited_message_contentHash",
-		column<EditedMessage>(&EditedMessage::contentHash)),
-	make_table<DeletedMessage>(
-		"DeletedMessage",
-		make_column("fakeId", &DeletedMessage::fakeId, primary_key().autoincrement()),
-		make_column("userId", &DeletedMessage::userId),
-		make_column("dialogId", &DeletedMessage::dialogId),
-		make_column("groupedId", &DeletedMessage::groupedId),
-		make_column("peerId", &DeletedMessage::peerId),
-		make_column("fromId", &DeletedMessage::fromId),
-		make_column("topicId", &DeletedMessage::topicId),
-		make_column("messageId", &DeletedMessage::messageId),
-		make_column("date", &DeletedMessage::date),
-		make_column("flags", &DeletedMessage::flags),
-		make_column("editDate", &DeletedMessage::editDate),
-		make_column("views", &DeletedMessage::views),
-		make_column("fwdFlags", &DeletedMessage::fwdFlags),
-		make_column("fwdFromId", &DeletedMessage::fwdFromId),
-		make_column("fwdName", &DeletedMessage::fwdName),
-		make_column("fwdDate", &DeletedMessage::fwdDate),
-		make_column("fwdPostAuthor", &DeletedMessage::fwdPostAuthor),
-		make_column("replyFlags", &DeletedMessage::replyFlags),
-		make_column("replyMessageId", &DeletedMessage::replyMessageId),
-		make_column("replyPeerId", &DeletedMessage::replyPeerId),
-		make_column("replyTopId", &DeletedMessage::replyTopId),
-		make_column("replyForumTopic", &DeletedMessage::replyForumTopic),
-		make_column("replySerialized", &DeletedMessage::replySerialized),
-		make_column("entityCreateDate", &DeletedMessage::entityCreateDate),
-		make_column("text", &DeletedMessage::text),
-		make_column("textEntities", &DeletedMessage::textEntities),
-		make_column("mediaPath", &DeletedMessage::mediaPath),
-		make_column("hqThumbPath", &DeletedMessage::hqThumbPath),
-		make_column("documentType", &DeletedMessage::documentType),
-		make_column("documentSerialized", &DeletedMessage::documentSerialized),
-		make_column("thumbsSerialized", &DeletedMessage::thumbsSerialized),
-		make_column("documentAttributesSerialized", &DeletedMessage::documentAttributesSerialized),
-		make_column("mimeType", &DeletedMessage::mimeType),
-		make_column("contentHash", &DeletedMessage::contentHash)
-	),
-	make_table<EditedMessage>(
-		"EditedMessage",
-		make_column("fakeId", &EditedMessage::fakeId, primary_key().autoincrement()),
-		make_column("userId", &EditedMessage::userId),
-		make_column("dialogId", &EditedMessage::dialogId),
-		make_column("groupedId", &EditedMessage::groupedId),
-		make_column("peerId", &EditedMessage::peerId),
-		make_column("fromId", &EditedMessage::fromId),
-		make_column("topicId", &EditedMessage::topicId),
-		make_column("messageId", &EditedMessage::messageId),
-		make_column("date", &EditedMessage::date),
-		make_column("flags", &EditedMessage::flags),
-		make_column("editDate", &EditedMessage::editDate),
-		make_column("views", &EditedMessage::views),
-		make_column("fwdFlags", &EditedMessage::fwdFlags),
-		make_column("fwdFromId", &EditedMessage::fwdFromId),
-		make_column("fwdName", &EditedMessage::fwdName),
-		make_column("fwdDate", &EditedMessage::fwdDate),
-		make_column("fwdPostAuthor", &EditedMessage::fwdPostAuthor),
-		make_column("replyFlags", &EditedMessage::replyFlags),
-		make_column("replyMessageId", &EditedMessage::replyMessageId),
-		make_column("replyPeerId", &EditedMessage::replyPeerId),
-		make_column("replyTopId", &EditedMessage::replyTopId),
-		make_column("replyForumTopic", &EditedMessage::replyForumTopic),
-		make_column("replySerialized", &EditedMessage::replySerialized),
-		make_column("entityCreateDate", &EditedMessage::entityCreateDate),
-		make_column("text", &EditedMessage::text),
-		make_column("textEntities", &EditedMessage::textEntities),
-		make_column("mediaPath", &EditedMessage::mediaPath),
-		make_column("hqThumbPath", &EditedMessage::hqThumbPath),
-		make_column("documentType", &EditedMessage::documentType),
-		make_column("documentSerialized", &EditedMessage::documentSerialized),
-		make_column("thumbsSerialized", &EditedMessage::thumbsSerialized),
-		make_column("documentAttributesSerialized", &EditedMessage::documentAttributesSerialized),
-		make_column("mimeType", &EditedMessage::mimeType),
-		make_column("contentHash", &EditedMessage::contentHash)
-	),
-	make_table<DeletedDialog>(
-		"DeletedDialog",
-		make_column("fakeId", &DeletedDialog::fakeId, primary_key().autoincrement()),
-		make_column("userId", &DeletedDialog::userId),
-		make_column("dialogId", &DeletedDialog::dialogId),
-		make_column("peerId", &DeletedDialog::peerId),
-		make_column("folderId", &DeletedDialog::folderId),
-		make_column("topMessage", &DeletedDialog::topMessage),
-		make_column("lastMessageDate", &DeletedDialog::lastMessageDate),
-		make_column("flags", &DeletedDialog::flags),
-		make_column("entityCreateDate", &DeletedDialog::entityCreateDate)
-	),
-	make_table<RegexFilter>(
-		"RegexFilter",
-		make_column("id", &RegexFilter::id, primary_key()),
-		make_column("text", &RegexFilter::text),
-		make_column("enabled", &RegexFilter::enabled),
-		make_column("reversed", &RegexFilter::reversed),
-		make_column("caseInsensitive", &RegexFilter::caseInsensitive),
-		make_column("dialogId", &RegexFilter::dialogId)
-	),
-	make_table<RegexFilterGlobalExclusion>(
-		"RegexFilterGlobalExclusion",
-		make_column("fakeId", &RegexFilterGlobalExclusion::fakeId, primary_key().autoincrement()),
-		make_column("dialogId", &RegexFilterGlobalExclusion::dialogId),
-		make_column("filterId", &RegexFilterGlobalExclusion::filterId)
-	),
-	make_table<SpyMessageRead>(
-		"SpyMessageRead",
-		make_column("fakeId", &SpyMessageRead::fakeId, primary_key().autoincrement()),
-		make_column("userId", &SpyMessageRead::userId),
-		make_column("dialogId", &SpyMessageRead::dialogId),
-		make_column("messageId", &SpyMessageRead::messageId),
-		make_column("entityCreateDate", &SpyMessageRead::entityCreateDate)
-	),
-	make_table<SpyMessageContentsRead>(
-		"SpyMessageContentsRead",
-		make_column("fakeId", &SpyMessageContentsRead::fakeId, primary_key().autoincrement()),
-		make_column("userId", &SpyMessageContentsRead::userId),
-		make_column("dialogId", &SpyMessageContentsRead::dialogId),
-		make_column("messageId", &SpyMessageContentsRead::messageId),
-		make_column("entityCreateDate", &SpyMessageContentsRead::entityCreateDate)
-	),
-	// NOTE: sqlite_orm's sync_schema processes schema objects in REVERSE
-	// declaration order, so an index must be declared BEFORE its table (same as
-	// the DeletedMessage/EditedMessage indexes above). Otherwise the index is
-	// created before the table exists -> "no such table: OnlineEvent".
-	make_index("idx_online_event_userId_timestamp",
-		column<OnlineEvent>(&OnlineEvent::userId),
-		column<OnlineEvent>(&OnlineEvent::timestamp)),
-	make_table<OnlineEvent>(
-		"OnlineEvent",
-		make_column("fakeId", &OnlineEvent::fakeId, primary_key().autoincrement()),
-		make_column("userId", &OnlineEvent::userId),
-		make_column("timestamp", &OnlineEvent::timestamp),
-		make_column("kind", &OnlineEvent::kind),
-		make_column("onlineTill", &OnlineEvent::onlineTill),
-		make_column("manualLastSeen", &OnlineEvent::manualLastSeen)),
-	make_table<SpyTarget>(
-		"SpyTarget",
-		make_column("userId", &SpyTarget::userId, primary_key()),
-		make_column("enabled", &SpyTarget::enabled),
-		make_column("since", &SpyTarget::since))
-);
+
+namespace {
+auto &db() {
+	return TeleForge::Storage::Db();
+}
+}
 
 namespace AyuMigrations {
 
-void migrateToV1(decltype(storage) &storage) {
+void migrateToV1(decltype(db()) &store) {
 	// drop RegexFilter table as we've added primary_key()
 	try {
-		storage.drop_table_if_exists("RegexFilter");
+		store.drop_table_if_exists("RegexFilter");
 		LOG(("Migration to V1 successful."));
 	} catch (const std::exception &ex) {
 		LOG(("Migration to V1 failed: %1").arg(ex.what()));
 	}
 }
 
-void migrateToV2(decltype(storage) &storage) {
+void migrateToV2(decltype(db()) &store) {
 	try {
-		for (auto &row : storage.get_all<EditedMessage>()) {
+		for (auto &row : store.get_all<EditedMessage>()) {
 			if (row.contentHash.empty()) {
 				row.contentHash = AyuContentHash::ComputeEdited(row);
-				storage.update(row);
+				store.update(row);
 			}
 		}
-		for (auto &row : storage.get_all<DeletedMessage>()) {
+		for (auto &row : store.get_all<DeletedMessage>()) {
 			if (row.contentHash.empty()) {
 				row.contentHash = AyuContentHash::ComputeDeleted(row);
-				storage.update(row);
+				store.update(row);
 			}
 		}
 		LOG(("Migration to V2 successful."));
@@ -205,49 +56,47 @@ void migrateToV2(decltype(storage) &storage) {
 
 }
 
-void runMigrations(decltype(storage) &storage) {
+void runMigrations(decltype(db()) &store) {
 	constexpr int kLatestVersion = 2;
 
-	const std::map<int, Fn<void(decltype(storage) &)>> migrations = {
+	const std::map<int, Fn<void(decltype(db()) &)>> migrations = {
 		{1, AyuMigrations::migrateToV1},
 		{2, AyuMigrations::migrateToV2},
 	};
 
 	int currentVersion = 0;
 	try {
-		if (auto versionRow = storage.get_pointer<SchemaVersion>(1)) {
+		if (auto versionRow = store.get_pointer<AyuDataSchemaVersion>(1)) {
 			currentVersion = versionRow->version;
 		} else {
-			storage.insert(SchemaVersion{1, 0});
+			store.insert(AyuDataSchemaVersion{1, 0});
 		}
 	} catch (...) {
-		LOG(("No SchemaVersion, assuming 0"));
-		storage.insert(SchemaVersion{1, 0});
+		LOG(("No AyuDataSchemaVersion, assuming 0"));
+		store.insert(AyuDataSchemaVersion{1, 0});
 	}
 
 	if (currentVersion >= kLatestVersion) {
-		LOG(("Database is ok"));
+		LOG(("Ayu message store schema is ok"));
 		return;
 	}
 
-	LOG(("Database version: %1. Latest version: %2.").arg(currentVersion).arg(kLatestVersion));
+	LOG(("Ayu message store version: %1. Latest version: %2.").arg(currentVersion).arg(kLatestVersion));
 
 	for (int v = currentVersion + 1; v <= kLatestVersion; ++v) {
 		if (migrations.contains(v)) {
 			try {
-				LOG(("Migration for version: %1").arg(v));
-				storage.begin_transaction();
+				LOG(("Ayu migration for version: %1").arg(v));
+				store.begin_transaction();
 
-				migrations.at(v)(storage);
+				migrations.at(v)(store);
 
-				storage.update_all(set(c(&SchemaVersion::version) = v), where(c(&SchemaVersion::id) == 1));
-				storage.commit();
-				LOG(("Applied migration for version: %1.").arg(v));
+				store.update_all(set(c(&AyuDataSchemaVersion::version) = v), where(c(&AyuDataSchemaVersion::id) == 1));
+				store.commit();
+				LOG(("Applied Ayu migration for version: %1.").arg(v));
 			} catch (...) {
-				storage.rollback();
-				LOG(("Failed to apply migration for version: %1.").arg(v));
-				AyuDatabase::moveCurrentDatabase();
-
+				store.rollback();
+				LOG(("Failed to apply Ayu migration for version: %1.").arg(v));
 				return;
 			}
 		}
@@ -274,19 +123,9 @@ void moveCurrentDatabase() {
 
 void initialize() {
 	try {
-		storage.sync_schema(true);
-
-		runMigrations(storage);
-
-		storage.sync_schema(true);
+		runMigrations(db());
 	} catch (const std::exception &ex) {
-		LOG(("Database initialization failed: %1").arg(ex.what()));
-		moveCurrentDatabase();
-
-		storage.sync_schema(true);
-		if (!storage.get_pointer<SchemaVersion>(1)) {
-			storage.insert(SchemaVersion{1, 0});
-		}
+		LOG(("Ayu message store migration failed: %1").arg(ex.what()));
 	}
 }
 
@@ -296,16 +135,16 @@ void addEditedMessage(const EditedMessage &message) {
 		if (row.contentHash.empty()) {
 			row.contentHash = AyuContentHash::ComputeEdited(row);
 		}
-		storage.begin_transaction();
-		storage.insert(row);
-		storage.commit();
+		db().begin_transaction();
+		db().insert(row);
+		db().commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
 	}
 }
 
 std::vector<EditedMessage> getEditedMessages(ID userId, ID dialogId, ID messageId, ID minId, ID maxId, int totalLimit) {
-	return storage.get_all<EditedMessage>(
+	return db().get_all<EditedMessage>(
 		where(
 			column<EditedMessage>(&EditedMessage::userId) == userId and
 			column<EditedMessage>(&EditedMessage::dialogId) == dialogId and
@@ -320,7 +159,7 @@ std::vector<EditedMessage> getEditedMessages(ID userId, ID dialogId, ID messageI
 
 bool hasRevisions(ID userId, ID dialogId, ID messageId) {
 	try {
-		return !storage.select(
+		return !db().select(
 			columns(column<EditedMessage>(&EditedMessage::messageId)),
 			where(
 				column<EditedMessage>(&EditedMessage::userId) == userId and
@@ -341,9 +180,9 @@ void addDeletedMessage(const DeletedMessage &message) {
 		if (row.contentHash.empty()) {
 			row.contentHash = AyuContentHash::ComputeDeleted(row);
 		}
-		storage.begin_transaction();
-		storage.insert(row);
-		storage.commit();
+		db().begin_transaction();
+		db().insert(row);
+		db().commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
 	}
@@ -351,7 +190,7 @@ void addDeletedMessage(const DeletedMessage &message) {
 
 std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicId, ID minId, ID maxId, int totalLimit, const std::string &searchQuery) {
 	if (searchQuery.empty()) {
-		return storage.get_all<DeletedMessage>(
+		return db().get_all<DeletedMessage>(
 			where(
 				column<DeletedMessage>(&DeletedMessage::userId) == userId and
 				column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
@@ -373,7 +212,7 @@ std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicI
 		escaped += c;
 	}
 	const auto pattern = "%" + escaped + "%";
-	return storage.get_all<DeletedMessage>(
+	return db().get_all<DeletedMessage>(
 		where(
 			column<DeletedMessage>(&DeletedMessage::userId) == userId and
 			column<DeletedMessage>(&DeletedMessage::dialogId) == dialogId and
@@ -389,7 +228,7 @@ std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicI
 
 bool hasDeletedMessages(ID userId, ID dialogId, ID topicId) {
 	try {
-		return !storage.select(
+		return !db().select(
 			columns(column<DeletedMessage>(&DeletedMessage::dialogId)),
 			where(
 				column<DeletedMessage>(&DeletedMessage::userId) == userId and
@@ -407,7 +246,7 @@ bool hasDeletedMessages(ID userId, ID dialogId, ID topicId) {
 template<typename T>
 std::vector<T> getAllT() {
 	try {
-		return storage.get_all<T>();
+		return db().get_all<T>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to get all: %1").arg(ex.what()));
 		return {};
@@ -424,9 +263,9 @@ std::vector<RegexFilterGlobalExclusion> getAllFiltersExclusions() {
 
 std::vector<RegexFilter> getExcludedByDialogId(ID dialogId) {
 	try {
-		return storage.get_all<RegexFilter>(
+		return db().get_all<RegexFilter>(
 			where(in(&RegexFilter::id,
-					 storage.select(columns(&RegexFilterGlobalExclusion::filterId),
+					 db().select(columns(&RegexFilterGlobalExclusion::filterId),
 									where(is_equal(&RegexFilterGlobalExclusion::dialogId, dialogId))
 					 )
 			))
@@ -439,7 +278,7 @@ std::vector<RegexFilter> getExcludedByDialogId(ID dialogId) {
 
 int getCount() {
 	try {
-		return storage.count<RegexFilter>();
+		return db().count<RegexFilter>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to get count: %1").arg(ex.what()));
 		return 0;
@@ -448,7 +287,7 @@ int getCount() {
 
 RegexFilter getById(std::vector<char> id) {
 	try {
-		return storage.get<RegexFilter>(
+		return db().get<RegexFilter>(
 			where(column<RegexFilter>(&RegexFilter::id) == std::move(id))
 		);
 	} catch (std::exception &ex) {
@@ -459,7 +298,7 @@ RegexFilter getById(std::vector<char> id) {
 
 std::vector<RegexFilter> getShared() {
 	try {
-		return storage.get_all<RegexFilter>(
+		return db().get_all<RegexFilter>(
 			where(is_null(column<RegexFilter>(&RegexFilter::dialogId)))
 		);
 	} catch (std::exception &ex) {
@@ -470,7 +309,7 @@ std::vector<RegexFilter> getShared() {
 
 std::vector<RegexFilter> getByDialogId(ID dialogId) {
 	try {
-		return storage.get_all<RegexFilter>(
+		return db().get_all<RegexFilter>(
 			where(column<RegexFilter>(&RegexFilter::dialogId) == dialogId)
 		);
 	} catch (std::exception &ex) {
@@ -481,20 +320,20 @@ std::vector<RegexFilter> getByDialogId(ID dialogId) {
 
 void addRegexFilter(const RegexFilter &filter) {
 	try {
-		storage.begin_transaction();
-		storage.replace(filter); // we're using replace as we set std::vector<char> as primary key
-		storage.commit();
+		db().begin_transaction();
+		db().replace(filter); // we're using replace as we set std::vector<char> as primary key
+		db().commit();
 	} catch (std::exception &ex) {
-		storage.rollback();
+		db().rollback();
 		LOG(("Failed to save regex filter for some reason: %1").arg(ex.what()));
 	}
 }
 
 void addRegexExclusion(const RegexFilterGlobalExclusion &exclusion) {
 	try {
-		storage.begin_transaction();
-		storage.insert(exclusion);
-		storage.commit();
+		db().begin_transaction();
+		db().insert(exclusion);
+		db().commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save regex filter exclusion for some reason: %1").arg(ex.what()));
 	}
@@ -502,7 +341,7 @@ void addRegexExclusion(const RegexFilterGlobalExclusion &exclusion) {
 
 void updateRegexFilter(const RegexFilter &filter) {
 	try {
-		storage.update_all(
+		db().update_all(
 			set(
 				c(&RegexFilter::text) = filter.text,
 				c(&RegexFilter::enabled) = filter.enabled,
@@ -519,7 +358,7 @@ void updateRegexFilter(const RegexFilter &filter) {
 
 void deleteFilter(const std::vector<char> &id) {
 	try {
-		storage.remove_all<RegexFilter>(
+		db().remove_all<RegexFilter>(
 			where(column<RegexFilter>(&RegexFilter::id) == id)
 		);
 	} catch (std::exception &ex) {
@@ -529,7 +368,7 @@ void deleteFilter(const std::vector<char> &id) {
 
 void deleteExclusionsByFilterId(const std::vector<char> &id) {
 	try {
-		storage.remove_all<RegexFilterGlobalExclusion>(
+		db().remove_all<RegexFilterGlobalExclusion>(
 			where(column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::filterId) == id)
 		);
 	} catch (std::exception &ex) {
@@ -539,7 +378,7 @@ void deleteExclusionsByFilterId(const std::vector<char> &id) {
 
 void deleteExclusion(ID dialogId, std::vector<char> filterId) {
 	try {
-		storage.remove_all<RegexFilterGlobalExclusion>(
+		db().remove_all<RegexFilterGlobalExclusion>(
 			where(column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::filterId) == filterId and
 				column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::dialogId) == dialogId
 			)
@@ -551,7 +390,7 @@ void deleteExclusion(ID dialogId, std::vector<char> filterId) {
 
 void deleteAllFilters() {
 	try {
-		storage.remove_all<RegexFilter>();
+		db().remove_all<RegexFilter>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to delete all regex filter for some reason: %1").arg(ex.what()));
 	}
@@ -559,7 +398,7 @@ void deleteAllFilters() {
 
 void deleteAllExclusions() {
 	try {
-		storage.remove_all<RegexFilterGlobalExclusion>();
+		db().remove_all<RegexFilterGlobalExclusion>();
 	} catch (std::exception &ex) {
 		LOG(("Failed to delete all regex filter exclusions for some reason: %1").arg(ex.what()));
 	}
@@ -567,7 +406,7 @@ void deleteAllExclusions() {
 
 bool hasFilters() {
 	try {
-		return !storage.select(
+		return !db().select(
 			columns(column<RegexFilter>(&RegexFilter::id)),
 			limit(1)
 		).empty();
@@ -580,12 +419,12 @@ bool hasFilters() {
 bool hasPerDialogFilters() {
 	try {
 		return
-			!storage.select(
+			!db().select(
 				columns(column<RegexFilter>(&RegexFilter::id)),
 				where(is_not_null(column<RegexFilter>(&RegexFilter::dialogId))),
 				limit(1)
 			).empty() ||
-			!storage.select(
+			!db().select(
 				columns(column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::fakeId)),
 				limit(1)
 			).empty();
@@ -597,7 +436,7 @@ bool hasPerDialogFilters() {
 
 void insertOnlineEvent(const OnlineEvent &event) {
 	try {
-		storage.insert(event);
+		db().insert(event);
 	} catch (const std::exception &ex) {
 		LOG(("Failed to insert OnlineEvent: %1").arg(ex.what()));
 	}
@@ -605,7 +444,7 @@ void insertOnlineEvent(const OnlineEvent &event) {
 
 std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs) {
 	try {
-		return storage.get_all<OnlineEvent>(
+		return db().get_all<OnlineEvent>(
 			where(
 				column<OnlineEvent>(&OnlineEvent::userId) == userId
 				and column<OnlineEvent>(&OnlineEvent::timestamp) >= sinceTs),
@@ -619,7 +458,7 @@ std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs) {
 
 std::optional<int> manualLastSeenForUser(ID userId) {
 	try {
-		const auto rows = storage.select(
+		const auto rows = db().select(
 			columns(column<OnlineEvent>(&OnlineEvent::manualLastSeen)),
 			where(
 				column<OnlineEvent>(&OnlineEvent::userId) == userId
@@ -639,7 +478,7 @@ std::optional<int> manualLastSeenForUser(ID userId) {
 void upsertSpyTarget(ID userId, bool enabled) {
 	try {
 		SpyTarget row{ userId, enabled, base::unixtime::now() };
-		storage.replace(row);
+		db().replace(row);
 	} catch (const std::exception &ex) {
 		LOG(("Failed upsertSpyTarget: %1").arg(ex.what()));
 	}
@@ -647,7 +486,7 @@ void upsertSpyTarget(ID userId, bool enabled) {
 
 bool isSpyTargetEnabled(ID userId) {
 	try {
-		if (const auto row = storage.get_pointer<SpyTarget>(userId)) {
+		if (const auto row = db().get_pointer<SpyTarget>(userId)) {
 			return row->enabled;
 		}
 	} catch (const std::exception &ex) {
@@ -658,7 +497,7 @@ bool isSpyTargetEnabled(ID userId) {
 
 void purgeOnlineEventsBefore(int timestamp) {
 	try {
-		storage.remove_all<OnlineEvent>(
+		db().remove_all<OnlineEvent>(
 			where(column<OnlineEvent>(&OnlineEvent::timestamp) < timestamp));
 	} catch (const std::exception &ex) {
 		LOG(("Failed purgeOnlineEventsBefore: %1").arg(ex.what()));

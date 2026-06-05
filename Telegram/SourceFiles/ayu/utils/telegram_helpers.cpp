@@ -597,6 +597,7 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 }
 
 void processMessageDelete(not_null<HistoryItem*> item) {
+	AyuMessages::snapshotEditsBeforeDelete(item);
 	if (!isMessageSavable(item)) {
 		item->destroy();
 	} else {
@@ -1448,12 +1449,15 @@ QString getBetterLinkPreview(const QString &url) {
 	return parsed.toString();
 }
 
-void applyGhostScheduling(
+bool applyGhostScheduling(
 		not_null<Main::Session*> session,
 		Api::SendOptions &options,
 		int delaySeconds) {
 	const auto &ghost = AyuSettings::ghost(session);
 	if (ghost.isUseScheduledMessages() && !options.scheduled) {
 		options.scheduled = base::unixtime::now() + delaySeconds;
+		options.ghostDeferredSend = true;
+		return true;
 	}
+	return false;
 }

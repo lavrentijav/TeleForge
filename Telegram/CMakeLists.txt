@@ -180,6 +180,12 @@ set(teleforge_extension_files
         ayu/ui/context_menu/context_menu.h
         ayu/ui/context_menu/menu_item_subtext.cpp
         ayu/ui/context_menu/menu_item_subtext.h
+        ayu/ui/ghost_online_bar.cpp
+        ayu/ui/ghost_online_bar.h
+        ayu/ui/ghost_online_warn.cpp
+        ayu/ui/ghost_online_warn.h
+        ayu/features/ghost/tf_ghost_scheduled.cpp
+        ayu/features/ghost/tf_ghost_scheduled.h
         ayu/ui/message_history/history_inner.cpp
         ayu/ui/message_history/history_inner.h
         ayu/ui/message_history/history_item.cpp
@@ -279,6 +285,21 @@ set(teleforge_extension_files
         ayu/features/teleforge/teleforge_openai_models.h
         ayu/features/teleforge/teleforge_storage.cpp
         ayu/features/teleforge/teleforge_storage.h
+        ayu/features/teleforge/tf_peer_archive.cpp
+        ayu/features/teleforge/tf_peer_archive.h
+        ayu/features/teleforge/tf_peer_archive_entities.h
+        ayu/features/teleforge/tf_peer_archive_scanner.cpp
+        ayu/features/teleforge/tf_peer_archive_scanner.h
+        ayu/features/teleforge/tf_peer_archive_crawler.cpp
+        ayu/features/teleforge/tf_peer_archive_crawler.h
+        ayu/features/teleforge/tf_archive_userpics_box.cpp
+        ayu/features/teleforge/tf_archive_userpics_box.h
+        ayu/features/teleforge/tf_archive_users_box.cpp
+        ayu/features/teleforge/tf_archive_users_box.h
+        ayu/ui/settings/settings_spy.cpp
+        ayu/ui/settings/settings_spy.h
+        ayu/features/teleforge/tf_chat_wallpaper_save.cpp
+        ayu/features/teleforge/tf_chat_wallpaper_save.h
         ayu/data/ayu_content_hash.cpp
         ayu/data/ayu_content_hash.h
         ayu/features/sync/teleforge_sync.cpp
@@ -1417,6 +1438,8 @@ PRIVATE
     info/profile/info_profile_inner_widget.h
     info/profile/info_teleforge_peer_panel.cpp
     info/profile/info_teleforge_peer_panel.h
+    info/profile/info_tf_peer_archive_panel.cpp
+    info/profile/info_tf_peer_archive_panel.h
     info/profile/info_profile_members.cpp
     info/profile/info_profile_members.h
     info/profile/info_profile_members_controllers.cpp

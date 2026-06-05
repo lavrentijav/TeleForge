@@ -18,12 +18,28 @@ namespace {
 
 [[nodiscard]] QString LivePath(SyncDatabaseKind kind) {
 	switch (kind) {
-	case SyncDatabaseKind::TeleForge:
+	case SyncDatabaseKind::Data:
 		return TeleForge::Storage::databasePath();
-	case SyncDatabaseKind::AyuData:
-		return QDir::cleanPath(QString(cWorkingDir()) + u"/tdata/ayudata.db"_q);
 	}
 	return {};
+}
+
+[[nodiscard]] bool RemoteTableExists(sqlite3 *db, const char *table) {
+	sqlite3_stmt *stmt = nullptr;
+	const auto sql = QString(
+		"SELECT 1 FROM remote.sqlite_master "
+		"WHERE type='table' AND name='%1' LIMIT 1;").arg(table);
+	if (sqlite3_prepare_v2(
+			db,
+			sql.toUtf8().constData(),
+			-1,
+			&stmt,
+			nullptr) != SQLITE_OK) {
+		return false;
+	}
+	const auto exists = (sqlite3_step(stmt) == SQLITE_ROW);
+	sqlite3_finalize(stmt);
+	return exists;
 }
 
 [[nodiscard]] bool Exec(sqlite3 *db, const char *sql) {
@@ -40,13 +56,13 @@ namespace {
 	return true;
 }
 
-[[nodiscard]] bool MergeTeleForgeDb(sqlite3 *live, const QString &remotePath) {
+[[nodiscard]] bool MergeDataDb(sqlite3 *live, const QString &remotePath) {
 	const auto attach = u"ATTACH DATABASE '%1' AS remote;"_q.arg(
 		QString(remotePath).replace('\'', "''"));
 	if (!Exec(live, attach.toUtf8().constData())) {
 		return false;
 	}
-	const auto queries = std::array<const char*, 6>{
+	const auto coreQueries = std::array<const char*, 11>{
 		R"SQL(
 INSERT OR REPLACE INTO PersonalityCore
 SELECT r.* FROM remote.PersonalityCore r
@@ -87,23 +103,6 @@ SELECT r.* FROM remote.SyncArtifact r
 LEFT JOIN SyncArtifact l ON l.id = r.id
 WHERE l.id IS NULL OR r.updatedAt >= l.updatedAt;
 )SQL",
-	};
-	for (const auto *query : queries) {
-		if (!Exec(live, query)) {
-			Exec(live, "DETACH remote;");
-			return false;
-		}
-	}
-	return Exec(live, "DETACH remote;");
-}
-
-[[nodiscard]] bool MergeAyuDataDb(sqlite3 *live, const QString &remotePath) {
-	const auto attach = u"ATTACH DATABASE '%1' AS remote;"_q.arg(
-		QString(remotePath).replace('\'', "''"));
-	if (!Exec(live, attach.toUtf8().constData())) {
-		return false;
-	}
-	const auto queries = {
 		R"SQL(
 INSERT INTO DeletedMessage (
 	userId, dialogId, groupedId, peerId, fromId, topicId, messageId, date, flags,
@@ -159,10 +158,96 @@ WHERE NOT EXISTS (
 		AND l.kind = r.kind);
 )SQL",
 	};
-	for (const auto *query : queries) {
+	const auto peerArchiveQueries = std::array<const char*, 6>{
+		R"SQL(
+INSERT OR IGNORE INTO PeerArchiveProfile
+SELECT r.* FROM remote.PeerArchiveProfile r
+WHERE NOT EXISTS (
+	SELECT 1 FROM PeerArchiveProfile l WHERE l.peerId = r.peerId);
+)SQL",
+		R"SQL(
+UPDATE PeerArchiveProfile SET
+	lastSeenAt = (
+		SELECT MAX(r.lastSeenAt) FROM remote.PeerArchiveProfile r
+		WHERE r.peerId = PeerArchiveProfile.peerId),
+	firstSeenAt = (
+		SELECT MIN(r.firstSeenAt) FROM remote.PeerArchiveProfile r
+		WHERE r.peerId = PeerArchiveProfile.peerId AND r.firstSeenAt > 0)
+WHERE EXISTS (
+	SELECT 1 FROM remote.PeerArchiveProfile r
+	WHERE r.peerId = PeerArchiveProfile.peerId);
+)SQL",
+		R"SQL(
+INSERT OR IGNORE INTO PeerArchiveUsername
+SELECT r.* FROM remote.PeerArchiveUsername r
+WHERE NOT EXISTS (
+	SELECT 1 FROM PeerArchiveUsername l
+	WHERE l.peerId = r.peerId AND l.username = r.username);
+)SQL",
+		R"SQL(
+INSERT OR IGNORE INTO PeerArchiveName
+SELECT r.* FROM remote.PeerArchiveName r
+WHERE NOT EXISTS (
+	SELECT 1 FROM PeerArchiveName l
+		WHERE l.peerId = r.peerId
+		AND l.firstName = r.firstName
+		AND l.lastName = r.lastName);
+)SQL",
+		R"SQL(
+INSERT OR IGNORE INTO PeerArchiveChatMembership (
+	peerId, chatId, chatTitle, firstSeenAt, lastSeenAt, selfInChat, peerStillInChat)
+SELECT
+	r.peerId, r.chatId, r.chatTitle, r.firstSeenAt, r.lastSeenAt, r.selfInChat, r.peerStillInChat
+FROM remote.PeerArchiveChatMembership r
+WHERE NOT EXISTS (
+	SELECT 1 FROM PeerArchiveChatMembership l
+	WHERE l.peerId = r.peerId AND l.chatId = r.chatId);
+)SQL",
+		R"SQL(
+UPDATE PeerArchiveChatMembership SET
+	lastSeenAt = (
+		SELECT MAX(r.lastSeenAt) FROM remote.PeerArchiveChatMembership r
+		WHERE r.peerId = PeerArchiveChatMembership.peerId
+			AND r.chatId = PeerArchiveChatMembership.chatId),
+	chatTitle = COALESCE((
+		SELECT r.chatTitle FROM remote.PeerArchiveChatMembership r
+		WHERE r.peerId = PeerArchiveChatMembership.peerId
+			AND r.chatId = PeerArchiveChatMembership.chatId
+		ORDER BY r.lastSeenAt DESC LIMIT 1), chatTitle),
+	selfInChat = (
+		SELECT MAX(r.selfInChat) FROM remote.PeerArchiveChatMembership r
+		WHERE r.peerId = PeerArchiveChatMembership.peerId
+			AND r.chatId = PeerArchiveChatMembership.chatId)
+WHERE EXISTS (
+	SELECT 1 FROM remote.PeerArchiveChatMembership r
+	WHERE r.peerId = PeerArchiveChatMembership.peerId
+		AND r.chatId = PeerArchiveChatMembership.chatId);
+)SQL",
+	};
+	for (const auto *query : coreQueries) {
 		if (!Exec(live, query)) {
 			Exec(live, "DETACH remote;");
 			return false;
+		}
+	}
+	if (RemoteTableExists(live, "PeerArchiveProfile")) {
+		for (const auto *query : peerArchiveQueries) {
+			if (!Exec(live, query)) {
+				Exec(live, "DETACH remote;");
+				return false;
+			}
+		}
+		if (RemoteTableExists(live, "PeerArchiveBio")) {
+			if (!Exec(live, R"SQL(
+INSERT OR IGNORE INTO PeerArchiveBio
+SELECT r.* FROM remote.PeerArchiveBio r
+WHERE NOT EXISTS (
+	SELECT 1 FROM PeerArchiveBio l
+	WHERE l.peerId = r.peerId AND l.bio = r.bio);
+)SQL")) {
+				Exec(live, "DETACH remote;");
+				return false;
+			}
 		}
 	}
 	return Exec(live, "DETACH remote;");
@@ -184,13 +269,10 @@ WHERE NOT EXISTS (
 	if (encrypted.isEmpty()) {
 		return std::nullopt;
 	}
-	const auto suffix = (kind == SyncDatabaseKind::TeleForge)
-		? u"teleforge"_q
-		: u"ayudata"_q;
 	return EncryptedDbShard{
 		.kind = kind,
 		.encrypted = encrypted,
-		.fileName = suffix + u".tforge"_q,
+		.fileName = u"data.tforge"_q,
 		.sha256Hex = QString::fromLatin1(
 			QCryptographicHash::hash(encrypted, QCryptographicHash::Sha256).toHex()),
 		.dateFrom = 0,
@@ -202,10 +284,8 @@ WHERE NOT EXISTS (
 
 std::vector<EncryptedDbShard> BuildEncryptedDatabaseShards(const QByteArray &syncKey) {
 	auto out = std::vector<EncryptedDbShard>();
-	for (const auto kind : { SyncDatabaseKind::TeleForge, SyncDatabaseKind::AyuData }) {
-		if (const auto shard = BuildShard(kind, syncKey)) {
-			out.push_back(*shard);
-		}
+	if (const auto shard = BuildShard(SyncDatabaseKind::Data, syncKey)) {
+		out.push_back(*shard);
 	}
 	return out;
 }
@@ -237,9 +317,7 @@ bool ApplyEncryptedDatabaseShard(
 		QFile::remove(*tempPath);
 		return false;
 	}
-	const auto ok = (kind == SyncDatabaseKind::TeleForge)
-		? MergeTeleForgeDb(live, *tempPath)
-		: MergeAyuDataDb(live, *tempPath);
+	const auto ok = MergeDataDb(live, *tempPath);
 	sqlite3_close(live);
 	QFile::remove(*tempPath);
 	return ok;

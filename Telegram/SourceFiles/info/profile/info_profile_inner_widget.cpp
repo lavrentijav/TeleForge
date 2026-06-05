@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_top_bar.h"
 #include "info/profile/info_profile_actions.h"
 #include "info/profile/info_teleforge_peer_panel.h"
+#include "info/profile/info_tf_peer_archive_panel.h"
 #include "info/media/info_media_buttons.h"
 #include "info/saved/info_saved_music_widget.h"
 #include "data/data_changes.h"
@@ -247,6 +248,32 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 		stack.add(Section{
 			.widget = std::move(manage),
 			.shown = raw->toggledValue(),
+			.trailing = SectionSeparator::None(),
+		});
+	}
+	if (const auto user = _peer->asUser()) {
+		if (!user->isSelf() && !user->isServiceUser()) {
+			if (auto archive = SetupPeerArchivePanel(
+					_controller,
+					result.data(),
+					_peer)) {
+				stack.addPlainSeparator();
+				stack.add(Section{
+					.widget = std::move(archive),
+					.shown = rpl::single(true),
+					.trailing = SectionSeparator::None(),
+				});
+			}
+		}
+	}
+	if (auto teleforge = SetupTeleForgePeerPanel(
+			_controller,
+			result.data(),
+			_peer)) {
+		stack.addPlainSeparator();
+		stack.add(Section{
+			.widget = std::move(teleforge),
+			.shown = rpl::single(true),
 			.trailing = SectionSeparator::None(),
 		});
 	}

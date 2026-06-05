@@ -35,6 +35,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 
 // AyuGram includes
+#include "ayu/features/ghost/tf_ghost_scheduled.h"
+#include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/utils/telegram_helpers.h"
 
 
@@ -241,6 +243,10 @@ void SendExistingMedia(
 		sendFlags |= MTPmessages_SendMedia::Flag::f_allow_paid_stars;
 	}
 
+	Ayu::GhostScheduled::registerGhostSend(
+		action.options,
+		randomId,
+		peer->id);
 	session->data().registerMessageRandomId(randomId, newId);
 
 	history->addNewLocalMessage({
@@ -456,6 +462,10 @@ bool SendDice(MessageToSend &message) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_allow_paid_stars;
 	}
 
+	Ayu::GhostScheduled::registerGhostSend(
+		action.options,
+		randomId,
+		peer->id);
 	session->data().registerMessageRandomId(randomId, newId);
 
 	auto seed = QByteArray(32, Qt::Uninitialized);

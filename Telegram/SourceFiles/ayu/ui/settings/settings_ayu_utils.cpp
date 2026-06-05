@@ -623,6 +623,15 @@ void AddSectionDivider(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 }
 
+not_null<Ui::FlatLabel*> AddSettingsHint(
+		not_null<Ui::VerticalLayout*> container,
+		rpl::producer<QString> text) {
+	return Ui::AddDividerText(
+		container,
+		std::move(text),
+		st::defaultBoxDividerLabelPadding);
+}
+
 not_null<Button*> AddSettingToggle(
 		not_null<Ui::VerticalLayout*> container,
 		rpl::producer<QString> text,

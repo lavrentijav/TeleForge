@@ -327,6 +327,10 @@ public:
 	[[nodiscard]] QString deleteStubText() const { return _deleteStubText.current(); }
 	[[nodiscard]] bool spyModeGloballyEnabled() const { return _spyModeGloballyEnabled.current(); }
 	[[nodiscard]] int spyRetentionDays() const { return _spyRetentionDays.current(); }
+	[[nodiscard]] bool peerArchiveEnabled() const { return _peerArchiveEnabled.current(); }
+	[[nodiscard]] rpl::producer<bool> peerArchiveEnabledChanges() const {
+		return _peerArchiveEnabled.changes();
+	}
 	[[nodiscard]] bool adaptiveCoverColor() const { return _adaptiveCoverColor.current(); }
 	[[nodiscard]] bool improveLinkPreviews() const { return _improveLinkPreviews.current(); }
 	[[nodiscard]] bool crashReporting() const { return _crashReporting.current(); }
@@ -413,6 +417,7 @@ public:
 	void setDeleteStubText(const QString &val);
 	void setSpyModeGloballyEnabled(bool val);
 	void setSpyRetentionDays(int val);
+	void setPeerArchiveEnabled(bool val);
 	void setAdaptiveCoverColor(bool val);
 	void setImproveLinkPreviews(bool val);
 	void setCrashReporting(bool val);
@@ -678,6 +683,7 @@ private:
 	rpl::variable<QString> _deleteStubText = QStringLiteral(".");
 	rpl::variable<bool> _spyModeGloballyEnabled = true;
 	rpl::variable<int> _spyRetentionDays = 30;
+	rpl::variable<bool> _peerArchiveEnabled = false;
 	rpl::variable<bool> _adaptiveCoverColor = true;
 	rpl::variable<bool> _improveLinkPreviews = false;
 	rpl::variable<bool> _crashReporting = true;

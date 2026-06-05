@@ -124,7 +124,7 @@ void getRegistrationDate(not_null<PeerData*> peer, Fn<void(TextWithEntities)> ca
 
 QString getBetterLinkPreview(const QString &url);
 
-void applyGhostScheduling(
+[[nodiscard]] bool applyGhostScheduling(
 	not_null<Main::Session*> session,
 	Api::SendOptions &options,
 	int delaySeconds = 12);

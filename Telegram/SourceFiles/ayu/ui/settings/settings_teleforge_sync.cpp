@@ -11,7 +11,6 @@
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 #include "ui/widgets/buttons.h"
-#include "ui/widgets/labels.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
 
@@ -37,20 +36,9 @@ const auto kMeta = BuildHelper({
 	builder.addSubsectionTitle(rpl::single(
 		u"Синхронизация между устройствами"_q));
 
-	builder.add([&](const BuildContext &ctx) {
-		v::match(ctx, [&](const WidgetContext &wctx) {
-			wctx.container->add(
-				object_ptr<Ui::FlatLabel>(
-					wctx.container,
-					rpl::single(u"Зашифрованные снимки баз памяти и настроек передаются через приватный канал Telegram, привязанный к вашему аккаунту."_q),
-					st::boxDividerLabel));
-		}, [](const SearchContext &) {});
-	});
-
 	ayu.addToggle({
 		.id = u"teleforge/memorySync"_q,
-		.title = rpl::single(
-			u"Синхронизация между устройствами (Telegram)"_q),
+		.title = rpl::single(u"Синхронизация через Telegram"_q),
 		.getter = [=] {
 			return TeleForge::LoadPersonalityCore().value_or(
 				TeleForge::DefaultPersonalityCore()).memorySyncEnabled;

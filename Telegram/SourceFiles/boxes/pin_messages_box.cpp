@@ -15,9 +15,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "main/main_session.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/layers/generic_box.h"
+#include "ui/widgets/labels.h"
+#include "styles/style_boxes.h"
 #include "ui/widgets/checkbox.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
+
+// AyuGram includes
+#include "ayu/ayu_settings.h"
+#include "ayu/ui/ghost_online_warn.h"
 
 namespace {
 
@@ -131,6 +138,19 @@ void PinMessageBox(
 		.confirmed = std::move(pinMessage),
 		.confirmText = tr::lng_pinned_pin(),
 	});
+
+	if (Ayu::GhostOnlineWarn::shouldWarn(&peer->session())) {
+		box->addRow(
+			object_ptr<Ui::FlatLabel>(
+				box,
+				tr::ayu_GhostOnlineWarnPinBox(),
+				st::boxLabel),
+			style::margins(
+				st::boxPadding.left(),
+				st::boxPadding.bottom() / 2,
+				st::boxPadding.right(),
+				0));
+	}
 
 	if (checkbox) {
 		auto padding = st::boxPadding;

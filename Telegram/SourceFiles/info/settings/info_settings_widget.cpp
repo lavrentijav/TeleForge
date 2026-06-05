@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ui/settings/settings_teleforge_ai.h"
 #include "ayu/ui/settings/settings_teleforge_plugins.h"
 #include "ayu/ui/settings/settings_teleforge_sync.h"
+#include "ayu/ui/settings/settings_spy.h"
 
 
 namespace Info {
@@ -224,7 +225,8 @@ rpl::producer<bool> Widget::desiredShadowVisibility() const {
 		|| _type == ::Settings::AyuMain::Id()
 		|| _type == ::Settings::TeleForgeAi::Id()
 		|| _type == ::Settings::TeleForgePlugins::Id()
-		|| _type == ::Settings::TeleForgeSync::Id())
+		|| _type == ::Settings::TeleForgeSync::Id()
+		|| _type == ::Settings::AyuSpy::Id())
 		? ContentWidget::desiredShadowVisibility()
 		: rpl::single(true);
 }

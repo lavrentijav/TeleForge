@@ -1,5 +1,6 @@
 #include "ayu/features/sync/teleforge_sync_files.h"
 
+#include "ayu/utils/telegram_helpers.h"
 #include "api/api_common.h"
 #include "apiwrap.h"
 #include "base/random.h"
@@ -154,22 +155,39 @@ void SendUploadedDocument(const std::shared_ptr<UploadState> &state) {
 		MTP_int(0),
 		MTP_int(0));
 	const auto randomId = base::RandomValue<uint64>();
+	auto sendFlags = MTPmessages_SendMedia::Flags(0);
+	sendFlags |= MTPmessages_SendMedia::Flag::f_silent;
+	auto scheduleDate = MTP_int(0);
+	auto scheduleRepeat = MTP_int(0);
+	auto sendOptions = Api::SendOptions{};
+	applyGhostScheduling(
+		state->session,
+		sendOptions,
+		getScheduleTime(state->payload.size()));
+	if (sendOptions.scheduled) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
+		scheduleDate = MTP_int(sendOptions.scheduled);
+		if (sendOptions.scheduleRepeatPeriod) {
+			sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_repeat_period;
+			scheduleRepeat = MTP_int(sendOptions.scheduleRepeatPeriod);
+		}
+	}
 	auto &histories = history->owner().histories();
 	histories.sendPreparedMessage(
 		history,
 		FullReplyTo(),
 		randomId,
 		Data::Histories::PrepareMessage<MTPmessages_SendMedia>(
-			MTP_flags(MTPmessages_SendMedia::Flag::f_silent),
+			MTP_flags(sendFlags),
 			history->peer->input(),
 			Data::Histories::ReplyToPlaceholder(),
 			media,
-			MTPstring(),
+			MTP_string(),
 			MTP_long(randomId),
 			MTPReplyMarkup(),
 			MTP_vector<MTPMessageEntity>(),
-			MTPint(),
-			MTPint(),
+			scheduleDate,
+			scheduleRepeat,
 			MTP_inputPeerEmpty(),
 			MTPInputQuickReplyShortcut(),
 			MTP_long(0),

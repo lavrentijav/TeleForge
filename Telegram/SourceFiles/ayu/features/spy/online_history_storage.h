@@ -38,5 +38,6 @@ void purgeOldEvents();
 [[nodiscard]] std::optional<QString> spyOnlineText(
 	not_null<UserData*> user,
 	TimeId now);
+[[nodiscard]] bool lastseenUsesSpyApproximation(long long userId);
 
 } // namespace TeleForge::Spy

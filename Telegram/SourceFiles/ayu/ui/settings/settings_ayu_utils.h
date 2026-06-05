@@ -93,6 +93,10 @@ not_null<Button*> AddToggle(
 
 void AddSectionDivider(not_null<Ui::VerticalLayout*> container);
 
+not_null<Ui::FlatLabel*> AddSettingsHint(
+	not_null<Ui::VerticalLayout*> container,
+	rpl::producer<QString> text);
+
 not_null<Button*> AddSettingToggle(
 	not_null<Ui::VerticalLayout*> container,
 	rpl::producer<QString> text,

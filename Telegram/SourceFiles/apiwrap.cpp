@@ -98,8 +98,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_account.h"
 
 // AyuGram includes
+#include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_worker.h"
+#include "ayu/ui/ghost_online_warn.h"
 #include "ayu/utils/telegram_helpers.h"
 #include "ayu/features/forward/ayu_forward.h"
 #include "ayu/features/spy/online_tracker.h"
@@ -3558,6 +3560,8 @@ void ApiWrap::forwardMessages(
 		FnMut<void()> &&successCallback) {
 	Expects(!draft.items.empty());
 
+	applyGhostScheduling(_session, action.options);
+
 	const auto fullAyuForward = AyuForward::isFullAyuForwardNeeded(draft.items.front());
 	if (fullAyuForward) {
 		crl::async([=] {
@@ -3779,6 +3783,11 @@ void ApiWrap::forwardMessages(
 			const auto newId = FullMsgId(
 				peer->id,
 				_session->data().nextLocalMessageId());
+			Ayu::GhostScheduled::registerGhostSend(
+				action.options,
+				randomId,
+				peer->id);
+			_session->data().registerMessageRandomId(randomId, newId);
 			history->addNewLocalMessage({
 				.id = newId.msg,
 				.flags = flags,
@@ -3795,7 +3804,6 @@ void ApiWrap::forwardMessages(
 				// forwarded messages don't have effects
 				//.effectId = action.options.effectId,
 			}, item);
-			_session->data().registerMessageRandomId(randomId, newId);
 			if (!localIds) {
 				localIds = std::make_shared<base::flat_map<uint64, FullMsgId>>();
 			}
@@ -4137,6 +4145,14 @@ void ApiWrap::sendMessage(
 		MessageToSend &&message,
 		std::optional<MsgId> localMessageId) {
 	applyGhostScheduling(_session, message.action.options);
+	const auto &ghost = AyuSettings::ghost(_session);
+	if (ghost.isGhostModeActive() && !message.action.options.scheduled) {
+		if (const auto controller = _session->tryResolveWindow()) {
+			Ayu::GhostOnlineWarn::warnController(
+				controller,
+				Ayu::GhostOnlineWarn::Action::SendMessage);
+		}
+	}
 	const auto clearReplyTo = prependPseudoReply(message);
 
 	const auto history = message.action.history;
@@ -4204,6 +4220,10 @@ void ApiWrap::sendMessage(
 
 		TextUtilities::Trim(sending);
 
+		Ayu::GhostScheduled::registerGhostSend(
+			message.action.options,
+			randomId,
+			peer->id);
 		_session->data().registerMessageRandomId(randomId, newId);
 		_session->data().registerMessageSentData(
 			randomId,
@@ -4435,6 +4455,11 @@ void ApiWrap::sendBotStart(
 	if (!chat) {
 		info->startToken = QString();
 	}
+	if (const auto controller = _session->tryResolveWindow()) {
+		Ayu::GhostOnlineWarn::warnController(
+			controller,
+			Ayu::GhostOnlineWarn::Action::StartBot);
+	}
 	request(MTPmessages_StartBot(
 		bot->inputUser(),
 		chat ? chat->input() : MTP_inputPeerEmpty(),
@@ -4508,6 +4533,10 @@ void ApiWrap::sendInlineResult(
 	if (sendAs) {
 		sendFlags |= MTPmessages_SendInlineBotResult::Flag::f_send_as;
 	}
+	Ayu::GhostScheduled::registerGhostSend(
+		action.options,
+		randomId,
+		peer->id);
 	_session->data().registerMessageRandomId(randomId, newId);
 
 	data->addToHistory(history, {
@@ -4664,6 +4693,11 @@ void ApiWrap::sendMedia(
 		Api::SendOptions options,
 		Fn<void(bool)> done) {
 	const auto randomId = base::RandomValue<uint64>();
+	applyGhostScheduling(_session, options);
+	Ayu::GhostScheduled::registerGhostSend(
+		options,
+		randomId,
+		item->history()->peer->id);
 	_session->data().registerMessageRandomId(randomId, item->fullId());
 
 	sendMediaWithRandomId(item, media, options, randomId, std::move(done));
@@ -4676,6 +4710,10 @@ void ApiWrap::sendMediaWithRandomId(
 		uint64 randomId,
 		Fn<void(bool)> done) {
 	applyGhostScheduling(_session, options);
+	Ayu::GhostScheduled::registerGhostSend(
+		options,
+		randomId,
+		item->history()->peer->id);
 
 	const auto history = item->history();
 	const auto replyTo = item->replyTo();
@@ -4855,9 +4893,8 @@ void ApiWrap::sendAlbumWithUploaded(
 	const auto localId = item->fullId();
 	const auto randomId = base::RandomValue<uint64>();
 	_session->data().registerMessageRandomId(randomId, localId);
-
 	const auto albumIt = _sendingAlbums.find(groupId.raw());
-	Assert(albumIt != _sendingAlbums.end());
+	Assert(albumIt != end(_sendingAlbums));
 	const auto &album = albumIt->second;
 	album->fillMedia(item, media, randomId);
 	sendAlbumIfReady(album.get());
@@ -4910,6 +4947,7 @@ void ApiWrap::sendAlbumIfReady(not_null<SendingAlbum*> album) {
 	} else if (medias.size() < 2) {
 		const auto &single = medias.front().data();
 		album->sent = true;
+		applyGhostScheduling(_session, album->options);
 		sendMediaWithRandomId(
 			sample,
 			single.vmedia(),
@@ -4920,6 +4958,12 @@ void ApiWrap::sendAlbumIfReady(not_null<SendingAlbum*> album) {
 	}
 
 	applyGhostScheduling(_session, album->options);
+	for (const auto &albumItem : album->items) {
+		Ayu::GhostScheduled::registerGhostSend(
+			album->options,
+			albumItem.randomId,
+			sample->history()->peer->id);
+	}
 
 	const auto history = sample->history();
 	const auto replyTo = sample->replyTo();

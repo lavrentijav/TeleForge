@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/notifications_manager.h"
 
+#include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/features/sync/teleforge_sync_transport.h"
 
 #include "base/options.h"
@@ -309,6 +310,7 @@ System::SkipState System::skipNotification(
 			&thread->session(),
 			thread->peer()->id)
 		|| (messageType && item->skipNotification())
+		|| (messageType && Ayu::GhostScheduled::shouldSuppress(item))
 		|| (type == Data::ItemNotificationType::Reaction
 			&& skipSentNotification(item, _sentReactionNotifications))
 		|| (type == Data::ItemNotificationType::PollVote
@@ -338,7 +340,8 @@ System::SkipState System::computeSkipState(
 	};
 	const auto showForMuted = messageType
 		&& item->out()
-		&& item->isFromScheduled();
+		&& item->isFromScheduled()
+		&& !Ayu::GhostScheduled::shouldSuppress(item);
 	const auto notifyBy = messageType
 		? item->specialNotificationPeer()
 		: notification.reactionOrVoteSender;

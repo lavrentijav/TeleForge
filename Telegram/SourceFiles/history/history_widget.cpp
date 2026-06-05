@@ -138,6 +138,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_sticker_toast.h"
 #include "history/view/history_view_subsection_tabs.h"
 #include "history/view/history_view_translate_bar.h"
+#include "ayu/ui/ghost_online_bar.h"
 #include "history/view/media/history_view_media.h"
 #include "core/click_handler_types.h"
 #include "chat_helpers/field_autocomplete.h"
@@ -2044,6 +2045,9 @@ void HistoryWidget::orderWidgets() {
 	if (_translateBar) {
 		_translateBar->raise();
 	}
+	if (_ghostOnlineBar) {
+		_ghostOnlineBar->raise();
+	}
 	if (_sponsoredMessageBar) {
 		_sponsoredMessageBar->raise();
 	}
@@ -2852,6 +2856,8 @@ void HistoryWidget::showHistory(
 		_sponsoredMessageBar = nullptr;
 		_pinnedBar = nullptr;
 		_translateBar = nullptr;
+		_ghostOnlineBar = nullptr;
+		_ghostOnlineBarHeight = 0;
 		_pinnedTracker = nullptr;
 		_groupCallBar = nullptr;
 		_requestsBar = nullptr;
@@ -3054,6 +3060,7 @@ void HistoryWidget::showHistory(
 		_updateHistoryItems.cancel();
 
 		setupTranslateBar();
+		setupGhostOnlineBar();
 		setupPinnedTracker();
 		setupGroupCallBar();
 		setupRequestsBar();
@@ -5535,6 +5542,9 @@ void HistoryWidget::showAnimated(
 	if (_translateBar) {
 		_translateBar->finishAnimating();
 	}
+	if (_ghostOnlineBar) {
+		_ghostOnlineBar->finishAnimating();
+	}
 	if (_groupCallBar) {
 		_groupCallBar->finishAnimating();
 	}
@@ -5578,6 +5588,9 @@ void HistoryWidget::showFinished() {
 	if (_translateBar) {
 		_translateBar->finishAnimating();
 	}
+	if (_ghostOnlineBar) {
+		_ghostOnlineBar->finishAnimating();
+	}
 	if (_groupCallBar) {
 		_groupCallBar->finishAnimating();
 	}
@@ -5613,6 +5626,9 @@ void HistoryWidget::doneShow() {
 	}
 	if (_translateBar) {
 		_translateBar->finishAnimating();
+	}
+	if (_ghostOnlineBar) {
+		_ghostOnlineBar->finishAnimating();
 	}
 	if (_groupCallBar) {
 		_groupCallBar->finishAnimating();
@@ -7339,11 +7355,17 @@ void HistoryWidget::updateControlsGeometry() {
 	}
 	const auto translateTop = sponsoredMessageBarTop
 		+ (_sponsoredMessageBar ? _sponsoredMessageBar->height() : 0);
+	if (_ghostOnlineBar) {
+		_ghostOnlineBar->move(0, translateTop);
+		_ghostOnlineBar->resizeToWidth(innerWidth);
+	}
+	const auto ghostBarTop = translateTop
+		+ (_ghostOnlineBar ? _ghostOnlineBar->height() : 0);
 	if (_translateBar) {
-		_translateBar->move(0, translateTop);
+		_translateBar->move(0, ghostBarTop);
 		_translateBar->resizeToWidth(innerWidth);
 	}
-	const auto paysStatusTop = translateTop
+	const auto paysStatusTop = ghostBarTop
 		+ (_translateBar ? _translateBar->height() : 0);
 	if (_paysStatus) {
 		_paysStatus->bar().move(0, paysStatusTop);
@@ -7618,6 +7640,9 @@ void HistoryWidget::updateHistoryGeometry(
 		- (_subsectionTabs ? _subsectionTabs->bottomSkip() : 0);
 	if (_translateBar) {
 		newScrollHeight -= _translateBar->height();
+	}
+	if (_ghostOnlineBar) {
+		newScrollHeight -= _ghostOnlineBar->height();
 	}
 	if (_sponsoredMessageBar) {
 		newScrollHeight -= _sponsoredMessageBar->height();
@@ -8597,6 +8622,26 @@ void HistoryWidget::setupTranslateBar() {
 		updateControlsGeometry();
 		_topDelta = 0;
 	}, _translateBar->lifetime());
+
+	orderWidgets();
+}
+
+void HistoryWidget::setupGhostOnlineBar() {
+	Expects(_history != nullptr);
+
+	_ghostOnlineBar = std::make_unique<Ayu::GhostOnlineWarn::GhostOnlineBar>(
+		_topBars.get(),
+		&controller()->session());
+
+	_ghostOnlineBarHeight = 0;
+	_ghostOnlineBar->heightValue(
+	) | rpl::on_next([=](int height) {
+		_topDelta = _preserveScrollTop ? 0 : (height - _ghostOnlineBarHeight);
+		_ghostOnlineBarHeight = height;
+		updateHistoryGeometry();
+		updateControlsGeometry();
+		_topDelta = 0;
+	}, _ghostOnlineBar->lifetime());
 
 	orderWidgets();
 }

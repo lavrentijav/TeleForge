@@ -10,7 +10,7 @@
 namespace TeleForge::Sync {
 
 struct EncryptedDbShard {
-	SyncDatabaseKind kind = SyncDatabaseKind::TeleForge;
+	SyncDatabaseKind kind = SyncDatabaseKind::Data;
 	QByteArray encrypted;
 	QString fileName;
 	QString sha256Hex;

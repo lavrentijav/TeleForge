@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/components/scheduled_messages.h"
 
+#include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "base/unixtime.h"
 #include "data/data_forum_topic.h"
 #include "data/data_peer.h"
@@ -370,6 +371,9 @@ void ScheduledMessages::apply(
 		if (j != end(list.itemById)) {
 			if (sent && k < sent->v.size()) {
 				const auto &sentId = sent->v[k];
+				Ayu::GhostScheduled::onSentFromScheduled(
+					j->second,
+					sentId.v);
 				_session->data().sentFromScheduled({
 					.item = j->second,
 					.sentId = sentId.v,
@@ -405,6 +409,8 @@ void ScheduledMessages::apply(
 void ScheduledMessages::appendSending(not_null<HistoryItem*> item) {
 	Expects(item->isSending());
 	Expects(item->isScheduled());
+
+	Ayu::GhostScheduled::onScheduledItemQueued(item);
 
 	const auto history = item->history();
 	auto &list = _data[history];

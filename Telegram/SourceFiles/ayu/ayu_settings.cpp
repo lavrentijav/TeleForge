@@ -1013,6 +1013,12 @@ void AyuSettings::setSpyRetentionDays(int val) {
 	save();
 }
 
+void AyuSettings::setPeerArchiveEnabled(bool val) {
+	if (_peerArchiveEnabled.current() == val) return;
+	_peerArchiveEnabled = val;
+	save();
+}
+
 void AyuSettings::setAdaptiveCoverColor(bool val) {
 	if (_adaptiveCoverColor.current() == val) return;
 	_adaptiveCoverColor = val;
@@ -1135,6 +1141,7 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"deleteStubText", s._deleteStubText.current()},
 		{"spyModeGloballyEnabled", s._spyModeGloballyEnabled.current()},
 		{"spyRetentionDays", s._spyRetentionDays.current()},
+		{"peerArchiveEnabled", s._peerArchiveEnabled.current()},
 		{"adaptiveCoverColor", s._adaptiveCoverColor.current()},
 		{"improveLinkPreviews", s._improveLinkPreviews.current()},
 		{"crashReporting", s._crashReporting.current()},
@@ -1240,6 +1247,7 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._deleteStubText = j.value("deleteStubText", defaults._deleteStubText.current());
 	s._spyModeGloballyEnabled = j.value("spyModeGloballyEnabled", defaults._spyModeGloballyEnabled.current());
 	s._spyRetentionDays = j.value("spyRetentionDays", defaults._spyRetentionDays.current());
+	s._peerArchiveEnabled = j.value("peerArchiveEnabled", defaults._peerArchiveEnabled.current());
 	s._adaptiveCoverColor = j.value("adaptiveCoverColor", defaults._adaptiveCoverColor.current());
 	s._improveLinkPreviews = j.value("improveLinkPreviews", defaults._improveLinkPreviews.current());
 	s._crashReporting = j.value("crashReporting", defaults._crashReporting.current());

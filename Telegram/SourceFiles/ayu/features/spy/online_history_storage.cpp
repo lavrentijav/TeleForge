@@ -15,6 +15,7 @@ auto g_mutex = std::mutex();
 auto g_globalSpy = true;
 auto g_retentionDays = 30;
 auto g_manualCache = std::map<long long, int>();
+auto g_spyApproximate = std::map<long long, bool>();
 
 void NoteManualLastSeen(long long userId, int timestamp) {
 	if (timestamp <= 0) {
@@ -156,19 +157,44 @@ Data::LastseenStatus effectiveLastseen(
 	}
 	const auto now = base::unixtime::now();
 	if (status.isOnline(now)) {
+		{
+			const auto lock = std::unique_lock(g_mutex);
+			g_spyApproximate[userId] = false;
+		}
 		return status;
 	}
 	if (const auto till = status.onlineTill(); till > 0) {
+		{
+			const auto lock = std::unique_lock(g_mutex);
+			g_spyApproximate[userId] = false;
+		}
 		return status;
 	}
 	if (const auto manual = manualLastSeenForUser(userId)) {
+		{
+			const auto lock = std::unique_lock(g_mutex);
+			g_spyApproximate[userId] = true;
+		}
 		return Data::LastseenStatus::OnlineTill(*manual);
+	}
+	{
+		const auto lock = std::unique_lock(g_mutex);
+		g_spyApproximate[userId] = false;
 	}
 	return status;
 }
 
+bool lastseenUsesSpyApproximation(long long userId) {
+	const auto lock = std::unique_lock(g_mutex);
+	const auto i = g_spyApproximate.find(userId);
+	return i != end(g_spyApproximate) && i->second;
+}
+
 std::optional<QString> spyOnlineText(not_null<UserData*> user, TimeId now) {
 	if (!isSpyEnabledForUser(user->id.value) || user->isSelf()) {
+		return std::nullopt;
+	}
+	if (!lastseenUsesSpyApproximation(user->id.value)) {
 		return std::nullopt;
 	}
 	const auto status = user->lastseen();

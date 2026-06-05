@@ -64,6 +64,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session_settings.h"
 #include "menu/menu_mute.h"
 #include "menu/menu_ttl_validator.h"
+#include "ayu/ui/ghost_online_warn.h"
+
 #include "apiwrap.h"
 #include "mainwidget.h"
 #include "api/api_blocked_peers.h"
@@ -3675,6 +3677,13 @@ void ToggleMessagePinned(
 	if (!item || !item->canPin()) {
 		return;
 	}
+	const auto controller = navigation->parentController();
+	if (const auto strong = controller.get()) {
+		Ayu::GhostOnlineWarn::warnController(
+			strong,
+			pin ? Ayu::GhostOnlineWarn::Action::PinMessage
+				: Ayu::GhostOnlineWarn::Action::UnpinMessage);
+	}
 	if (pin) {
 		navigation->parentController()->show(
 			Box(PinMessageBox, item),
@@ -4236,6 +4245,12 @@ void TogglePinnedThread(
 	const auto isPinned = !history->isPinnedDialog(filterId);
 	if (isPinned && PinnedLimitReached(controller, history, filterId)) {
 		return;
+	}
+
+	if (isPinned) {
+		Ayu::GhostOnlineWarn::warnController(
+			controller,
+			Ayu::GhostOnlineWarn::Action::ChatPin);
 	}
 
 	owner->setChatPinned(history, filterId, isPinned);

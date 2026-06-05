@@ -18,7 +18,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_document_media.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/context_menu/context_menu.h"
+#include "ayu/features/translator/ayu_translate_actions.h"
 #include "ayu/utils/telegram_helpers.h"
+#include "ayu/features/teleforge/tf_chat_wallpaper_save.h"
 #include "history/view/controls/history_view_forward_panel.h"
 #include "history/view/controls/history_view_draft_options.h"
 #include "history/view/controls/history_view_suggest_options.h"
@@ -2163,7 +2165,24 @@ void HistoryInner::mouseActionStart(const QPoint &screenPos, Qt::MouseButton but
 		}
 	}
 
-	if (!_mouseActionItem) {
+	const auto localPos = mapFromGlobal(screenPos);
+	const auto clickedOutsideMessage = [&] {
+		if (!mouseActionView) {
+			return true;
+		}
+		const auto m = mapPointToItem(localPos, mouseActionView);
+		return mouseActionView->pointState(m)
+			== HistoryView::PointState::Outside;
+	}();
+	_tapEmptyArea = clickedOutsideMessage
+		&& (button == Qt::LeftButton)
+		&& !_pressWasInactive
+		&& !inSelectionMode().inSelectionMode
+		&& TeleForge::ChatWallpaper::canSaveForPeer(_history->peer);
+	if (_tapEmptyArea) {
+		_mouseAction = MouseAction::None;
+		_mouseActionItem = nullptr;
+	} else if (!_mouseActionItem) {
 		_mouseAction = MouseAction::None;
 	} else if (_mouseAction == MouseAction::None) {
 		_mouseActionItem = nullptr;
@@ -2171,6 +2190,7 @@ void HistoryInner::mouseActionStart(const QPoint &screenPos, Qt::MouseButton but
 }
 
 void HistoryInner::mouseActionCancel() {
+	_tapEmptyArea = false;
 	_mouseActionItem = nullptr;
 	_dragStateItem = nullptr;
 	_mouseAction = MouseAction::None;
@@ -2380,6 +2400,21 @@ void HistoryInner::mouseActionFinish(
 		const QPoint &screenPos,
 		Qt::MouseButton button) {
 	mouseActionUpdate(screenPos);
+
+	if (_tapEmptyArea
+		&& _mouseAction == MouseAction::None
+		&& button == Qt::LeftButton
+		&& !_pressWasInactive) {
+		_tapEmptyArea = false;
+		auto contextMenu = QContextMenuEvent(
+			QContextMenuEvent::Mouse,
+			mapFromGlobal(screenPos),
+			screenPos);
+		mouseActionCancel();
+		showContextMenu(&contextMenu);
+		return;
+	}
+	_tapEmptyArea = false;
 
 	auto activated = ClickHandler::unpressed();
 	if (_mouseAction == MouseAction::Dragging) {
@@ -2997,6 +3032,12 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				Element::Moused())
 		) != HistoryView::PointState::GroupPart);
 	const auto addSelectMessageAction = [&](not_null<HistoryItem*> item) {
+		AyuUi::AddHistoryAction(_menu, item);
+		AyuUi::AddHideMessageAction(_menu, item);
+		AyuUi::AddUserMessagesAction(_menu, item);
+		AyuUi::AddRepeatMessageAction(_menu, item);
+		AyuUi::AddMessageDetailsAction(_menu, item);
+
 		if (item->isRegular()
 			&& !item->isService()
 			&& !hasSelectRestriction()) {
@@ -3202,6 +3243,12 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						getSelectedText().rich,
 						hasCopyRestrictionForSelected()));
 				}, &st::menuIconTranslate);
+				AyuUi::AddForceTranslateSelectedActions(
+					_menu,
+					item,
+					_controller,
+					getSelectedText().rich,
+					hasCopyRestrictionForSelected());
 			}
 		}
 		addItemActions(item, item);
@@ -3343,6 +3390,12 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						selectedText.rich,
 						hasCopyRestrictionForSelected()));
 				}, &st::menuIconTranslate);
+				AyuUi::AddForceTranslateSelectedActions(
+					_menu,
+					item,
+					_controller,
+					selectedText.rich,
+					hasCopyRestrictionForSelected());
 			}
 			AyuUi::AddCreateFilterAction(_menu, _controller, item, selectedText.rich.text);
 			addItemActions(item, item);
@@ -3454,6 +3507,11 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 									translate,
 									hasRestriction));
 							}, &st::menuIconTranslate);
+							AyuUi::AddForceTranslateMessageActions(
+								_menu,
+								item,
+								_controller,
+								hasRestriction);
 						}
 					}
 				}
@@ -3628,6 +3686,27 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				leaderOrSelf,
 				poll);
 		}
+	}
+
+	const auto clickedOutsideMessage = [&] {
+		const auto local = mapFromGlobal(e->globalPos());
+		const auto moused = HistoryView::Element::Moused();
+		if (!moused) {
+			return true;
+		}
+		const auto m = mapPointToItem(local, moused);
+		return moused->pointState(m) == HistoryView::PointState::Outside;
+	}();
+	if (TeleForge::ChatWallpaper::canSaveForPeer(_history->peer)
+		&& clickedOutsideMessage) {
+		if (!_menu->empty()) {
+			_menu->addSeparator();
+		}
+		_menu->addAction(u"Скачать обои"_q, [=] {
+			TeleForge::ChatWallpaper::trySaveOnEmptyClick(
+				_controller,
+				_history->peer);
+		}, &st::menuIconDownload);
 	}
 
 	if (_menu->empty()) {

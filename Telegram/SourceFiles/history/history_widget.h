@@ -119,6 +119,10 @@ class SuggestOptionsBar;
 enum class SuggestMode;
 } // namespace HistoryView
 
+namespace Ayu::GhostOnlineWarn {
+class GhostOnlineBar;
+} // namespace Ayu::GhostOnlineWarn
+
 namespace HistoryView::Controls {
 class RecordLock;
 class VoiceRecordBar;
@@ -594,6 +598,7 @@ private:
 
 	void updatePinnedViewer();
 	void setupTranslateBar();
+	void setupGhostOnlineBar();
 	void setupPinnedTracker();
 	void checkPinnedBarState();
 	void clearHidingPinnedBar();
@@ -763,6 +768,9 @@ private:
 
 	std::unique_ptr<HistoryView::TranslateBar> _translateBar;
 	int _translateBarHeight = 0;
+
+	std::unique_ptr<Ayu::GhostOnlineWarn::GhostOnlineBar> _ghostOnlineBar;
+	int _ghostOnlineBarHeight = 0;
 
 	std::unique_ptr<HistoryView::PinnedTracker> _pinnedTracker;
 	std::unique_ptr<Ui::PinnedBar> _pinnedBar;

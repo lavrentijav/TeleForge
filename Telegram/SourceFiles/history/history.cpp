@@ -81,6 +81,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_dialogs.h"
 
 // AyuGram includes
+#include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_state.h"
 
@@ -1617,16 +1618,22 @@ void History::newItemAdded(not_null<HistoryItem*> item, NewAddType type) {
 		.item = item,
 		.type = Data::ItemNotificationType::Message,
 	};
-	if (item->showNotification()) {
+	const auto suppressGhostScheduled = Ayu::GhostScheduled::shouldSuppress(item);
+	if (suppressGhostScheduled) {
+		Ayu::GhostScheduled::acknowledgeDelivery(item);
+	}
+	if (item->showNotification() && !suppressGhostScheduled) {
 		item->notificationThread()->pushNotification(notification);
 	}
 	owner().notifyNewItemAdded(item);
-	const auto stillShow = item->showNotification(); // Could be read already.
+	const auto stillShow = item->showNotification() && !suppressGhostScheduled;
 	if (stillShow) {
 		Core::App().notifications().schedule(notification);
 	}
 	if (item->out()) {
-		if (item->isFromScheduled() && unreadCountRefreshNeeded(item->id)) {
+		if (item->isFromScheduled()
+			&& !suppressGhostScheduled
+			&& unreadCountRefreshNeeded(item->id)) {
 			if (unreadCountKnown()) {
 				setUnreadCount(unreadCount() + 1);
 			} else if (!isForum()) {

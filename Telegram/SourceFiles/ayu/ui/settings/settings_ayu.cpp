@@ -8,7 +8,6 @@
 
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
-#include "ayu/features/spy/online_history_storage.h"
 #include "ayu/ui/ayu_userpic.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
@@ -532,101 +531,14 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 	});
 }
 
-void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_SpyEssentialsHeader());
-
-	ayu.addToggle({
-		.id = u"teleforge/spyMode"_q,
-		.altIds = { u"ayu/spyMode"_q },
-		.title = rpl::single(u"Режим шпиона (глобально)"_q),
-		.getter = [] {
-			return TeleForge::Spy::spyModeGloballyEnabled();
-		},
-		.setter = [](bool v) {
-			TeleForge::Spy::setSpyModeGloballyEnabled(v);
-		},
-	});
-
-	builder.addSkip();
-	builder.addDividerText(rpl::single(
-		u"Отслеживает онлайн-статус пользователей и сохраняет историю. "
-		u"Для отдельного человека включите «Отслеживать онлайн» в профиле пользователя."_q));
-
-	ayu.addSlider({
-		.id = u"teleforge/spyRetentionDays"_q,
-		.title = rpl::single(u"Хранить историю онлайна (дней)"_q),
-		.steps = 365,
-		.current = TeleForge::Spy::retentionDays() - 1,
-		.indexToValue = [](int index) { return index + 1; },
-		.onFinalChanged = [](int days) {
-			TeleForge::Spy::setRetentionDays(days);
-			TeleForge::Spy::purgeOldEvents();
-		},
-		.formatLabel = [](int x) { return QString::number(x); },
-	});
-
-	ayu.addSectionDivider();
-	builder.addSubsectionTitle(rpl::single(u"Сохранение сообщений"_q));
-
-	ayu.addSettingToggle({
-		.id = u"ayu/saveDeletedMessages"_q,
-		.title = tr::ayu_SaveDeletedMessages(),
-		.getter = &AyuSettings::saveDeletedMessages,
-		.setter = &AyuSettings::setSaveDeletedMessages,
-	});
-	ayu.addSettingToggle({
-		.id = u"ayu/saveMessagesHistory"_q,
-		.title = tr::ayu_SaveMessagesHistory(),
-		.getter = &AyuSettings::saveMessagesHistory,
-		.setter = &AyuSettings::setSaveMessagesHistory,
-	});
-
-	ayu.addSectionDivider();
-
-	ayu.addSettingToggle({
-		.id = u"ayu/saveForBots"_q,
-		.title = tr::ayu_MessageSavingSaveForBots(),
-		.getter = &AyuSettings::saveForBots,
-		.setter = &AyuSettings::setSaveForBots,
-	});
-
-	builder.addSkip();
-	builder.addDividerText(tr::ayu_DeleteStubTextDescription());
-	builder.add([&](const BuildContext &ctx) {
-		v::match(ctx, [&](const WidgetContext &wctx) {
-			const auto c = wctx.container;
-			const auto field = c->add(
-				object_ptr<Ui::InputField>(
-					c,
-					st::defaultInputField,
-					Ui::InputField::Mode::SingleLine,
-					tr::ayu_DeleteStubText(),
-					TextWithTags{
-						AyuSettings::getInstance().deleteStubText(),
-					}),
-				st::boxRowPadding);
-			field->changes(
-			) | rpl::on_next([=] {
-				AyuSettings::getInstance().setDeleteStubText(
-					field->getLastText().trimmed());
-			}, field->lifetime());
-		}, [](const SearchContext &) {});
-	});
-}
-
 const auto kMeta = BuildHelper({
 	.id = AyuGhost::Id(),
 	.parentId = AyuMain::Id(),
 	.title = &tr::ayu_GhostModeToggle,
 	.icon = &st::menuIconGroupReactions,
 }, [](SectionBuilder &builder) {
-	auto ayu = AyuSectionBuilder(builder);
-
 	builder.addSkip();
 	BuildGhostEssentials(builder);
-
-	builder.addSkip();
-	BuildSpyEssentials(builder, ayu);
 	builder.addSkip();
 });
 

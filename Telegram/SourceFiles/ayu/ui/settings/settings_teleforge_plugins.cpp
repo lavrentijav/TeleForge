@@ -9,6 +9,7 @@
 #include "ayu/features/plugins/plugin_manager.h"
 #include "ayu/features/plugins/plugin_registry.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "base/timer.h"
 #include "base/variant.h"
@@ -53,6 +54,13 @@ namespace {
 	return row;
 }
 
+void AddHint(not_null<Ui::VerticalLayout*> parent, const QString &text) {
+	if (text.isEmpty()) {
+		return;
+	}
+	AddSettingsHint(parent, rpl::single(text));
+}
+
 } // namespace
 
 namespace {
@@ -62,12 +70,6 @@ void ShowSubscribePrompt(
 	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
 		box->setTitle(rpl::single(u"Подпишитесь на TeleForge"_q));
 		const auto layout = box->verticalLayout();
-		layout->add(
-			object_ptr<Ui::FlatLabel>(
-				layout,
-				rpl::single(
-					u"Чтобы не пропускать обновления каталога плагинов и релизы клиента, подпишитесь на наши каналы."_q),
-				st::boxDividerLabel));
 		for (const auto &ch : TeleForge::Plugins::Catalog::kSubscribeChannels) {
 			const auto username = QString::fromLatin1(ch.username);
 			const auto label = u"%1 (@%2)"_q.arg(
@@ -84,11 +86,6 @@ void ShowSubscribePrompt(
 				});
 			});
 		}
-		layout->add(
-			object_ptr<Ui::FlatLabel>(
-				layout,
-				rpl::single(u"Это окно можно закрыть — предложение появится снова при следующем открытии раздела «Плагины»."_q),
-				st::boxDividerLabel));
 	}));
 }
 
@@ -119,11 +116,9 @@ void ShowChannelOffersBox(
 			});
 		}
 		if (offers.isEmpty()) {
-			layout->add(
-				object_ptr<Ui::FlatLabel>(
-					layout,
-					rpl::single(u"Нет подписанных плагинов в канале."_q),
-					st::boxDividerLabel));
+			AddSettingsHint(
+				layout,
+				rpl::single(u"Нет подписанных плагинов в канале."_q));
 		}
 	}));
 }
@@ -155,11 +150,9 @@ void ShowCatalogInstallBox(
 			});
 		}
 		if (entries.isEmpty()) {
-			layout->add(
-				object_ptr<Ui::FlatLabel>(
-					layout,
-					rpl::single(u"Каталог пуст. Проверьте plugins.txt на сервере."_q),
-					st::boxDividerLabel));
+			AddSettingsHint(
+				layout,
+				rpl::single(u"Каталог пуст."_q));
 		}
 	}));
 }
@@ -184,12 +177,6 @@ const auto kMeta = BuildHelper({
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			wctx.container->add(
-				object_ptr<Ui::FlatLabel>(
-					wctx.container,
-					rpl::single(
-						u"Мы всегда рекомендуем подписаться — так вы узнаете об обновлениях каталога и новых сборках."_q),
-					st::boxDividerLabel));
 			for (const auto &ch : TeleForge::Plugins::Catalog::kSubscribeChannels) {
 				const auto username = QString::fromLatin1(ch.username);
 				const auto subscribe = wctx.container->add(
@@ -221,20 +208,9 @@ const auto kMeta = BuildHelper({
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			wctx.container->add(
-				object_ptr<Ui::FlatLabel>(
-					wctx.container,
-					rpl::single(
-						u"Список каналов разработчиков загружается с сервера (developers.txt). "
-						"Каждая строка подписана корневым ключом TeleForge — мы подтверждаем, что разработчик настоящий. "
-						"Плагины без подписи разработчика установить нельзя."_q),
-					st::boxDividerLabel));
-			wctx.container->add(
-				object_ptr<Ui::FlatLabel>(
-					wctx.container,
-					rpl::single(QString::fromLatin1(
-						TeleForge::Plugins::Catalog::kDevelopersUrl)),
-					st::boxDividerLabel));
+			AddHint(
+				wctx.container,
+				u"Удостоверенные каналы разработчиков (developers.txt)."_q);
 		}, [](const SearchContext &) {});
 	});
 
@@ -246,28 +222,17 @@ const auto kMeta = BuildHelper({
 		(*developersHost)->clear();
 		const auto devs = TeleForge::Plugins::cachedTrustedDevelopers();
 		if (devs.isEmpty()) {
-			(*developersHost)->add(
-				object_ptr<Ui::FlatLabel>(
-					*developersHost,
-					rpl::single(u"Нажмите «Обновить список разработчиков»."_q),
-					st::boxDividerLabel));
+			AddHint(
+				*developersHost,
+				u"Нажмите «Обновить список разработчиков»."_q);
 			return;
 		}
 		for (const auto &dev : devs) {
 			const auto block = (*developersHost)->add(
 				object_ptr<Ui::VerticalLayout>((*developersHost).data()));
-			block->add(
-				object_ptr<Ui::FlatLabel>(
-					block,
-					rpl::single(u"%1 · Удостоверен TeleForge · @%2"_q.arg(
-						dev.title,
-						dev.channelUsername)),
-					st::boxDividerLabel));
-			block->add(
-				object_ptr<Ui::FlatLabel>(
-					block,
-					rpl::single(u"ID: %1 · плагины публикует в своём канале"_q.arg(dev.devId)),
-					st::boxDividerLabel));
+			AddHint(
+				block,
+				u"%1 · @%2"_q.arg(dev.title, dev.channelUsername));
 			const auto open = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
@@ -336,18 +301,9 @@ const auto kMeta = BuildHelper({
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			wctx.container->add(
-				object_ptr<Ui::FlatLabel>(
-					wctx.container,
-					rpl::single(
-						u"Дополнительный список с прямыми ссылками. Каждая запись должна содержать dev_id и подпись разработчика."_q),
-					st::boxDividerLabel));
-			wctx.container->add(
-				object_ptr<Ui::FlatLabel>(
-					wctx.container,
-					rpl::single(QString::fromLatin1(
-						TeleForge::Plugins::Catalog::kCatalogUrl)),
-					st::boxDividerLabel));
+			AddHint(
+				wctx.container,
+				u"Каталог plugins.txt с подписанными ссылками."_q);
 		}, [](const SearchContext &) {});
 	});
 
@@ -359,32 +315,17 @@ const auto kMeta = BuildHelper({
 		(*catalogHost)->clear();
 		const auto entries = TeleForge::Plugins::cachedCatalog();
 		if (entries.isEmpty()) {
-			(*catalogHost)->add(
-				object_ptr<Ui::FlatLabel>(
-					*catalogHost,
-					rpl::single(u"Нажмите «Обновить каталог», чтобы загрузить список."_q),
-					st::boxDividerLabel));
+			AddHint(
+				*catalogHost,
+				u"Нажмите «Обновить каталог»."_q);
 			return;
 		}
 		for (const auto &entry : entries) {
 			const auto block = (*catalogHost)->add(
 				object_ptr<Ui::VerticalLayout>((*catalogHost).data()));
-			block->add(
-				object_ptr<Ui::FlatLabel>(
-					block,
-					rpl::single(u"%1 — %2"_q.arg(entry.fileName, entry.title)),
-					st::boxDividerLabel));
-			block->add(
-				object_ptr<Ui::FlatLabel>(
-					block,
-					rpl::single(u"Разработчик: %1 · подпись в каталоге"_q.arg(
-						entry.devId.isEmpty() ? u"—"_q : entry.devId)),
-					st::boxDividerLabel));
-			block->add(
-				object_ptr<Ui::FlatLabel>(
-					block,
-					rpl::single(entry.downloadUrl),
-					st::boxDividerLabel));
+			AddHint(
+				block,
+				u"%1 — %2"_q.arg(entry.fileName, entry.title));
 			const auto install = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
@@ -654,11 +595,7 @@ const auto kMeta = BuildHelper({
 				(*pluginsHost)->clear();
 				const auto plugins = TeleForge::Plugins::listWithRuntimeState();
 				if (plugins.empty()) {
-					(*pluginsHost)->add(
-						object_ptr<Ui::FlatLabel>(
-							*pluginsHost,
-							rpl::single(u"Нет .py плагинов в папке plugins/"_q),
-							st::boxDividerLabel));
+					AddHint(*pluginsHost, u"Нет плагинов в папке plugins/."_q);
 					return;
 				}
 				for (const auto &plugin : plugins) {
@@ -667,18 +604,9 @@ const auto kMeta = BuildHelper({
 					const auto status = plugin.loaded
 						? (plugin.enabled ? u"запущен"_q : u"остановлен"_q)
 						: (plugin.enabled ? u"включён (не загружен)"_q : u"выключен"_q);
-					block->add(
-						object_ptr<Ui::FlatLabel>(
-							block,
-							rpl::single(u"%1 — %2"_q.arg(plugin.fileName, status)),
-							st::boxDividerLabel));
-					if (!plugin.sourceChannel.isEmpty()) {
-						block->add(
-							object_ptr<Ui::FlatLabel>(
-								block,
-								rpl::single(u"Источник: %1"_q.arg(plugin.sourceChannel)),
-								st::boxDividerLabel));
-					}
+					AddHint(
+						block,
+						u"%1 — %2"_q.arg(plugin.fileName, status));
 					const auto toggle = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,

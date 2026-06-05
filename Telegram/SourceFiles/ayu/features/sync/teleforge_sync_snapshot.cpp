@@ -18,10 +18,8 @@ namespace {
 
 [[nodiscard]] QString SourcePath(SyncDatabaseKind kind) {
 	switch (kind) {
-	case SyncDatabaseKind::TeleForge:
+	case SyncDatabaseKind::Data:
 		return TeleForge::Storage::databasePath();
-	case SyncDatabaseKind::AyuData:
-		return QDir::cleanPath(QString(cWorkingDir()) + u"/tdata/ayudata.db"_q);
 	}
 	return {};
 }
@@ -52,14 +50,10 @@ namespace {
 } // namespace
 
 QString SnapshotPath(SyncDatabaseKind kind) {
-	const auto suffix = (kind == SyncDatabaseKind::TeleForge)
-		? u"teleforge"_q
-		: u"ayudata"_q;
+	Q_UNUSED(kind);
 	return QDir::cleanPath(
 		QString(cWorkingDir())
-		+ u"/tdata/teleforge_sync_snapshot_"_q
-		+ suffix
-		+ u".db"_q);
+		+ u"/tdata/teleforge_sync_snapshot_data.tforge"_q);
 }
 
 bool CreateDatabaseSnapshot(SyncDatabaseKind kind, const QString &destPath) {

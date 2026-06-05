@@ -11,6 +11,7 @@
 namespace AyuMessages {
 
 void addEditedMessage(not_null<HistoryItem *> item);
+void snapshotEditsBeforeDelete(not_null<HistoryItem*> item);
 std::vector<AyuMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit);
 bool hasRevisions(not_null<HistoryItem*> item);
 

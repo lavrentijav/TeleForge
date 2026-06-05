@@ -12,6 +12,7 @@
 #include "ayu/ui/ayu_logo.h"
 #include "ayu/ui/settings/settings_appearance.h"
 #include "ayu/ui/settings/settings_ayu.h"
+#include "ayu/ui/settings/settings_spy.h"
 #include "ayu/ui/settings/settings_chats.h"
 #include "ayu/ui/settings/settings_filters.h"
 #include "ayu/ui/settings/settings_general.h"
@@ -83,15 +84,6 @@ void BuildVersionInfo(SectionBuilder &builder) {
 
 	builder.addSkip();
 
-	builder.add([](const WidgetContext &ctx) -> SectionBuilder::WidgetToAdd {
-		return {
-			.widget = object_ptr<Ui::FlatLabel>(
-				ctx.container,
-				tr::ayu_SettingsDescription(),
-				st::centeredBoxLabel),
-			.align = style::al_top,
-		};
-	});
 }
 
 void BuildCategories(SectionBuilder &builder) {
@@ -108,6 +100,11 @@ void BuildCategories(SectionBuilder &builder) {
 		.title = tr::ayu_GhostModeToggle(),
 		.targetSection = AyuGhost::Id(),
 		.icon = { &st::menuIconGroupReactions },
+	});
+	builder.addSectionButton({
+		.title = rpl::single(u"Шпион"_q),
+		.targetSection = AyuSpy::Id(),
+		.icon = { &st::menuIconShowAll },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryGeneral(),

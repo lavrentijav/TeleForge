@@ -10,7 +10,7 @@
 
 #include <functional>
 
-class SchemaVersion
+class AyuDataSchemaVersion
 {
 public:
 	int id;

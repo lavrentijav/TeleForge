@@ -2,6 +2,8 @@
 
 #include "ayu/features/sync/teleforge_sync_files.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
+#include "ayu/utils/telegram_helpers.h"
+#include "api/api_common.h"
 #include "apiwrap.h"
 #include "api/api_common.h"
 #include "api/api_updates.h"
@@ -103,6 +105,24 @@ void ForceGhostOffline(not_null<Main::Session*> session) {
 	session->updates().updateOnline(crl::now());
 }
 
+[[nodiscard]] crl::time SyncGhostExtraWaitMs(
+		not_null<Main::Session*> session,
+		int delaySeconds = 12) {
+	auto options = Api::SendOptions{};
+	applyGhostScheduling(session, options, delaySeconds);
+	if (!options.scheduled) {
+		return 0;
+	}
+	return crl::time(std::max(0, options.scheduled - base::unixtime::now())) * 1000;
+}
+
+void ApplyGhostSyncOptions(
+		not_null<Main::Session*> session,
+		Api::SendOptions &options,
+		int delaySeconds = 12) {
+	applyGhostScheduling(session, options, delaySeconds);
+}
+
 void MuteSyncChannel(
 		not_null<Main::Session*> session,
 		not_null<ChannelData*> channel) {
@@ -128,7 +148,7 @@ struct LockClaim {
 };
 
 struct MetaShard {
-	SyncDatabaseKind kind = SyncDatabaseKind::TeleForge;
+	SyncDatabaseKind kind = SyncDatabaseKind::Data;
 	SyncDocumentRef document;
 	int dateFrom = 0;
 	int dateTo = 0;
@@ -143,13 +163,13 @@ struct SyncManifest {
 };
 
 [[nodiscard]] SyncDatabaseKind DbKindFromString(const QString &value) {
-	return (value == u"ayudata"_q)
-		? SyncDatabaseKind::AyuData
-		: SyncDatabaseKind::TeleForge;
+	// Legacy manifests used separate "teleforge" / "ayudata" shards.
+	return SyncDatabaseKind::Data;
 }
 
 [[nodiscard]] QString DbKindToString(SyncDatabaseKind kind) {
-	return (kind == SyncDatabaseKind::AyuData) ? u"ayudata"_q : u"teleforge"_q;
+	Q_UNUSED(kind);
+	return u"data"_q;
 }
 
 [[nodiscard]] SyncDocumentRef DocumentFromJson(const QJsonObject &object) {
@@ -314,6 +334,7 @@ void PostLockClaim(
 	auto message = Api::MessageToSend(Api::SendAction(history));
 	message.textWithTags = { text };
 	message.action.options.silent = true;
+	ApplyGhostSyncOptions(session, message.action.options);
 	session->api().sendMessage(std::move(message));
 	ForceGhostOffline(session);
 }
@@ -323,8 +344,9 @@ void RunLeaderElection(
 		not_null<ChannelData*> channel,
 		Fn<void(bool won, QString error)> done) {
 	const auto sessionHash = SessionHash(session);
+	const auto waitMs = kElectionWaitMs + SyncGhostExtraWaitMs(session);
 	PostLockClaim(session, channel, sessionHash);
-	base::call_delayed(kElectionWaitMs, session, [=] {
+	base::call_delayed(waitMs, session, [=] {
 		FetchChannelMessages(session, channel, [=](QVector<ParsedMessage> messages) {
 			const auto claims = ParseLockClaims(messages);
 			if (WeWinElection(claims, sessionHash)) {
@@ -383,6 +405,7 @@ void PostManifest(
 	auto message = Api::MessageToSend(Api::SendAction(history));
 	message.textWithTags = { text };
 	message.action.options.silent = true;
+	ApplyGhostSyncOptions(session, message.action.options);
 	session->api().sendMessage(std::move(message));
 	ForceGhostOffline(session);
 }

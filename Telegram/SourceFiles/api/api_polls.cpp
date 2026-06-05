@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_polls.h"
 
+#include "ayu/ui/ghost_online_warn.h"
+
 #include "api/api_common.h"
 #include "api/api_statistics_data_deserialize.h"
 #include "api/api_text_entities.h"
@@ -22,7 +24,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_statistics_chart.h"
 #include "history/history.h"
-#include "history/history_item.h"
+#include "core/application.h"
+#include "window/window_session_controller.h"
 #include "history/history_item_helpers.h" // ShouldSendSilent
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
@@ -338,6 +341,11 @@ void Polls::sendVotes(
 	const auto poll = media ? media->poll() : nullptr;
 	if (!item) {
 		return;
+	}
+	if (const auto controller = _session->tryResolveWindow()) {
+		Ayu::GhostOnlineWarn::warnController(
+			controller,
+			Ayu::GhostOnlineWarn::Action::PollVote);
 	}
 	const auto peer = item->history()->peer;
 

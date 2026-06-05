@@ -74,6 +74,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "spellcheck/spellcheck_highlight_syntax.h"
 
 // AyuGram includes
+#include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/features/message_shot/message_shot.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -4315,7 +4316,7 @@ bool HistoryItem::showNotification() const {
 		return false;
 	}
 	return (out() || _history->peer->isSelf())
-		? isFromScheduled()
+		? (isFromScheduled() && !Ayu::GhostScheduled::shouldSuppress(this))
 		: unread(notificationThread());
 }
 

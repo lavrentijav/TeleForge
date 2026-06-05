@@ -6,6 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "ayu/data/messages_storage.h"
 
+#include "ayu/ayu_settings.h"
 #include "ayu/data/ayu_database.h"
 #include "ayu/utils/ayu_mapper.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -129,6 +130,25 @@ bool hasRevisions(not_null<HistoryItem*> item) {
 	const auto msgId = item->id.bare;
 
 	return AyuDatabase::hasRevisions(userId, dialogId, msgId);
+}
+
+void snapshotEditsBeforeDelete(not_null<HistoryItem*> item) {
+	const auto &settings = AyuSettings::getInstance();
+	if (!settings.saveMessagesHistory() || item->isLocal()) {
+		return;
+	}
+	const auto &current = item->originalText().text;
+	if (current.isEmpty()) {
+		return;
+	}
+	if (!item->Get<HistoryMessageEdited>() && !hasRevisions(item)) {
+		return;
+	}
+	const auto latest = getEditedMessages(item, 0, 0, 1);
+	if (!latest.empty() && latest.front().text == current.toStdString()) {
+		return;
+	}
+	addEditedMessage(item);
 }
 
 void addDeletedMessage(not_null<HistoryItem*> item) {

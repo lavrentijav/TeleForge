@@ -10,6 +10,7 @@
 #include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "ayu/ui/settings/settings_ayu_utils.h"
 #include "lang_auto.h"
 #include "ayu/ui/settings/settings_main.h"
 #include "base/basic_types.h"
@@ -145,13 +146,6 @@ const auto kMeta = BuildHelper({
 
 			TeleForge::TeleForgeEnsureModelsDirectoryExists();
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Базовый URL и ключ используются также для запросов «моделей» в блоках ниже."_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
-
 			const auto lm = c->add(
 				object_ptr<Ui::InputField>(
 					c,
@@ -202,12 +196,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.openAiApiKey }),
 				st::boxRowPadding);
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Модель для /v1/chat/completions"_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"Модель чата"_q));
 
 			const auto chatModelIdField = c->add(
 				object_ptr<Ui::InputField>(
@@ -243,13 +232,7 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Локальный .gguf чата (llama.cpp в процессе), из каталога models/ или любой путь. "
-					u"Пусто — только удалённый URL выше."_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"Локальный .gguf (пусто — только API)"_q));
 
 			const auto chatGguf = c->add(
 				object_ptr<Ui::InputField>(
@@ -296,12 +279,7 @@ const auto kMeta = BuildHelper({
 					[=](const QString &p) { chatGguf->setText(p); });
 			});
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Количество последних сообщений для контекста"_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"Сообщений в контексте"_q));
 
 			const auto ctxMsgs = c->add(
 				object_ptr<Ui::InputField>(
@@ -317,12 +295,7 @@ const auto kMeta = BuildHelper({
 
 			builder.addSubsectionTitle(rpl::single(u"Эмбеддинги (память)"_q));
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Полный URL POST …/v1/embeddings. Можно указать ?model=… в URL. Пусто: встроенный хэш или эмбеддинги с GGUF реранкера (если задан ниже)."_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"URL эмбеддингов"_q));
 
 			const auto emb = c->add(
 				object_ptr<Ui::InputField>(
@@ -333,12 +306,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.embeddingEndpointUrl }),
 				st::boxRowPadding);
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"ID модели эмбеддингов"_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"Модель эмбеддингов"_q));
 
 			const auto embModel = c->add(
 				object_ptr<Ui::InputField>(
@@ -376,12 +344,7 @@ const auto kMeta = BuildHelper({
 
 			builder.addSubsectionTitle(rpl::single(u"Реранкер"_q));
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"HTTP POST (JSON query + documents). Можно указать ?model=… в URL. Пустой URL — только косинус по эмбеддингам."_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"URL реранкера"_q));
 
 			const auto rerankUrl = c->add(
 				object_ptr<Ui::InputField>(
@@ -392,12 +355,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.rerankEndpointUrl }),
 				st::boxRowPadding);
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"ID модели реранкера (поле model в JSON)"_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"Модель реранкера"_q));
 
 			const auto rerankModel = c->add(
 				object_ptr<Ui::InputField>(
@@ -433,12 +391,7 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Локальный GGUF реранкера / эмбеддингов (llama.cpp), если нет HTTP реранкера"_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"Локальный GGUF реранкера"_q));
 
 			const auto defaultGguf = TeleForge::DefaultTeleForgeRerankGgufPath();
 			const auto rerankPath = c->add(
@@ -523,15 +476,6 @@ const auto kMeta = BuildHelper({
 				controller->showToast(u"Подключение сохранено."_q);
 			});
 
-			if (!core.sourceDevice.isEmpty()) {
-				c->add(
-					object_ptr<Ui::FlatLabel>(
-						c,
-						u"Последнее обновление с устройства: %1"_q.arg(
-							core.sourceDevice),
-						st::boxDividerLabel),
-					st::boxRowPadding);
-			}
 		}, [](const SearchContext &) {});
 	});
 
@@ -803,17 +747,8 @@ const auto kMeta = BuildHelper({
 			const auto r = TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId);
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Горячая клавиша черновика ответа: Ctrl+Shift+M"_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
-
 			auto addNumRow = [&](const QString &label, const QString &value) {
-				c->add(
-					object_ptr<Ui::FlatLabel>(c, label, st::boxDividerLabel),
-					st::boxRowPadding);
+				AddSettingsHint(c, rpl::single(label));
 				return c->add(
 					object_ptr<Ui::InputField>(
 						c,
@@ -849,12 +784,7 @@ const auto kMeta = BuildHelper({
 				u"Max chars на блок памяти в промпте"_q,
 				QString::number(r.maxMemoryBlockChars));
 
-			c->add(
-				object_ptr<Ui::FlatLabel>(
-					c,
-					u"Белый список папок (JSON-массив путей, для агента ПК)"_q,
-					st::boxDividerLabel),
-				st::boxRowPadding);
+			AddSettingsHint(c, rpl::single(u"Белый список папок (JSON)"_q));
 			const auto fWl = c->add(
 				object_ptr<Ui::InputField>(
 					c,

@@ -645,7 +645,7 @@ void PaintRow(
 				availableWidth,
 				context.width,
 				color,
-				context.paused)) {
+				context.now)) {
 			auto &cache = thread->cloudDraftTextCache();
 			if (cache.isEmpty()) {
 				using namespace TextUtilities;

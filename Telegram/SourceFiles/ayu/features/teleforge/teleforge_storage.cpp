@@ -1,6 +1,7 @@
 #include "ayu/features/teleforge/teleforge_storage.h"
 
-#include "ayu/libs/sqlite/sqlite_orm.h"
+#include "ayu/features/teleforge/teleforge_unified_db.h"
+#include "ayu/libs/sqlite/sqlite3.h"
 #include "settings.h"
 
 #include "base/unixtime.h"
@@ -16,131 +17,9 @@
 namespace TeleForge::Storage {
 namespace {
 
-using namespace sqlite_orm;
+constexpr auto kSchemaVersion = 11;
 
-constexpr auto kSchemaVersion = 7;
-
-[[nodiscard]] auto MakeStorage(std::string dbPath) {
-	// sqlite_orm::storage_t::sync_schema iterates db_objects in *reverse* order;
-	// indexes must appear first in this list so tables are created before CREATE INDEX runs.
-	return make_storage(
-		std::move(dbPath),
-		make_index(
-			"idx_sync_artifact_type_updated",
-			column<SyncArtifactRecord>(&SyncArtifactRecord::artifactType),
-			column<SyncArtifactRecord>(&SyncArtifactRecord::updatedAt)),
-		make_index(
-			"idx_memory_scope_lookup",
-			column<MemoryItemRecord>(&MemoryItemRecord::scopeType),
-			column<MemoryItemRecord>(&MemoryItemRecord::chatId),
-			column<MemoryItemRecord>(&MemoryItemRecord::userId),
-			column<MemoryItemRecord>(&MemoryItemRecord::manualHidden)),
-		make_index(
-			"idx_memory_access",
-			column<MemoryItemRecord>(&MemoryItemRecord::lastAccessAt),
-			column<MemoryItemRecord>(&MemoryItemRecord::updatedAt)),
-		make_index(
-			"idx_memory_sync_pending",
-			column<MemorySyncEventRecord>(&MemorySyncEventRecord::dispatchedAt),
-			column<MemorySyncEventRecord>(&MemorySyncEventRecord::createdAt)),
-		make_table<SchemaVersionRecord>(
-			"SchemaVersion",
-			make_column("singletonId", &SchemaVersionRecord::singletonId, primary_key()),
-			make_column("version", &SchemaVersionRecord::version)),
-		make_table<PersonalityCoreRecord>(
-			"PersonalityCore",
-			make_column("singletonId", &PersonalityCoreRecord::singletonId, primary_key()),
-			make_column("aggression", &PersonalityCoreRecord::aggression),
-			make_column("brevity", &PersonalityCoreRecord::brevity),
-			make_column("emojis", &PersonalityCoreRecord::emojis),
-			make_column("toxicity", &PersonalityCoreRecord::toxicity),
-			make_column("creativity", &PersonalityCoreRecord::creativity),
-			make_column("systemPrompt", &PersonalityCoreRecord::systemPrompt),
-			make_column("sourceDevice", &PersonalityCoreRecord::sourceDevice),
-			make_column("updatedAt", &PersonalityCoreRecord::updatedAt),
-			make_column("embeddingEndpointUrl", &PersonalityCoreRecord::embeddingEndpointUrl),
-			make_column("embeddingModelId", &PersonalityCoreRecord::embeddingModelId),
-			make_column("lmStudioBaseUrl", &PersonalityCoreRecord::lmStudioBaseUrl),
-			make_column("chatModelPath", &PersonalityCoreRecord::chatModelPath),
-			make_column("chatModelId", &PersonalityCoreRecord::chatModelId),
-			make_column("openAiApiKey", &PersonalityCoreRecord::openAiApiKey),
-			make_column("chatContextMessages", &PersonalityCoreRecord::chatContextMessages),
-			make_column("memorySyncEnabled", &PersonalityCoreRecord::memorySyncEnabled),
-			make_column("rerankEndpointUrl", &PersonalityCoreRecord::rerankEndpointUrl),
-			make_column("rerankModelId", &PersonalityCoreRecord::rerankModelId),
-			make_column("rerankModelPath", &PersonalityCoreRecord::rerankModelPath)),
-		make_table<PerChatSettingsRecord>(
-			"PerChatSettings",
-			make_column("peerId", &PerChatSettingsRecord::peerId, primary_key()),
-			make_column("aiAnswer", &PerChatSettingsRecord::aiAnswer),
-			make_column("webAccess", &PerChatSettingsRecord::webAccess),
-			make_column("calendarAccess", &PerChatSettingsRecord::calendarAccess),
-			make_column("pcAgent", &PerChatSettingsRecord::pcAgent),
-			make_column("memoryReadEnabled", &PerChatSettingsRecord::memoryReadEnabled),
-			make_column("memoryWriteEnabled", &PerChatSettingsRecord::memoryWriteEnabled),
-			make_column("globalMemoryTopK", &PerChatSettingsRecord::globalMemoryTopK),
-			make_column("chatMemoryTopK", &PerChatSettingsRecord::chatMemoryTopK),
-			make_column("userMemoryTopK", &PerChatSettingsRecord::userMemoryTopK),
-			make_column("memoryAppendixTopK", &PerChatSettingsRecord::memoryAppendixTopK),
-			make_column("recentSummaryLimit", &PerChatSettingsRecord::recentSummaryLimit),
-			make_column("stableFactsLimit", &PerChatSettingsRecord::stableFactsLimit),
-			make_column("memoryDecayPerDay", &PerChatSettingsRecord::memoryDecayPerDay),
-			make_column("directoryWhitelistJson", &PerChatSettingsRecord::directoryWhitelistJson),
-			make_column("maxMemoryBlockChars", &PerChatSettingsRecord::maxMemoryBlockChars),
-			make_column("updatedAt", &PerChatSettingsRecord::updatedAt)),
-		make_table<MemoryItemRecord>(
-			"MemoryItem",
-			make_column("id", &MemoryItemRecord::id, primary_key().autoincrement()),
-			make_column("scopeType", &MemoryItemRecord::scopeType),
-			make_column("chatId", &MemoryItemRecord::chatId),
-			make_column("userId", &MemoryItemRecord::userId),
-			make_column("sourcePeerId", &MemoryItemRecord::sourcePeerId),
-			make_column("sourceMessageId", &MemoryItemRecord::sourceMessageId),
-			make_column("title", &MemoryItemRecord::title),
-			make_column("summary", &MemoryItemRecord::summary),
-			make_column("details", &MemoryItemRecord::details),
-			make_column("factType", &MemoryItemRecord::factType),
-			make_column("tagsJson", &MemoryItemRecord::tagsJson),
-			make_column("basePriority", &MemoryItemRecord::basePriority),
-			make_column("stabilityScore", &MemoryItemRecord::stabilityScore),
-			make_column("createdAt", &MemoryItemRecord::createdAt),
-			make_column("updatedAt", &MemoryItemRecord::updatedAt),
-			make_column("lastAccessAt", &MemoryItemRecord::lastAccessAt),
-			make_column("accessCount", &MemoryItemRecord::accessCount),
-			make_column("manualPinned", &MemoryItemRecord::manualPinned),
-			make_column("manualHidden", &MemoryItemRecord::manualHidden),
-			make_column("syncState", &MemoryItemRecord::syncState),
-			make_column("contentHash", &MemoryItemRecord::contentHash)),
-		make_table<MemoryEmbeddingRecord>(
-			"MemoryEmbedding",
-			make_column("memoryId", &MemoryEmbeddingRecord::memoryId, primary_key()),
-			make_column("modelId", &MemoryEmbeddingRecord::modelId),
-			make_column("dimensions", &MemoryEmbeddingRecord::dimensions),
-			make_column("vectorBlob", &MemoryEmbeddingRecord::vectorBlob),
-			make_column("createdAt", &MemoryEmbeddingRecord::createdAt),
-			make_column("updatedAt", &MemoryEmbeddingRecord::updatedAt)),
-		make_table<MemorySyncEventRecord>(
-			"MemorySyncEvent",
-			make_column("id", &MemorySyncEventRecord::id, primary_key().autoincrement()),
-			make_column("eventType", &MemorySyncEventRecord::eventType),
-			make_column("memoryId", &MemorySyncEventRecord::memoryId),
-			make_column("payload", &MemorySyncEventRecord::payload),
-			make_column("deviceId", &MemorySyncEventRecord::deviceId),
-			make_column("createdAt", &MemorySyncEventRecord::createdAt),
-			make_column("dispatchedAt", &MemorySyncEventRecord::dispatchedAt)),
-		make_table<SyncArtifactRecord>(
-			"SyncArtifact",
-			make_column("id", &SyncArtifactRecord::id, primary_key().autoincrement()),
-			make_column("artifactType", &SyncArtifactRecord::artifactType),
-			make_column("artifactName", &SyncArtifactRecord::artifactName),
-			make_column("payload", &SyncArtifactRecord::payload),
-			make_column("deviceId", &SyncArtifactRecord::deviceId),
-			make_column("updatedAt", &SyncArtifactRecord::updatedAt)));
-}
-
-using TeleForgeStorage = decltype(MakeStorage(std::string()));
-
-std::unique_ptr<TeleForgeStorage> gTeleForgeDb;
+std::unique_ptr<UnifiedStorage> gTeleForgeDb;
 
 void ResetTeleForgeDbConnection() {
 	gTeleForgeDb.reset();
@@ -152,12 +31,27 @@ void RemoveTeleForgeDatabaseFiles(const QString &path) {
 	QFile::remove(path + QStringLiteral("-shm"));
 }
 
+[[nodiscard]] QString LegacyTeleForgeDatabasePathQt() {
+	const auto wd = cWorkingDir();
+	const QString base = wd.isEmpty() ? QStringLiteral(".") : wd;
+	return QDir::cleanPath(base + QStringLiteral("/tdata/teleforge.db"));
+}
+
 [[nodiscard]] QString TeleForgeDatabasePathQt() {
 	const auto wd = cWorkingDir();
 	const QString base = wd.isEmpty() ? QStringLiteral(".") : wd;
-	const QString path = QDir::cleanPath(
-		base + QStringLiteral("/tdata/teleforge.db"));
+	const auto path = QDir::cleanPath(
+		base + QStringLiteral("/tdata/data.tforge"));
 	QDir().mkpath(QFileInfo(path).absolutePath());
+	const auto legacy = LegacyTeleForgeDatabasePathQt();
+	if (!QFile::exists(path) && QFile::exists(legacy)) {
+		if (QFile::rename(legacy, path)) {
+			for (const auto suffix : { u"-wal"_q, u"-shm"_q }) {
+				QFile::rename(legacy + suffix, path + suffix);
+			}
+			LOG(("TeleForge: renamed teleforge.db -> data.tforge"));
+		}
+	}
 	return path;
 }
 
@@ -165,17 +59,25 @@ void RemoveTeleForgeDatabaseFiles(const QString &path) {
 	return TeleForgeDatabasePathQt().toUtf8().toStdString();
 }
 
-[[nodiscard]] TeleForgeStorage &Db() {
+[[nodiscard]] UnifiedStorage &DbImpl() {
 	if (!gTeleForgeDb) {
-		gTeleForgeDb = std::make_unique<TeleForgeStorage>(
-			MakeStorage(TeleForgeDatabasePathUtf8()));
+		gTeleForgeDb = std::make_unique<UnifiedStorage>(
+			MakeUnifiedStorage(TeleForgeDatabasePathUtf8()));
 	}
 	return *gTeleForgeDb;
 }
 
+} // namespace
+
+UnifiedStorage &Db() {
+	return DbImpl();
+}
+
+namespace {
+
 void EnsureSchemaVersionRow() {
-	if (!Db().get_pointer<SchemaVersionRecord>(1)) {
-		Db().replace(SchemaVersionRecord{});
+	if (!DbImpl().get_pointer<SchemaVersionRecord>(1)) {
+		DbImpl().replace(SchemaVersionRecord{});
 	}
 }
 
@@ -203,20 +105,161 @@ void MigrateToV6() {
 	// V6 adds chatModelPath / chatModelId on PersonalityCore (via sync_schema).
 }
 
+[[nodiscard]] bool ExecSqlite(sqlite3 *db, const char *sql) {
+	char *err = nullptr;
+	const auto rc = sqlite3_exec(db, sql, nullptr, nullptr, &err);
+	if (rc != SQLITE_OK) {
+		const auto message = err ? QString::fromUtf8(err) : QString();
+		if (err) {
+			sqlite3_free(err);
+		}
+		LOG(("TeleForge SQL failed: %1").arg(message));
+		return false;
+	}
+	return true;
+}
+
+void MigrateToV8() {
+	const auto legacyPath = QDir::cleanPath(
+		QString(cWorkingDir()) + QStringLiteral("/tdata/ayudata.db"));
+	if (!QFile::exists(legacyPath)) {
+		return;
+	}
+	LOG(("TeleForge: importing legacy ayudata.db into data.tforge"));
+	sqlite3 *live = nullptr;
+	const auto livePath = TeleForgeDatabasePathQt().toUtf8();
+	if (sqlite3_open_v2(
+			livePath.constData(),
+			&live,
+			SQLITE_OPEN_READWRITE,
+			nullptr) != SQLITE_OK
+		|| !live) {
+		return;
+	}
+	const auto attach = u"ATTACH DATABASE '%1' AS legacy;"_q.arg(
+		QString(legacyPath).replace('\'', "''"));
+	if (!ExecSqlite(live, attach.toUtf8().constData())) {
+		sqlite3_close(live);
+		return;
+	}
+	const auto queries = {
+		R"SQL(
+INSERT OR IGNORE INTO AyuDataSchemaVersion (id, version)
+SELECT id, version FROM legacy.SchemaVersion WHERE id = 1;
+)SQL",
+		R"SQL(
+INSERT INTO DeletedMessage (
+	userId, dialogId, groupedId, peerId, fromId, topicId, messageId, date, flags,
+	editDate, views, fwdFlags, fwdFromId, fwdName, fwdDate, fwdPostAuthor,
+	replyFlags, replyMessageId, replyPeerId, replyTopId, replyForumTopic,
+	replySerialized, entityCreateDate, text, textEntities, mediaPath, hqThumbPath,
+	documentType, documentSerialized, thumbsSerialized, documentAttributesSerialized,
+	mimeType, contentHash)
+SELECT
+	r.userId, r.dialogId, r.groupedId, r.peerId, r.fromId, r.topicId, r.messageId, r.date, r.flags,
+	r.editDate, r.views, r.fwdFlags, r.fwdFromId, r.fwdName, r.fwdDate, r.fwdPostAuthor,
+	r.replyFlags, r.replyMessageId, r.replyPeerId, r.replyTopId, r.replyForumTopic,
+	r.replySerialized, r.entityCreateDate, r.text, r.textEntities, r.mediaPath, r.hqThumbPath,
+	r.documentType, r.documentSerialized, r.thumbsSerialized, r.documentAttributesSerialized,
+	r.mimeType, r.contentHash
+FROM legacy.DeletedMessage r
+WHERE r.contentHash != ''
+	AND NOT EXISTS (SELECT 1 FROM DeletedMessage l WHERE l.contentHash = r.contentHash);
+)SQL",
+		R"SQL(
+INSERT INTO EditedMessage (
+	userId, dialogId, groupedId, peerId, fromId, topicId, messageId, date, flags,
+	editDate, views, fwdFlags, fwdFromId, fwdName, fwdDate, fwdPostAuthor,
+	replyFlags, replyMessageId, replyPeerId, replyTopId, replyForumTopic,
+	replySerialized, entityCreateDate, text, textEntities, mediaPath, hqThumbPath,
+	documentType, documentSerialized, thumbsSerialized, documentAttributesSerialized,
+	mimeType, contentHash)
+SELECT
+	r.userId, r.dialogId, r.groupedId, r.peerId, r.fromId, r.topicId, r.messageId, r.date, r.flags,
+	r.editDate, r.views, r.fwdFlags, r.fwdFromId, r.fwdName, r.fwdDate, r.fwdPostAuthor,
+	r.replyFlags, r.replyMessageId, r.replyPeerId, r.replyTopId, r.replyForumTopic,
+	r.replySerialized, r.entityCreateDate, r.text, r.textEntities, r.mediaPath, r.hqThumbPath,
+	r.documentType, r.documentSerialized, r.thumbsSerialized, r.documentAttributesSerialized,
+	r.mimeType, r.contentHash
+FROM legacy.EditedMessage r
+WHERE r.contentHash != ''
+	AND NOT EXISTS (SELECT 1 FROM EditedMessage l WHERE l.contentHash = r.contentHash);
+)SQL",
+		R"SQL(
+INSERT OR IGNORE INTO DeletedDialog
+SELECT * FROM legacy.DeletedDialog;
+)SQL",
+		R"SQL(
+INSERT OR REPLACE INTO RegexFilter
+SELECT * FROM legacy.RegexFilter;
+)SQL",
+		R"SQL(
+INSERT OR IGNORE INTO RegexFilterGlobalExclusion
+SELECT * FROM legacy.RegexFilterGlobalExclusion;
+)SQL",
+		R"SQL(
+INSERT OR IGNORE INTO SpyMessageRead
+SELECT * FROM legacy.SpyMessageRead;
+)SQL",
+		R"SQL(
+INSERT OR IGNORE INTO SpyMessageContentsRead
+SELECT * FROM legacy.SpyMessageContentsRead;
+)SQL",
+		R"SQL(
+INSERT OR REPLACE INTO SpyTarget
+SELECT * FROM legacy.SpyTarget;
+)SQL",
+		R"SQL(
+INSERT INTO OnlineEvent (userId, timestamp, kind, onlineTill, manualLastSeen)
+SELECT r.userId, r.timestamp, r.kind, r.onlineTill, r.manualLastSeen
+FROM legacy.OnlineEvent r
+WHERE NOT EXISTS (
+	SELECT 1 FROM OnlineEvent l
+	WHERE l.userId = r.userId AND l.timestamp = r.timestamp AND l.kind = r.kind);
+)SQL",
+	};
+	for (const auto *query : queries) {
+		if (!ExecSqlite(live, query)) {
+			ExecSqlite(live, "DETACH legacy;");
+			sqlite3_close(live);
+			return;
+		}
+	}
+	ExecSqlite(live, "DETACH legacy;");
+	sqlite3_close(live);
+	const auto backup = legacyPath + u".migrated_"_q + QString::number(base::unixtime::now());
+	QFile::rename(legacyPath, backup);
+	QFile::remove(legacyPath + QStringLiteral("-wal"));
+	QFile::remove(legacyPath + QStringLiteral("-shm"));
+	LOG(("TeleForge: legacy ayudata.db imported and renamed to %1").arg(backup));
+}
+
 void MigrateToV7() {
 	// V7 adds openAiApiKey / chatContextMessages on PersonalityCore (via sync_schema).
 }
 
+void MigrateToV9() {
+	// V9 adds PeerArchive* tables (via sync_schema).
+}
+
+void MigrateToV10() {
+	// V10 extends PeerArchive profile/userpic columns (via sync_schema).
+}
+
+void MigrateToV11() {
+	// V11 adds PeerArchiveBio table (via sync_schema).
+}
+
 void RunMigrations() {
 	EnsureSchemaVersionRow();
-	const auto version = Db().get<SchemaVersionRecord>(1).version;
+	const auto version = DbImpl().get<SchemaVersionRecord>(1).version;
 	LOG(("TeleForge: RunMigrations — SchemaVersion row is %1, target %2 (empty steps if already current)")
 		.arg(version)
 		.arg(kSchemaVersion));
 	for (auto next = version + 1; next <= kSchemaVersion; ++next) {
 		try {
 			LOG(("TeleForge: migration transaction -> version %1").arg(next));
-			Db().begin_transaction();
+			DbImpl().begin_transaction();
 			if (next == 1) {
 				MigrateToV1();
 			} else if (next == 2) {
@@ -231,20 +274,28 @@ void RunMigrations() {
 				MigrateToV6();
 			} else if (next == 7) {
 				MigrateToV7();
+			} else if (next == 8) {
+				MigrateToV8();
+			} else if (next == 9) {
+				MigrateToV9();
+			} else if (next == 10) {
+				MigrateToV10();
+			} else if (next == 11) {
+				MigrateToV11();
 			}
-			Db().replace(SchemaVersionRecord{
+			DbImpl().replace(SchemaVersionRecord{
 				.singletonId = 1,
 				.version = next,
 			});
-			Db().commit();
+			DbImpl().commit();
 		} catch (const std::exception &ex) {
-			Db().rollback();
+			DbImpl().rollback();
 			LOG(("TeleForge migration %1 failed: %2").arg(next).arg(ex.what()));
 			throw;
 		}
 	}
 	LOG(("TeleForge: RunMigrations finished — SchemaVersion now %1")
-		.arg(Db().get<SchemaVersionRecord>(1).version));
+		.arg(DbImpl().get<SchemaVersionRecord>(1).version));
 }
 
 } // namespace
@@ -254,23 +305,23 @@ void initialize() {
 	const auto tryInit = [&] {
 		LOG(("TeleForge: sync_schema (preserve=true) pass 1 — sqlite_orm creates/updates schema; "
 			"indexes must be listed before tables in make_storage because sync iterates objects in reverse order"));
-		Db().sync_schema(true);
+		DbImpl().sync_schema(true);
 		LOG(("TeleForge: sync_schema pass 1 done"));
 		RunMigrations();
 		LOG(("TeleForge: sync_schema pass 2 — after TeleForge SchemaVersion migrations"));
-		Db().sync_schema(true);
+		DbImpl().sync_schema(true);
 		LOG(("TeleForge: sync_schema pass 2 done"));
 		LOG(("TeleForge: ensureGlobalTeleForgeDefaultsRow"));
 		ensureGlobalTeleForgeDefaultsRow();
 	};
 	try {
-		LOG(("TeleForge: Storage::initialize — cWorkingDir='%1', file='%2'")
+		LOG(("TeleForge: Storage::initialize — cWorkingDir='%1', unified DB='%2'")
 			.arg(cWorkingDir())
 			.arg(pathQt));
 		tryInit();
 		LOG(("TeleForge: storage initialized OK | file=%1 | SchemaVersion=%2")
 			.arg(pathQt)
-			.arg(Db().get<SchemaVersionRecord>(1).version));
+			.arg(DbImpl().get<SchemaVersionRecord>(1).version));
 	} catch (const std::exception &ex) {
 		const auto what = QString::fromUtf8(ex.what());
 		const auto recoverable = what.contains(
@@ -286,7 +337,7 @@ void initialize() {
 			try {
 				tryInit();
 				LOG(("TeleForge: storage initialized OK after recreate | SchemaVersion=%1")
-					.arg(Db().get<SchemaVersionRecord>(1).version));
+					.arg(DbImpl().get<SchemaVersionRecord>(1).version));
 			} catch (const std::exception &ex2) {
 				LOG(("TeleForge storage initialization failed after recreate: %1").arg(ex2.what()));
 			}
@@ -298,7 +349,7 @@ void initialize() {
 
 std::optional<PersonalityCoreRecord> loadPersonalityCore() {
 	try {
-		if (const auto record = Db().get_pointer<PersonalityCoreRecord>(1)) {
+		if (const auto record = DbImpl().get_pointer<PersonalityCoreRecord>(1)) {
 			return *record;
 		}
 		return std::nullopt;
@@ -310,7 +361,7 @@ std::optional<PersonalityCoreRecord> loadPersonalityCore() {
 
 void upsertPersonalityCore(const PersonalityCoreRecord &record) {
 	try {
-		Db().replace(record);
+		DbImpl().replace(record);
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge upsertPersonalityCore failed: %1").arg(ex.what()));
 	}
@@ -318,7 +369,7 @@ void upsertPersonalityCore(const PersonalityCoreRecord &record) {
 
 std::optional<PerChatSettingsRecord> loadPerChatSettings(long long peerId) {
 	try {
-		if (const auto record = Db().get_pointer<PerChatSettingsRecord>(peerId)) {
+		if (const auto record = DbImpl().get_pointer<PerChatSettingsRecord>(peerId)) {
 			return *record;
 		}
 		return std::nullopt;
@@ -330,7 +381,7 @@ std::optional<PerChatSettingsRecord> loadPerChatSettings(long long peerId) {
 
 void upsertPerChatSettings(const PerChatSettingsRecord &record) {
 	try {
-		Db().replace(record);
+		DbImpl().replace(record);
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge upsertPerChatSettings failed: %1").arg(ex.what()));
 	}
@@ -353,7 +404,7 @@ void removePerChatSettings(long long peerId) {
 		return;
 	}
 	try {
-		Db().remove<PerChatSettingsRecord>(peerId);
+		DbImpl().remove<PerChatSettingsRecord>(peerId);
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge removePerChatSettings failed: %1").arg(ex.what()));
 	}
@@ -361,13 +412,13 @@ void removePerChatSettings(long long peerId) {
 
 void ensureGlobalTeleForgeDefaultsRow() {
 	try {
-		if (Db().get_pointer<PerChatSettingsRecord>(kTeleForgeGlobalDefaultsPeerId)) {
+		if (DbImpl().get_pointer<PerChatSettingsRecord>(kTeleForgeGlobalDefaultsPeerId)) {
 			return;
 		}
 		auto row = PerChatSettingsRecord{};
 		row.peerId = kTeleForgeGlobalDefaultsPeerId;
 		row.updatedAt = base::unixtime::now();
-		Db().replace(row);
+		DbImpl().replace(row);
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge ensureGlobalTeleForgeDefaultsRow failed: %1").arg(ex.what()));
 	}
@@ -375,7 +426,7 @@ void ensureGlobalTeleForgeDefaultsRow() {
 
 std::vector<MemoryItemRecord> loadMemoryItems() {
 	try {
-		return Db().get_all<MemoryItemRecord>(
+		return DbImpl().get_all<MemoryItemRecord>(
 			order_by(&MemoryItemRecord::updatedAt).desc());
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge loadMemoryItems failed: %1").arg(ex.what()));
@@ -385,7 +436,7 @@ std::vector<MemoryItemRecord> loadMemoryItems() {
 
 std::optional<MemoryItemRecord> loadMemoryItem(int id) {
 	try {
-		if (const auto record = Db().get_pointer<MemoryItemRecord>(id)) {
+		if (const auto record = DbImpl().get_pointer<MemoryItemRecord>(id)) {
 			return *record;
 		}
 		return std::nullopt;
@@ -398,10 +449,10 @@ std::optional<MemoryItemRecord> loadMemoryItem(int id) {
 int upsertMemoryItem(const MemoryItemRecord &record) {
 	try {
 		if (record.id > 0) {
-			Db().replace(record);
+			DbImpl().replace(record);
 			return record.id;
 		}
-		return static_cast<int>(Db().insert(record));
+		return static_cast<int>(DbImpl().insert(record));
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge upsertMemoryItem failed: %1").arg(ex.what()));
 		return 0;
@@ -410,7 +461,7 @@ int upsertMemoryItem(const MemoryItemRecord &record) {
 
 void upsertMemoryEmbedding(const MemoryEmbeddingRecord &record) {
 	try {
-		Db().replace(record);
+		DbImpl().replace(record);
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge upsertMemoryEmbedding failed: %1").arg(ex.what()));
 	}
@@ -418,7 +469,7 @@ void upsertMemoryEmbedding(const MemoryEmbeddingRecord &record) {
 
 std::optional<MemoryEmbeddingRecord> loadMemoryEmbedding(int memoryId) {
 	try {
-		if (const auto record = Db().get_pointer<MemoryEmbeddingRecord>(memoryId)) {
+		if (const auto record = DbImpl().get_pointer<MemoryEmbeddingRecord>(memoryId)) {
 			return *record;
 		}
 		return std::nullopt;
@@ -430,7 +481,7 @@ std::optional<MemoryEmbeddingRecord> loadMemoryEmbedding(int memoryId) {
 
 void enqueueMemorySyncEvent(const MemorySyncEventRecord &record) {
 	try {
-		Db().insert(record);
+		DbImpl().insert(record);
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge enqueueMemorySyncEvent failed: %1").arg(ex.what()));
 	}
@@ -438,7 +489,7 @@ void enqueueMemorySyncEvent(const MemorySyncEventRecord &record) {
 
 std::vector<MemorySyncEventRecord> loadPendingMemorySyncEvents(int maxRows) {
 	try {
-		return Db().get_all<MemorySyncEventRecord>(
+		return DbImpl().get_all<MemorySyncEventRecord>(
 			where(is_null(&MemorySyncEventRecord::dispatchedAt)),
 			order_by(&MemorySyncEventRecord::createdAt).asc(),
 			limit(maxRows));
@@ -450,7 +501,7 @@ std::vector<MemorySyncEventRecord> loadPendingMemorySyncEvents(int maxRows) {
 
 void markMemorySyncEventDispatched(int id, int dispatchedAt) {
 	try {
-		Db().update_all(
+		DbImpl().update_all(
 			set(c(&MemorySyncEventRecord::dispatchedAt) = dispatchedAt),
 			where(c(&MemorySyncEventRecord::id) == id));
 	} catch (const std::exception &ex) {
@@ -460,7 +511,7 @@ void markMemorySyncEventDispatched(int id, int dispatchedAt) {
 
 std::vector<SyncArtifactRecord> loadSyncArtifacts(const std::string &artifactType) {
 	try {
-		return Db().get_all<SyncArtifactRecord>(
+		return DbImpl().get_all<SyncArtifactRecord>(
 			where(column<SyncArtifactRecord>(&SyncArtifactRecord::artifactType) == artifactType),
 			order_by(column<SyncArtifactRecord>(&SyncArtifactRecord::updatedAt)).desc());
 	} catch (const std::exception &ex) {
@@ -473,12 +524,12 @@ void storeSyncArtifact(const SyncArtifactRecord &record) {
 	try {
 		auto stored = record;
 		if (stored.id <= 0) {
-			const auto latest = Db().select(max(&SyncArtifactRecord::id));
+			const auto latest = DbImpl().select(max(&SyncArtifactRecord::id));
 			stored.id = latest.empty() || !latest.front()
 				? 1
 				: (*latest.front() + 1);
 		}
-		Db().replace(stored);
+		DbImpl().replace(stored);
 	} catch (const std::exception &ex) {
 		LOG(("TeleForge storeSyncArtifact failed: %1").arg(ex.what()));
 	}

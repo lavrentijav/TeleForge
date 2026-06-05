@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/labels.h"
+#include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
 #include "styles/style_info.h"
@@ -65,6 +66,82 @@ void SavePeerRow(
 	return true;
 }
 
+void AddCollapsibleSpyHistory(
+		not_null<Ui::VerticalLayout*> parent,
+		not_null<UserData*> user) {
+	const auto since = base::unixtime::now() - 7 * 86400;
+	const auto events = TeleForge::Spy::loadRecentForUser(
+		user->id.value,
+		since);
+	const auto usesApprox = TeleForge::Spy::lastseenUsesSpyApproximation(
+		user->id.value);
+
+	auto lines = QStringList();
+	if (usesApprox) {
+		if (const auto manual = TeleForge::Spy::manualLastSeenForUser(
+				user->id.value)) {
+			lines.push_back(u"Последний раз онлайн (вручную): %1"_q.arg(
+				Ui::FormatDateTime(base::unixtime::parse(*manual))));
+		}
+	}
+	for (const auto &e : events) {
+		if (lines.size() >= 12) {
+			break;
+		}
+		if (!usesApprox && e.kind == 2) {
+			continue;
+		}
+		const auto label = (e.kind == 1)
+			? u"онлайн"_q
+			: (e.kind == 2 ? u"скрыт"_q : u"офлайн"_q);
+		lines.push_back(u"%1 — %2"_q.arg(
+			Ui::FormatDateTime(base::unixtime::parse(e.timestamp)),
+			label));
+	}
+	if (lines.isEmpty()) {
+		return;
+	}
+
+	const auto header = parent->add(object_ptr<Ui::SettingsButton>(
+		parent,
+		rpl::single(u"История онлайн (%1)"_q.arg(lines.size())),
+		st::infoSharedMediaButton));
+	header->toggleOn(rpl::single(false));
+
+	const auto wrap = parent->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+		parent,
+		object_ptr<Ui::VerticalLayout>(parent)));
+	const auto inner = wrap->entity();
+	wrap->setDuration(st::infoSlideDuration)->toggleOn(header->toggledValue());
+
+	for (const auto &line : lines) {
+		inner->add(object_ptr<Ui::SettingsButton>(
+			inner,
+			rpl::single(line),
+			st::infoSharedMediaButton));
+	}
+}
+
+not_null<Ui::VerticalLayout*> AddCollapsibleSection(
+		not_null<Ui::VerticalLayout*> parent,
+		const QString &title,
+		bool expandedByDefault,
+		Fn<void(not_null<Ui::VerticalLayout*>)> fill) {
+	const auto header = parent->add(object_ptr<Ui::SettingsButton>(
+		parent,
+		rpl::single(title),
+		st::infoSharedMediaButton));
+	header->toggleOn(rpl::single(expandedByDefault));
+
+	const auto wrap = parent->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+		parent,
+		object_ptr<Ui::VerticalLayout>(parent)));
+	const auto inner = wrap->entity();
+	wrap->setDuration(st::infoSlideDuration)->toggleOn(header->toggledValue());
+	fill(inner);
+	return inner;
+}
+
 } // namespace
 
 object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
@@ -80,26 +157,29 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 		SerializePeerId(peer->id));
 
 	auto wrap = object_ptr<Ui::VerticalLayout>(parent);
-	const auto inner = wrap.get();
+	const auto outer = wrap.get();
 
-	Ui::AddDividerText(inner, rpl::single(u"ИИ и память (TeleForge)"_q));
+	const auto rootHeader = outer->add(object_ptr<Ui::SettingsButton>(
+		outer,
+		rpl::single(u"TeleForge"_q),
+		st::infoSharedMediaButton));
+	rootHeader->toggleOn(rpl::single(false));
+
+	const auto rootWrap = outer->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+		outer,
+		object_ptr<Ui::VerticalLayout>(outer)));
+	const auto inner = rootWrap->entity();
+	rootWrap->setDuration(st::infoSlideDuration)->toggleOn(rootHeader->toggledValue());
+
 	Ui::AddSkip(inner);
 
-	inner->add(
-		object_ptr<Ui::FlatLabel>(
-			inner,
-			rpl::single(
-				u"Параметры для этого диалога; если для чата нет своей записи в базе, "
-				u"используются общие значения из Настройки → TeleForge → ИИ и память."_q),
-			st::boxDividerLabel),
-		st::boxRowPadding);
-
 	const auto mkToggle = [&](
+			not_null<Ui::VerticalLayout*> container,
 			const QString &label,
 			Fn<bool()> initial,
 			Fn<void(bool)> onChange) {
-		const auto btn = inner->add(object_ptr<Ui::SettingsButton>(
-			inner,
+		const auto btn = container->add(object_ptr<Ui::SettingsButton>(
+			container,
 			rpl::single(label),
 			st::infoSharedMediaButton));
 		btn->toggleOn(rpl::single(initial()));
@@ -107,7 +187,18 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 		) | rpl::on_next(std::move(onChange), btn->lifetime());
 	};
 
-	mkToggle(
+	AddCollapsibleSection(inner, u"ИИ и память"_q, false, [&](
+			not_null<Ui::VerticalLayout*> section) {
+		section->add(
+			object_ptr<Ui::FlatLabel>(
+				section,
+				rpl::single(
+					u"Параметры для этого диалога; если для чата нет своей записи в базе, "
+					u"используются общие значения из Настройки → TeleForge → ИИ и память."_q),
+				st::boxDividerLabel),
+			st::boxRowPadding);
+		mkToggle(
+		section,
 		u"Ответы ИИ (Ctrl+Shift+M)"_q,
 		[=] {
 			return TeleForge::Storage::effectivePerChatSettings(
@@ -119,6 +210,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			SavePeerRow(p, peerStorageId, session);
 		});
 	mkToggle(
+		section,
 		u"Читать память в промпт"_q,
 		[=] {
 			return TeleForge::Storage::effectivePerChatSettings(
@@ -130,6 +222,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			SavePeerRow(p, peerStorageId, session);
 		});
 	mkToggle(
+		section,
 		u"Записывать память из сообщений"_q,
 		[=] {
 			return TeleForge::Storage::effectivePerChatSettings(
@@ -141,6 +234,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			SavePeerRow(p, peerStorageId, session);
 		});
 	mkToggle(
+		section,
 		u"Доступ в интернет (заготовка)"_q,
 		[=] {
 			return TeleForge::Storage::effectivePerChatSettings(
@@ -152,6 +246,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			SavePeerRow(p, peerStorageId, session);
 		});
 	mkToggle(
+		section,
 		u"Доступ к календарю (заготовка)"_q,
 		[=] {
 			return TeleForge::Storage::effectivePerChatSettings(
@@ -163,6 +258,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			SavePeerRow(p, peerStorageId, session);
 		});
 	mkToggle(
+		section,
 		u"Агент ПК (заготовка)"_q,
 		[=] {
 			return TeleForge::Storage::effectivePerChatSettings(
@@ -173,64 +269,39 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			p.pcAgent = v;
 			SavePeerRow(p, peerStorageId, session);
 		});
+	});
 
 	if (const auto user = peer->asUser()) {
-		Ui::AddSkip(inner);
-		Ui::AddDividerText(inner, rpl::single(u"Режим шпиона"_q));
-		mkToggle(
-			u"Отслеживать онлайн этого пользователя"_q,
-			[=] {
-				return TeleForge::Spy::isSpyTargetEnabled(user->id.value);
-			},
-			[=](bool v) {
-				TeleForge::Spy::setSpyTargetEnabled(user->id.value, v);
-				session->showToast(v
-					? u"Отслеживание включено."_q
-					: u"Отслеживание выключено."_q);
-			});
-		const auto since = base::unixtime::now() - 7 * 86400;
-		const auto events = TeleForge::Spy::loadRecentForUser(
-			user->id.value,
-			since);
-		auto lines = QStringList();
-		if (const auto manual = TeleForge::Spy::manualLastSeenForUser(user->id.value)) {
-			lines.push_back(u"Последний раз онлайн (вручную): %1"_q.arg(
-				Ui::FormatDateTime(base::unixtime::parse(*manual))));
-		}
-		for (const auto &e : events) {
-			if (lines.size() >= 12) {
-				break;
-			}
-			const auto label = (e.kind == 1)
-				? u"онлайн"_q
-				: (e.kind == 2 ? u"скрыт"_q : u"офлайн"_q);
-			lines.push_back(u"%1 — %2"_q.arg(
-				Ui::FormatDateTime(base::unixtime::parse(e.timestamp)),
-				label));
-		}
-		if (!lines.isEmpty()) {
-			inner->add(
-				object_ptr<Ui::FlatLabel>(
-					inner,
-					lines.join('\n'),
-					st::boxDividerLabel),
-				st::boxRowPadding);
-		}
+		AddCollapsibleSection(inner, u"Режим шпиона"_q, false, [&](
+				not_null<Ui::VerticalLayout*> section) {
+			mkToggle(
+				section,
+				u"Отслеживать онлайн этого пользователя"_q,
+				[=] {
+					return TeleForge::Spy::isSpyTargetEnabled(user->id.value);
+				},
+				[=](bool v) {
+					TeleForge::Spy::setSpyTargetEnabled(user->id.value, v);
+					session->showToast(v
+						? u"Отслеживание включено."_q
+						: u"Отслеживание выключено."_q);
+				});
+			AddCollapsibleSpyHistory(section, user);
+		});
 	}
-
-	Ui::AddSkip(inner);
-	Ui::AddDividerText(inner, rpl::single(u"Параметры памяти для этого чата"_q));
-	Ui::AddSkip(inner);
 
 	const auto r = TeleForge::Storage::effectivePerChatSettings(peerStorageId);
 
-	auto addNumRow = [&](const QString &label, const QString &value) {
-		inner->add(
-			object_ptr<Ui::FlatLabel>(inner, label, st::boxDividerLabel),
+	auto addNumRow = [&](
+			not_null<Ui::VerticalLayout*> container,
+			const QString &label,
+			const QString &value) {
+		container->add(
+			object_ptr<Ui::FlatLabel>(container, label, st::boxDividerLabel),
 			st::boxRowPadding);
-		return inner->add(
+		return container->add(
 			object_ptr<Ui::InputField>(
-				inner,
+				container,
 				st::defaultInputField,
 				Ui::InputField::Mode::SingleLine,
 				rpl::single(QString()),
@@ -238,40 +309,50 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			st::boxRowPadding);
 	};
 
+	AddCollapsibleSection(inner, u"Параметры памяти"_q, false, [&](
+			not_null<Ui::VerticalLayout*> section) {
 	const auto fGk = addNumRow(
+		section,
 		u"Глобальная память, top-K"_q,
 		QString::number(r.globalMemoryTopK));
 	const auto fCk = addNumRow(
+		section,
 		u"Память чата, top-K"_q,
 		QString::number(r.chatMemoryTopK));
 	const auto fUk = addNumRow(
+		section,
 		u"Память пользователя, top-K"_q,
 		QString::number(r.userMemoryTopK));
 	const auto fAk = addNumRow(
+		section,
 		u"Семантическое приложение, top-K"_q,
 		QString::number(r.memoryAppendixTopK));
 	const auto fRx = addNumRow(
+		section,
 		u"Число сводок (X)"_q,
 		QString::number(r.recentSummaryLimit));
 	const auto fSy = addNumRow(
+		section,
 		u"Число стабильных фактов (Y)"_q,
 		QString::number(r.stableFactsLimit));
 	const auto fDec = addNumRow(
+		section,
 		u"Линейное затухание в день"_q,
 		QString::number(r.memoryDecayPerDay, 'g', 4));
 	const auto fMax = addNumRow(
+		section,
 		u"Max chars на блок памяти в промпте"_q,
 		QString::number(r.maxMemoryBlockChars));
 
-	inner->add(
+	section->add(
 		object_ptr<Ui::FlatLabel>(
-			inner,
+			section,
 			u"Белый список папок (JSON)"_q,
 			st::boxDividerLabel),
 		st::boxRowPadding);
-	const auto fWl = inner->add(
+	const auto fWl = section->add(
 		object_ptr<Ui::InputField>(
-			inner,
+			section,
 			st::defaultInputField,
 			Ui::InputField::Mode::MultiLine,
 			rpl::single(QString()),
@@ -279,9 +360,9 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 		st::boxRowPadding);
 	fWl->setMaxHeight(st::defaultInputField.heightMin * 4);
 
-	const auto saveNums = inner->add(
+	const auto saveNums = section->add(
 		object_ptr<Ui::SettingsButton>(
-			inner,
+			section,
 			rpl::single(u"Сохранить числа и whitelist"_q),
 			st::settingsButtonNoIcon));
 	saveNums->setClickedCallback([=] {
@@ -328,15 +409,18 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 		SavePeerRow(next, peerStorageId, session);
 	});
 
-	const auto reset = inner->add(
+	const auto reset = section->add(
 		object_ptr<Ui::SettingsButton>(
-			inner,
+			section,
 			rpl::single(u"Сбросить: использовать общие настройки"_q),
 			st::settingsButtonNoIcon));
 	reset->setClickedCallback([=] {
 		TeleForge::Storage::removePerChatSettings(peerStorageId);
 		session->showToast(u"Для чата снова действуют общие настройки TeleForge."_q);
 	});
+	});
+
+	Ui::AddSkip(inner);
 
 	return wrap;
 }

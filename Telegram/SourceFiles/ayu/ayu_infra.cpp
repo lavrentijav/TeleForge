@@ -12,6 +12,7 @@
 #include "ayu/ayu_worker.h"
 #include "ayu/data/ayu_database.h"
 #include "ayu/features/teleforge/teleforge_bootstrap.h"
+#include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/ui/ayu_logo.h"
 #include "features/translator/ayu_translator.h"
 #include "lang/lang_instance.h"
@@ -45,11 +46,12 @@ void initUiSettings() {
 }
 
 void initDatabase() {
+	TeleForge::Storage::initialize();
 	AyuDatabase::initialize();
 }
 
 void initTeleForge() {
-	LOG(("AyuInfra::initTeleForge — after AyuDatabase::initialize(); next: TeleForge SQLite + bootstrap"));
+	LOG(("AyuInfra::initTeleForge — after unified teleforge.db init + Ayu message-store migrations"));
 	TeleForge::initialize();
 	LOG(("AyuInfra::initTeleForge done"));
 }

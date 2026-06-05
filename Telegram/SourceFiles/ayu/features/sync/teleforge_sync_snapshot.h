@@ -7,9 +7,9 @@
 
 namespace TeleForge::Sync {
 
+// Unified local database bundle (tdata/data.tforge).
 enum class SyncDatabaseKind {
-	TeleForge,
-	AyuData,
+	Data,
 };
 
 [[nodiscard]] QString SnapshotPath(SyncDatabaseKind kind);

@@ -15,8 +15,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_components.h"
-#include "main/main_session.h"
+#include "core/application.h"
+#include "window/window_session_controller.h"
 #include "main/main_app_config.h"
+#include "main/main_session.h"
 #include "main/session/send_as_peers.h"
 #include "data/components/credits.h"
 #include "data/data_channel.h"
@@ -44,6 +46,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
+#include "ayu/ui/ghost_online_warn.h"
 #include "ayu/utils/telegram_helpers.h"
 
 
@@ -1495,6 +1498,12 @@ std::optional<Reaction> Reactions::parse(const MTPAvailableEffect &entry) {
 }
 
 void Reactions::send(not_null<HistoryItem*> item, bool addToRecent) {
+	const auto session = &_owner->session();
+	if (const auto controller = session->tryResolveWindow()) {
+		Ayu::GhostOnlineWarn::warnController(
+			controller,
+			Ayu::GhostOnlineWarn::Action::Reaction);
+	}
 	const auto id = item->fullId();
 	auto &api = _owner->session().api();
 	auto i = _sentRequests.find(id);

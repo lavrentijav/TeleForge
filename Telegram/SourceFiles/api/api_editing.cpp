@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_media.h"
 #include "api/api_text_entities.h"
 #include "base/random.h"
+#include "core/application.h"
 #include "ui/boxes/confirm_box.h"
 #include "data/business/data_shortcut_messages.h"
 #include "data/components/scheduled_messages.h"
@@ -26,9 +27,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "mtproto/mtproto_response.h"
+#include "window/window_session_controller.h"
 #include "boxes/abstract_box.h" // Ui::show().
 
 // AyuGram includes
+#include "ayu/ui/ghost_online_warn.h"
 #include "ayu/utils/telegram_helpers.h"
 
 
@@ -265,6 +268,11 @@ mtpRequestId EditMessage(
 	}
 
 	const auto session = &item->history()->session();
+	if (const auto controller = session->tryResolveWindow()) {
+		Ayu::GhostOnlineWarn::warnController(
+			controller,
+			Ayu::GhostOnlineWarn::Action::EditMessage);
+	}
 	const auto api = &session->api();
 
 	const auto text = textWithEntities.text;

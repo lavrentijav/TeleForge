@@ -382,15 +382,7 @@ void AddDeleteOwnMessagesAction(PeerData *peerData,
 }
 
 void AddHistoryAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
-	if (!item->isDeleted()) {
-		if (item->hideEditedBadge()) {
-			return;
-		} else if (!item->Get<HistoryMessageEdited>()) {
-			return;
-		}
-	}
-
-	if (!AyuMessages::hasRevisions(item)) {
+	if (!item || !AyuMessages::hasRevisions(item)) {
 		return;
 	}
 
