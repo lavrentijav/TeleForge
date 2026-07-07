@@ -12,6 +12,8 @@
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_state.h"
 #include "ayu/data/messages_storage.h"
+#include "ayu/features/spy/online_history_storage.h"
+#include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/features/forward/ayu_forward.h"
 #include "ayu/ui/context_menu/menu_item_subtext.h"
 #include "ayu/ui/message_history/history_section.h"
@@ -25,6 +27,7 @@
 #include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_forum_topic.h"
+#include "data/data_peer_id.h"
 #include "data/data_saved_sublist.h"
 #include "data/data_search_controller.h"
 #include "data/data_session.h"
@@ -350,6 +353,71 @@ void AddShadowBanAction(PeerData *peerData,
 					 : tr::ayu_FiltersQuickShadowBan(tr::now)),
 		.handler = toggleShadowBan,
 		.icon = shadowBanned ? &st::menuIconShowInChat : &st::menuIconStealth,
+	});
+}
+
+void AddTeleForgePeerSubmenu(
+		PeerData *peerData,
+		not_null<Window::SessionController*> sessionController,
+		const Window::PeerMenuCallback &addCallback) {
+	if (!peerData) {
+		return;
+	}
+	if (const auto user = peerData->asUser()) {
+		if (user->isServiceUser() || user->isSelf()) {
+			return;
+		}
+	}
+	const auto controller = sessionController;
+	const auto peerStorageId = static_cast<long long>(
+		SerializePeerId(peerData->id));
+	const auto user = peerData->asUser();
+	const auto userId = user ? user->id.value : uint64(0);
+
+	addCallback(Window::PeerMenuCallback::Args{
+		.text = u"TeleForge"_q,
+		.handler = nullptr,
+		.icon = &st::menuIconBot,
+		.fillSubmenu = [=](not_null<Ui::PopupMenu*> menu) {
+			using Record = TeleForge::Storage::PerChatSettingsRecord;
+			const auto save = [=](Record record) {
+				record.peerId = peerStorageId;
+				record.updatedAt = base::unixtime::now();
+				TeleForge::Storage::upsertPerChatSettings(record);
+				controller->showToast(u"Настройки чата сохранены."_q);
+			};
+			const auto snapshot =
+				TeleForge::Storage::effectivePerChatSettings(peerStorageId);
+			const auto item = [&](
+					const QString &label,
+					bool on,
+					Fn<void(Record&, bool)> apply) {
+				menu->addAction(on ? (label + u"  ✓"_q) : label, [=] {
+					auto next = TeleForge::Storage::effectivePerChatSettings(
+						peerStorageId);
+					apply(next, !on);
+					save(next);
+				});
+			};
+			item(u"Ответы ИИ"_q, snapshot.aiAnswer, [](Record &r, bool v) {
+				r.aiAnswer = v;
+			});
+			item(u"Читать память"_q, snapshot.memoryReadEnabled,
+				[](Record &r, bool v) { r.memoryReadEnabled = v; });
+			item(u"Записывать память"_q, snapshot.memoryWriteEnabled,
+				[](Record &r, bool v) { r.memoryWriteEnabled = v; });
+			if (userId) {
+				const auto spyOn = TeleForge::Spy::isSpyTargetEnabled(userId);
+				menu->addAction(spyOn
+					? u"Отслеживать онлайн  ✓"_q
+					: u"Отслеживать онлайн"_q, [=] {
+					TeleForge::Spy::setSpyTargetEnabled(userId, !spyOn);
+					controller->showToast(!spyOn
+						? u"Отслеживание включено."_q
+						: u"Отслеживание выключено."_q);
+				});
+			}
+		},
 	});
 }
 

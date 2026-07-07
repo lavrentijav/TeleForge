@@ -86,6 +86,39 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		u"Удалённые аватары помечаются значком корзины. По умолчанию выключено."_q));
 
 	ayu.addSectionDivider();
+	builder.addSubsectionTitle(rpl::single(u"Частота сбора данных"_q));
+
+	ayu.addSlider({
+		.id = u"teleforge/archiveUserPollDelta"_q,
+		.title = rpl::single(u"Интервал опроса пользователей (сек)"_q),
+		.steps = 297,
+		.current = AyuSettings::getInstance().archiveUserPollDelta() - 3,
+		.indexToValue = [](int index) { return index + 3; },
+		.onFinalChanged = [](int seconds) {
+			AyuSettings::getInstance().setArchiveUserPollDelta(seconds);
+		},
+		.formatLabel = [](int x) { return QString::number(x); },
+	});
+
+	ayu.addSlider({
+		.id = u"teleforge/archiveGroupPollDelta"_q,
+		.title = rpl::single(u"Интервал просмотра групп (сек)"_q),
+		.steps = 297,
+		.current = AyuSettings::getInstance().archiveGroupPollDelta() - 3,
+		.indexToValue = [](int index) { return index + 3; },
+		.onFinalChanged = [](int seconds) {
+			AyuSettings::getInstance().setArchiveGroupPollDelta(seconds);
+		},
+		.formatLabel = [](int x) { return QString::number(x); },
+	});
+
+	builder.addSkip();
+	builder.addDividerText(rpl::single(
+		u"Раздельные интервалы для опроса профилей обычных пользователей и просмотра групп. "
+		u"Чем меньше значение, тем чаще TeleForge собирает данные; слишком малые значения "
+		u"повышают нагрузку и риск флуд-лимитов. Применяется после перезапуска сбора."_q));
+
+	ayu.addSectionDivider();
 	builder.addSubsectionTitle(rpl::single(u"Сохранение сообщений"_q));
 
 	ayu.addSettingToggle({

@@ -1019,6 +1019,20 @@ void AyuSettings::setPeerArchiveEnabled(bool val) {
 	save();
 }
 
+void AyuSettings::setArchiveUserPollDelta(int val) {
+	const auto clamped = std::clamp(val, 3, 3600);
+	if (_archiveUserPollDelta.current() == clamped) return;
+	_archiveUserPollDelta = clamped;
+	save();
+}
+
+void AyuSettings::setArchiveGroupPollDelta(int val) {
+	const auto clamped = std::clamp(val, 3, 3600);
+	if (_archiveGroupPollDelta.current() == clamped) return;
+	_archiveGroupPollDelta = clamped;
+	save();
+}
+
 void AyuSettings::setAdaptiveCoverColor(bool val) {
 	if (_adaptiveCoverColor.current() == val) return;
 	_adaptiveCoverColor = val;
@@ -1142,6 +1156,8 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"spyModeGloballyEnabled", s._spyModeGloballyEnabled.current()},
 		{"spyRetentionDays", s._spyRetentionDays.current()},
 		{"peerArchiveEnabled", s._peerArchiveEnabled.current()},
+		{"archiveUserPollDelta", s._archiveUserPollDelta.current()},
+		{"archiveGroupPollDelta", s._archiveGroupPollDelta.current()},
 		{"adaptiveCoverColor", s._adaptiveCoverColor.current()},
 		{"improveLinkPreviews", s._improveLinkPreviews.current()},
 		{"crashReporting", s._crashReporting.current()},
@@ -1248,6 +1264,8 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._spyModeGloballyEnabled = j.value("spyModeGloballyEnabled", defaults._spyModeGloballyEnabled.current());
 	s._spyRetentionDays = j.value("spyRetentionDays", defaults._spyRetentionDays.current());
 	s._peerArchiveEnabled = j.value("peerArchiveEnabled", defaults._peerArchiveEnabled.current());
+	s._archiveUserPollDelta = j.value("archiveUserPollDelta", defaults._archiveUserPollDelta.current());
+	s._archiveGroupPollDelta = j.value("archiveGroupPollDelta", defaults._archiveGroupPollDelta.current());
 	s._adaptiveCoverColor = j.value("adaptiveCoverColor", defaults._adaptiveCoverColor.current());
 	s._improveLinkPreviews = j.value("improveLinkPreviews", defaults._improveLinkPreviews.current());
 	s._crashReporting = j.value("crashReporting", defaults._crashReporting.current());

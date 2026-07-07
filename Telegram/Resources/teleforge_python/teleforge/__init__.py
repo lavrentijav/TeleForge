@@ -37,7 +37,21 @@ except ImportError:  # Running outside the app (e.g. tooling / tests).
     _native = None
 
 
-__all__ = ["settings", "app", "messages", "account", "tool", "available"]
+__all__ = [
+    "settings",
+    "app",
+    "messages",
+    "account",
+    "tool",
+    "available",
+    "ui",
+    "on_message",
+    "on_message_out",
+    "on_user_status",
+    "on_chat_list",
+    "on_media",
+    "on_event",
+]
 
 
 def available() -> bool:
@@ -169,3 +183,135 @@ def tool(name: Optional[str] = None) -> Callable[[Callable[..., Any]], Callable[
         return func
 
     return decorator
+
+
+# ---------------------------------------------------------------------------
+# Event hooks
+# ---------------------------------------------------------------------------
+#
+# Plugins subscribe to core TeleForge events with the decorators below. Every
+# handler runs on the dedicated plugin thread, so a slow handler never freezes
+# the interface. Handlers receive a single ``event`` dict; message handlers may
+# return a modified text (str) or a dict to override fields of the event.
+
+# event name -> list of handlers
+_hooks: dict[str, list[Callable[[dict], Any]]] = {}
+
+
+def on_event(name: str) -> Callable[[Callable[[dict], Any]], Callable[[dict], Any]]:
+    """Subscribe a handler to an arbitrary named core event."""
+
+    def decorator(func: Callable[[dict], Any]) -> Callable[[dict], Any]:
+        _hooks.setdefault(name, []).append(func)
+        return func
+
+    return decorator
+
+
+def on_message(func: Callable[[dict], Any]) -> Callable[[dict], Any]:
+    """Handle an incoming message. Return a str to rewrite its displayed text."""
+    return on_event("message_in")(func)
+
+
+def on_message_out(func: Callable[[dict], Any]) -> Callable[[dict], Any]:
+    """Handle an outgoing message before it is sent."""
+    return on_event("message_out")(func)
+
+
+def on_user_status(func: Callable[[dict], Any]) -> Callable[[dict], Any]:
+    """Handle a user online/offline/typing status change."""
+    return on_event("user_status")(func)
+
+
+def on_chat_list(func: Callable[[dict], Any]) -> Callable[[dict], Any]:
+    """Handle a chat-list update."""
+    return on_event("chat_list")(func)
+
+
+def on_media(func: Callable[[dict], Any]) -> Callable[[dict], Any]:
+    """Handle a media load/download event."""
+    return on_event("media")(func)
+
+
+# ---------------------------------------------------------------------------
+# UI registration
+# ---------------------------------------------------------------------------
+
+class _Ui:
+    """Register custom UI elements contributed by the plugin."""
+
+    def add_menu_item(self, title: str, handler: Callable[[], Any],
+                      item_id: Optional[str] = None) -> str:
+        """Add a clickable item to the plugins menu. Returns its id."""
+        key = item_id or f"item_{len(_menu_items) + 1}_{title}"
+        _menu_items[key] = {"title": str(title), "handler": handler}
+        return key
+
+    def remove_menu_item(self, item_id: str) -> None:
+        _menu_items.pop(item_id, None)
+
+
+ui = _Ui()
+
+# id -> {"title": str, "handler": callable}
+_menu_items: dict[str, dict] = {}
+
+
+# ---------------------------------------------------------------------------
+# Native bridge entry points (called by the C++ host on the plugin thread).
+# ---------------------------------------------------------------------------
+
+def _reset() -> None:
+    """Clear every registration. Called by the host before reloading plugins."""
+    _tools.clear()
+    _hooks.clear()
+    _menu_items.clear()
+
+
+def _dispatch_event(name: str, payload_json: str) -> Optional[str]:
+    """Run every handler subscribed to ``name``.
+
+    Returns an optional JSON string with fields to override on the event
+    (e.g. ``{"text": "..."}``) when a message handler rewrites the message.
+    """
+    handlers = _hooks.get(name)
+    if not handlers:
+        return None
+    try:
+        event = _json.loads(payload_json) if payload_json else {}
+    except Exception:
+        event = {}
+    override: dict = {}
+    for handler in list(handlers):
+        try:
+            result = handler(dict(event))
+        except Exception as error:  # A broken plugin must not kill the host.
+            if _native is not None:
+                _native.app_log(f"plugin hook '{name}' failed: {error!r}")
+            continue
+        if isinstance(result, str):
+            override["text"] = result
+            event["text"] = result
+        elif isinstance(result, dict):
+            override.update(result)
+            event.update(result)
+    return _json.dumps(override) if override else None
+
+
+def _menu_items() -> str:
+    """Return the registered menu items as a JSON list of {id, title}."""
+    return _json.dumps(
+        [{"id": key, "title": value["title"]}
+         for key, value in _menu_items.items()])
+
+
+def _invoke_menu(item_id: str) -> None:
+    """Invoke the handler of a registered menu item by id."""
+    item = _menu_items.get(item_id)
+    if not item:
+        return
+    try:
+        item["handler"]()
+    except Exception as error:
+        if _native is not None:
+            _native.app_log(f"menu item '{item_id}' failed: {error!r}")

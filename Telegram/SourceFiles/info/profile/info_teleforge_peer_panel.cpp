@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ayu/features/spy/online_history_storage.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
+#include "ayu/ui/components/dropdown_row.h"
 #include "data/data_peer_id.h"
 #include "data/data_user.h"
 #include "info/info_controller.h"
@@ -178,13 +179,16 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			const QString &label,
 			Fn<bool()> initial,
 			Fn<void(bool)> onChange) {
-		const auto btn = container->add(object_ptr<Ui::SettingsButton>(
+		auto change = std::move(onChange);
+		AyuUi::AddDropdownRow(
 			container,
 			rpl::single(label),
-			st::infoSharedMediaButton));
-		btn->toggleOn(rpl::single(initial()));
-		btn->toggledValue(
-		) | rpl::on_next(std::move(onChange), btn->lifetime());
+			{ u"Включено"_q, u"Выключено"_q },
+			initial() ? 0 : 1,
+			[change = std::move(change)](int index) {
+				change(index == 0);
+			},
+			&st::infoSharedMediaButton);
 	};
 
 	AddCollapsibleSection(inner, u"ИИ и память"_q, false, [&](

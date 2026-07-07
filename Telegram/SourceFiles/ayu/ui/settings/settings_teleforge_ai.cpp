@@ -8,6 +8,7 @@
 #include "ayu/features/teleforge/teleforge_paths.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
+#include "ayu/features/translator/ayu_translate_actions.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
@@ -37,6 +38,7 @@
 #include "settings.h"
 
 #include <QtCore/QDateTime>
+#include <QtCore/QFileInfo>
 #include <QtCore/QPoint>
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
@@ -101,6 +103,42 @@ void ShowStringPickMenu(
 
 void BuildAiTranslation(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	auto *settings = &AyuSettings::getInstance();
+
+	builder.add([&](const BuildContext &ctx) {
+		v::match(ctx, [&](const WidgetContext &wctx) {
+			const auto c = wctx.container;
+			const auto core = TeleForge::LoadPersonalityCore().value_or(
+				TeleForge::DefaultPersonalityCore());
+			const auto localPath = core.chatModelPath.trimmed();
+			const auto modelId = core.chatModelId.trimmed();
+			const auto endpoint = core.lmStudioBaseUrl.trimmed().isEmpty()
+				? u"http://127.0.0.1:1234"_q
+				: core.lmStudioBaseUrl.trimmed();
+			auto model = QString();
+			if (!localPath.isEmpty() && QFileInfo::exists(localPath)) {
+				model = QFileInfo(localPath).fileName();
+			} else if (!modelId.isEmpty()) {
+				model = modelId;
+			}
+			const auto configured = !model.isEmpty()
+				|| !core.lmStudioBaseUrl.trimmed().isEmpty();
+			auto status = QString();
+			if (!configured) {
+				status = u"Модель перевода не задана — укажите модель чата "
+					"в разделе «Чат (LLM)» выше."_q;
+			} else {
+				const auto name = model.isEmpty()
+					? u"(локальная модель)"_q
+					: model;
+				status = u"Нейросеть перевода: "_q + name + u" · "_q + endpoint;
+				if (!Ayu::Translator::AiTranslationAvailable()) {
+					status += u" — включите тумблер «ИИ-перевод», "
+						"чтобы активировать функции."_q;
+				}
+			}
+			AddSettingsHint(c, rpl::single(status));
+		});
+	});
 
 	ayu.addToggle({
 		.id = u"ayu/aiTranslationEnabled"_q,

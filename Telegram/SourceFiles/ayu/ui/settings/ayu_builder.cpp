@@ -7,6 +7,7 @@
 #include "ayu/ui/settings/ayu_builder.h"
 
 #include "ayu/ayu_settings.h"
+#include "ayu/ui/components/dropdown_row.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
 #include "settings/settings_common.h"
 #include "styles/style_ayu_styles.h"
@@ -167,6 +168,43 @@ void AyuSectionBuilder::addChooseButton(ChooseButtonArgs &&args) {
 				icon.icon ? st::settingsButton : st::settingsButtonNoIcon,
 				std::move(icon),
 				setter);
+		}, [&](const Builder::SearchContext &sctx) {
+			if (!id.isEmpty()) {
+				sctx.entries->push_back({
+					.id = id,
+					.altIds = altIds,
+					.title = resolvedTitle,
+					.keywords = keywords,
+					.section = sctx.sectionId,
+				});
+			}
+		});
+	});
+}
+
+void AyuSectionBuilder::addDropdown(DropdownArgs &&args) {
+	auto id = std::move(args.id);
+	auto altIds = std::move(args.altIds);
+	auto keywords = std::move(args.keywords);
+	auto resolvedTitle = ResolveTitle(rpl::duplicate(args.title));
+	auto options = std::move(args.options);
+	auto setter = std::move(args.setter);
+	const auto current = args.current;
+
+	_builder.add([&](const Builder::BuildContext &ctx) {
+		v::match(ctx, [&](const Builder::WidgetContext &wctx) {
+			const auto button = AyuUi::AddDropdownRow(
+				wctx.container,
+				std::move(args.title),
+				options,
+				current,
+				setter);
+			if (!id.isEmpty() && wctx.highlights) {
+				wctx.highlights->push_back({
+					id,
+					{ button.get(), {} },
+				});
+			}
 		}, [&](const Builder::SearchContext &sctx) {
 			if (!id.isEmpty()) {
 				sctx.entries->push_back({

@@ -214,6 +214,8 @@ set(teleforge_extension_files
         ayu/ui/components/icon_picker.h
         ayu/ui/components/avatar_corners_preview.cpp
         ayu/ui/components/avatar_corners_preview.h
+        ayu/ui/components/dropdown_row.cpp
+        ayu/ui/components/dropdown_row.h
         ayu/ui/components/message_preview.cpp
         ayu/ui/components/message_preview.h
         ayu/ui/components/saved_music.cpp
@@ -259,6 +261,8 @@ set(teleforge_extension_files
         ayu/features/filters/filters_cache_controller.h
         ayu/features/filters/filters_utils.cpp
         ayu/features/filters/filters_utils.h
+        ayu/features/subscription/teleforge_subscription.cpp
+        ayu/features/subscription/teleforge_subscription.h
         ayu/features/teleforge/teleforge_bootstrap.cpp
         ayu/features/teleforge/teleforge_bootstrap.h
         ayu/features/teleforge/teleforge_core.cpp

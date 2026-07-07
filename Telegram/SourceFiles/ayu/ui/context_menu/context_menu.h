@@ -29,6 +29,9 @@ void AddJumpToBeginningAction(PeerData *peerData,
 
 void AddShadowBanAction(PeerData *peerData,
 						const Window::PeerMenuCallback &addCallback);
+void AddTeleForgePeerSubmenu(PeerData *peerData,
+							 not_null<Window::SessionController*> sessionController,
+							 const Window::PeerMenuCallback &addCallback);
 void AddOpenChannelAction(PeerData *peerData,
 						  not_null<Window::SessionController*> sessionController,
 						  const Window::PeerMenuCallback &addCallback);

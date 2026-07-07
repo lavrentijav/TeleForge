@@ -11,6 +11,7 @@
 #include "ayu/ayu_settings.h"
 #include "ayu/features/teleforge/teleforge_core.h"
 #include "ayu/features/teleforge/teleforge_lm_studio.h"
+#include "base/flat_set.h"
 #include "boxes/translate_box.h"
 #include "boxes/translate_box_content.h"
 #include "core/application.h"
@@ -37,10 +38,15 @@
 
 #include <QtCore/QFileInfo>
 
+#include <algorithm>
+
 namespace Ayu::Translator {
 namespace {
 
 constexpr auto kInlineQuoteLimit = 400;
+constexpr auto kContextPrevMessages = 5;
+constexpr auto kContextMaxReplyDepth = 40;
+constexpr auto kContextTextLimit = 300;
 
 [[nodiscard]] bool PremiumTranslateAllowed(not_null<Main::Session*> session) {
 	return session->premium();
@@ -180,10 +186,109 @@ void ShowInlineLoading(
 			TextWithEntities{ tr::lng_contacts_loading(tr::now) }));
 }
 
+[[nodiscard]] QString CleanContextText(const QString &text) {
+	auto cleaned = text.trimmed();
+	cleaned.replace('\n', ' ');
+	if (cleaned.size() > kContextTextLimit) {
+		cleaned = cleaned.left(kContextTextLimit - 1) + QChar(0x2026);
+	}
+	return cleaned;
+}
+
+[[nodiscard]] QString FormatContextItem(not_null<HistoryItem*> item) {
+	const auto text = CleanContextText(item->originalText().text);
+	if (text.isEmpty()) {
+		return QString();
+	}
+	const auto from = item->from();
+	const auto name = from ? from->shortName() : QString();
+	return name.isEmpty() ? text : (name + u": "_q + text);
+}
+
+[[nodiscard]] std::vector<QString> CollectReplyChain(
+		not_null<HistoryItem*> item) {
+	auto lines = std::vector<QString>();
+	const auto owner = &item->history()->owner();
+	auto seen = base::flat_set<FullMsgId>();
+	auto currentId = item->replyToFullId();
+	while (currentId && !seen.contains(currentId)) {
+		seen.emplace(currentId);
+		const auto parent = owner->message(currentId);
+		if (!parent) {
+			break;
+		}
+		if (auto line = FormatContextItem(parent); !line.isEmpty()) {
+			lines.push_back(std::move(line));
+		}
+		if (int(seen.size()) >= kContextMaxReplyDepth) {
+			break;
+		}
+		currentId = parent->replyToFullId();
+	}
+	std::reverse(lines.begin(), lines.end());
+	return lines;
+}
+
+[[nodiscard]] std::vector<QString> CollectPreviousMessages(
+		not_null<HistoryItem*> item) {
+	auto lines = std::vector<QString>();
+	const auto history = item->history();
+	auto linear = std::vector<not_null<HistoryItem*>>();
+	for (const auto &block : history->blocks) {
+		for (const auto &view : block->messages) {
+			linear.push_back(view->data());
+		}
+	}
+	auto index = -1;
+	for (auto i = 0; i != int(linear.size()); ++i) {
+		if (linear[i] == item) {
+			index = i;
+			break;
+		}
+	}
+	if (index < 0) {
+		return lines;
+	}
+	const auto start = std::max(0, index - kContextPrevMessages);
+	for (auto i = start; i != index; ++i) {
+		const auto previous = linear[i];
+		if (previous->isService() || !previous->isRegular()) {
+			continue;
+		}
+		if (auto line = FormatContextItem(previous); !line.isEmpty()) {
+			lines.push_back(std::move(line));
+		}
+	}
+	return lines;
+}
+
+[[nodiscard]] QString BuildTranslationContext(not_null<HistoryItem*> item) {
+	const auto replyChain = CollectReplyChain(item);
+	const auto previous = CollectPreviousMessages(item);
+	if (replyChain.empty() && previous.empty()) {
+		return QString();
+	}
+	auto parts = QStringList();
+	if (!replyChain.empty()) {
+		parts.push_back(u"Reply chain (oldest to newest):"_q);
+		for (const auto &line : replyChain) {
+			parts.push_back(line);
+		}
+	}
+	if (!previous.empty()) {
+		parts.push_back(u"Recent conversation (oldest to newest):"_q);
+		for (const auto &line : previous) {
+			parts.push_back(line);
+		}
+	}
+	return parts.join('\n');
+}
+
 void RunAiCompletionInline(
 		not_null<HistoryItem*> item,
 		const TextWithEntities &original,
-		const QString &systemPrompt) {
+		const QString &systemPrompt,
+		const QString &contextBlock = QString()) {
 	ShowInlineLoading(item, original);
 	const auto personality = TeleForge::LoadPersonalityCore()
 		.value_or(TeleForge::DefaultPersonalityCore());
@@ -191,9 +296,15 @@ void RunAiCompletionInline(
 	options.model = personality.chatModelId.trimmed();
 	options.temperature = 0.2;
 	options.maxTokens = 2048;
+	const auto userPrompt = contextBlock.isEmpty()
+		? original.text
+		: (contextBlock
+			+ u"\n\n---\nText to translate (translate ONLY the text below, "
+				"use the context above only to disambiguate):\n"_q
+			+ original.text);
 	TeleForge::LmStudioBridge::instance().requestCompletion(
 		systemPrompt,
-		original.text,
+		userPrompt,
 		[=](const QString &reply) {
 			if (const auto current = item->history()->owner().message(item->fullId())) {
 				ApplyInlineOverlay(
@@ -259,12 +370,15 @@ void AiTranslateMessageInline(
 	const auto system = QStringLiteral(
 		"You are a professional translator. Translate the user's message into %1. "
 		"Preserve tone, slang, humor, and meaning. "
+		"You may be given preceding conversation and a reply chain as context; "
+		"use it only to disambiguate pronouns, named entities, and meaning. "
+		"Never translate or output the context itself. "
 		"If the text uses transliteration (Latin letters standing for another language), "
 		"infer the intended language first, then translate naturally into %1. "
 		"Keep names, usernames, URLs, and code unchanged. "
 		"Output only the translation without explanations or quotes.")
 		.arg(targetName);
-	RunAiCompletionInline(item, text, system);
+	RunAiCompletionInline(item, text, system, BuildTranslationContext(item));
 }
 
 void AiCompressMessageInline(
@@ -335,6 +449,9 @@ void ShowAiTranslateBoxInternal(
 				const auto system = QStringLiteral(
 					"You are a professional translator. Translate the user's message into %1. "
 					"Preserve tone, slang, humor, and meaning. "
+					"You may be given preceding conversation and a reply chain as context; "
+					"use it only to disambiguate pronouns, named entities, and meaning. "
+					"Never translate or output the context itself. "
 					"If the text uses transliteration (Latin letters standing for another language), "
 					"infer the intended language first, then translate naturally into %1. "
 					"Keep names, usernames, URLs, and code unchanged. "
@@ -344,9 +461,19 @@ void ShowAiTranslateBoxInternal(
 				options.model = personality.chatModelId.trimmed();
 				options.temperature = 0.2;
 				options.maxTokens = 2048;
+				const auto contextItem = peer->owner().message(peer, msgId);
+				const auto contextBlock = contextItem
+					? BuildTranslationContext(contextItem)
+					: QString();
+				const auto userPrompt = contextBlock.isEmpty()
+					? request->text.text
+					: (contextBlock
+						+ u"\n\n---\nText to translate (translate ONLY the text "
+							"below, use the context above only to disambiguate):\n"_q
+						+ request->text.text);
 				TeleForge::LmStudioBridge::instance().requestCompletion(
 					system,
-					request->text.text,
+					userPrompt,
 					[=](const QString &reply) {
 						done(Ui::TranslateBoxContentResult{
 							.text = TextWithEntities{ .text = reply.trimmed() },

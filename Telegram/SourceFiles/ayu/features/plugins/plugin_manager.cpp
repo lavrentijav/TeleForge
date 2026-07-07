@@ -21,28 +21,29 @@ void initialize() {
 }
 
 void reloadAll() {
-	PluginRunner::unloadAll();
 	g_loaded.clear();
 	const auto dir = QDir(PluginsDir());
 	if (!dir.exists()) {
 		dir.mkpath(QString());
+		PluginRunner::reloadEnabled({});
 		return;
 	}
+	auto paths = QStringList();
 	for (const auto &entry : dir.entryList({ u"*.py"_q }, QDir::Files)) {
 		if (!isEnabled(entry)) {
 			continue;
 		}
-		const auto path = dir.absoluteFilePath(entry);
-		if (PluginRunner::loadPlugin(path)) {
-			g_loaded.push_back(entry);
-		}
+		paths.push_back(dir.absoluteFilePath(entry));
+		g_loaded.push_back(entry);
 	}
+	PluginRunner::reloadEnabled(paths);
 }
 
 void startPlugin(const QString &fileName) {
 	setEnabled(fileName, true);
 	const auto path = QDir(PluginsDir()).absoluteFilePath(fileName);
-	if (!g_loaded.contains(fileName) && PluginRunner::loadPlugin(path)) {
+	if (!g_loaded.contains(fileName)) {
+		PluginRunner::loadPlugin(path);
 		g_loaded.push_back(fileName);
 	}
 }

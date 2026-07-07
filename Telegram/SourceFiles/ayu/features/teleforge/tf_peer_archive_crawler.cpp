@@ -4,6 +4,7 @@
 
 #include "ayu/features/teleforge/tf_peer_archive.h"
 #include "ayu/features/teleforge/tf_peer_archive_scanner.h"
+#include "ayu/ayu_settings.h"
 #include "base/call_delayed.h"
 #include "base/flat_set.h"
 #include "base/random.h"
@@ -19,29 +20,49 @@
 namespace TeleForge::PeerArchive {
 namespace {
 
-constexpr auto kTickMs = 40000;
-constexpr auto kTickJitterMs = 15000;
 constexpr auto kReseedMs = 1800000;
 constexpr auto kMaxQueue = 1500;
+constexpr auto kBatchPerTick = 4;
 
-auto &CrawlQueue() {
+[[nodiscard]] crl::time UserDeltaMs() {
+	return crl::time(AyuSettings::getInstance().archiveUserPollDelta()) * 1000;
+}
+
+[[nodiscard]] crl::time GroupDeltaMs() {
+	return crl::time(AyuSettings::getInstance().archiveGroupPollDelta()) * 1000;
+}
+
+[[nodiscard]] crl::time JitterFor(crl::time delta) {
+	const auto span = std::max<crl::time>(1, delta / 4);
+	return crl::time(base::RandomIndex(int(span)));
+}
+
+auto &UserQueue() {
 	static auto result = base::flat_set<long long>();
 	return result;
 }
 
-auto &CrawlScheduled() {
+auto &GroupQueue() {
+	static auto result = base::flat_set<long long>();
+	return result;
+}
+
+auto &UserScheduled() {
 	static auto scheduled = false;
 	return scheduled;
 }
 
-void ScheduleTick(not_null<Main::Session*> session, crl::time delay);
+auto &GroupScheduled() {
+	static auto scheduled = false;
+	return scheduled;
+}
 
-void EnqueueId(PeerId id) {
-	if (!id) {
+void EnqueuePeer(not_null<PeerData*> peer) {
+	if (!peer->id) {
 		return;
 	}
-	const auto storageId = static_cast<long long>(SerializePeerId(id));
-	auto &queue = CrawlQueue();
+	const auto storageId = static_cast<long long>(SerializePeerId(peer->id));
+	auto &queue = peer->isUser() ? UserQueue() : GroupQueue();
 	if (queue.size() >= kMaxQueue) {
 		return;
 	}
@@ -56,7 +77,7 @@ void EnqueueUsernameHint(
 		return;
 	}
 	if (const auto peer = session->data().peerByUsername(clean)) {
-		EnqueueId(peer->id);
+		EnqueuePeer(peer);
 	}
 }
 
@@ -89,7 +110,7 @@ void EnqueueFromList(not_null<const Dialogs::MainList*> list) {
 	}
 	for (const auto &row : list->indexed()->all()) {
 		if (const auto history = row->history()) {
-			EnqueueId(history->peer->id);
+			EnqueuePeer(history->peer);
 		}
 	}
 }
@@ -105,21 +126,7 @@ void SeedQueue(not_null<Main::Session*> session) {
 	}
 }
 
-void ProcessNext(not_null<Main::Session*> session) {
-	if (!archiveEnabled()) {
-		CrawlQueue().clear();
-		return;
-	}
-	auto &queue = CrawlQueue();
-	if (queue.empty()) {
-		SeedQueue(session);
-	}
-	if (queue.empty()) {
-		return;
-	}
-	const auto storageId = *queue.begin();
-	queue.erase(queue.begin());
-
+void ProcessPeer(not_null<Main::Session*> session, long long storageId) {
 	const auto peer = session->data().peer(PeerId(storageId));
 	if (!peer || peer->isSelf()) {
 		return;
@@ -135,19 +142,52 @@ void ProcessNext(not_null<Main::Session*> session) {
 	scanOpenedChat(session, peer);
 }
 
-void ScheduleTick(not_null<Main::Session*> session, crl::time delay) {
-	if (CrawlScheduled()) {
+void ProcessQueue(
+		not_null<Main::Session*> session,
+		base::flat_set<long long> &queue) {
+	if (queue.empty()) {
+		SeedQueue(session);
+	}
+	for (auto processed = 0
+		; processed != kBatchPerTick && !queue.empty()
+		; ++processed) {
+		const auto storageId = *queue.begin();
+		queue.erase(queue.begin());
+		ProcessPeer(session, storageId);
+	}
+}
+
+void ScheduleUserTick(not_null<Main::Session*> session, crl::time delay) {
+	if (UserScheduled()) {
 		return;
 	}
-	CrawlScheduled() = true;
+	UserScheduled() = true;
 	base::call_delayed(delay, session, [=] {
-		CrawlScheduled() = false;
+		UserScheduled() = false;
 		if (!archiveEnabled()) {
+			UserQueue().clear();
 			return;
 		}
-		ProcessNext(session);
-		const auto jitter = crl::time(base::RandomIndex(kTickJitterMs));
-		ScheduleTick(session, kTickMs + jitter);
+		ProcessQueue(session, UserQueue());
+		const auto base = UserDeltaMs();
+		ScheduleUserTick(session, base + JitterFor(base));
+	});
+}
+
+void ScheduleGroupTick(not_null<Main::Session*> session, crl::time delay) {
+	if (GroupScheduled()) {
+		return;
+	}
+	GroupScheduled() = true;
+	base::call_delayed(delay, session, [=] {
+		GroupScheduled() = false;
+		if (!archiveEnabled()) {
+			GroupQueue().clear();
+			return;
+		}
+		ProcessQueue(session, GroupQueue());
+		const auto base = GroupDeltaMs();
+		ScheduleGroupTick(session, base + JitterFor(base));
 	});
 }
 
@@ -169,7 +209,7 @@ void enqueueCrawlPeer(
 	if (!archiveEnabled()) {
 		return;
 	}
-	EnqueueId(peer->id);
+	EnqueuePeer(peer);
 }
 
 void enqueueLinksFromText(
@@ -183,7 +223,8 @@ void enqueueLinksFromText(
 
 void attachCrawler(not_null<Main::Session*> session) {
 	SeedQueue(session);
-	ScheduleTick(session, kTickMs);
+	ScheduleUserTick(session, UserDeltaMs());
+	ScheduleGroupTick(session, GroupDeltaMs());
 	ScheduleReseed(session);
 }
 

@@ -331,6 +331,8 @@ public:
 	[[nodiscard]] rpl::producer<bool> peerArchiveEnabledChanges() const {
 		return _peerArchiveEnabled.changes();
 	}
+	[[nodiscard]] int archiveUserPollDelta() const { return _archiveUserPollDelta.current(); }
+	[[nodiscard]] int archiveGroupPollDelta() const { return _archiveGroupPollDelta.current(); }
 	[[nodiscard]] bool adaptiveCoverColor() const { return _adaptiveCoverColor.current(); }
 	[[nodiscard]] bool improveLinkPreviews() const { return _improveLinkPreviews.current(); }
 	[[nodiscard]] bool crashReporting() const { return _crashReporting.current(); }
@@ -418,6 +420,8 @@ public:
 	void setSpyModeGloballyEnabled(bool val);
 	void setSpyRetentionDays(int val);
 	void setPeerArchiveEnabled(bool val);
+	void setArchiveUserPollDelta(int val);
+	void setArchiveGroupPollDelta(int val);
 	void setAdaptiveCoverColor(bool val);
 	void setImproveLinkPreviews(bool val);
 	void setCrashReporting(bool val);
@@ -684,6 +688,8 @@ private:
 	rpl::variable<bool> _spyModeGloballyEnabled = true;
 	rpl::variable<int> _spyRetentionDays = 30;
 	rpl::variable<bool> _peerArchiveEnabled = false;
+	rpl::variable<int> _archiveUserPollDelta = 15;
+	rpl::variable<int> _archiveGroupPollDelta = 30;
 	rpl::variable<bool> _adaptiveCoverColor = true;
 	rpl::variable<bool> _improveLinkPreviews = false;
 	rpl::variable<bool> _crashReporting = true;

@@ -11,6 +11,7 @@
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/labels.h"
 #include "ui/wrap/vertical_layout.h"
+#include "ui/style/style_core_scale.h"
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
 #include "styles/style_layers.h"
@@ -37,7 +38,7 @@ public:
 		if (QFile::exists(_row.userpicPath)) {
 			_image = QImage(_row.userpicPath);
 		}
-		resize(0, kRowHeight);
+		resize(0, style::ConvertScale(kRowHeight));
 	}
 
 protected:
@@ -46,11 +47,12 @@ protected:
 		p.fillRect(rect(), st::boxBg->c);
 
 		const auto left = st::boxRowPadding.left();
+		const auto avatarSize = style::ConvertScale(kAvatarSize);
 		const auto avatarRect = QRect(
 			left,
-			(height() - kAvatarSize) / 2,
-			kAvatarSize,
-			kAvatarSize);
+			(height() - avatarSize) / 2,
+			avatarSize,
+			avatarSize);
 
 		p.setPen(Qt::NoPen);
 		p.setBrush(st::windowBgOver);
@@ -80,18 +82,19 @@ protected:
 
 		if (_row.deletedUserpics > 0) {
 			const auto badge = st::menuIconDelete;
-			const auto iconSize = 16;
+			const auto iconSize = style::ConvertScale(16);
+			const auto pad = style::ConvertScale(2);
 			const auto iconPos = QPoint(
-				avatarRect.right() - iconSize + 2,
-				avatarRect.bottom() - iconSize + 2);
+				avatarRect.right() - iconSize + pad,
+				avatarRect.bottom() - iconSize + pad);
 			p.setBrush(st::boxBg->c);
 			p.setPen(Qt::NoPen);
 			p.drawEllipse(
-				QRect(iconPos, QSize(iconSize + 4, iconSize + 4)));
+				QRect(iconPos, QSize(iconSize + pad * 2, iconSize + pad * 2)));
 			badge.paint(
 				p,
-				iconPos.x() + 2,
-				iconPos.y() + 2,
+				iconPos.x() + pad,
+				iconPos.y() + pad,
 				width());
 		}
 
