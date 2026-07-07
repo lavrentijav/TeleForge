@@ -99,7 +99,7 @@ PRIVATE
     desktop-app::external_openal
     desktop-app::external_xxhash
 
-    teleforge::lib_icu
+    ayugram::lib_icu
 )
 
 set(teleforge_extension_files
