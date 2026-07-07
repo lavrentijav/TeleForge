@@ -50,25 +50,6 @@ TeleForge uses its own branding assets stored in the repository.
 
 These assets define the current visual identity of the client across the app window, installer resources, repository presentation, and packaged builds.
 
-## Preview
-
-<h3>
-  <details>
-    <summary>Screenshots</summary>
-    <table>
-      <tr>
-        <td><img src='.github/demos/demo1.png' width='268' alt='Preferences'></td>
-        <td><img src='.github/demos/demo2.png' width='268' alt='Options'></td>
-        <td><img src='.github/demos/demo3.png' width='268' alt='Filters'></td>
-      </tr>
-      <tr>
-        <td><img src='.github/demos/demo4.png' width='268' alt='Appearance'></td>
-        <td><img src='.github/demos/demo5.png' width='268' alt='Chats'></td>
-      </tr>
-    </table>
-  </details>
-</h3>
-
 To sync with official Telegram Desktop, see [docs/UPSTREAM_SYNC.md](docs/UPSTREAM_SYNC.md).
 
 ## Downloads
