@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_authorizations.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_blocked_peers.h"
+#include "api/api_chat_invite.h"
 #include "api/api_chat_links.h"
 #include "api/api_chat_participants.h"
 #include "api/api_cloud_password.h"
@@ -43,12 +44,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/components/scheduled_messages.h"
 #include "data/notify/data_notify_settings.h"
 #include "data/data_changes.h"
+#include "data/data_drafts.h"
 #include "data/data_media_types.h"
 #include "data/data_web_page.h"
 #include "data/data_folder.h"
 #include "data/data_forum_topic.h"
 #include "data/data_forum.h"
 #include "data/data_message_reaction_id.h"
+#include "data/data_premium_limits.h"
 #include "data/data_saved_messages.h"
 #include "data/data_saved_music.h"
 #include "data/data_saved_sublist.h"
@@ -72,6 +75,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item_components.h"
 #include "history/history_item_helpers.h"
+#include "history/view/controls/history_view_forward_panel.h"
+#include "iv/editor/iv_editor_session.h"
+#include "iv/iv_rich_message_serializer.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "main/main_account.h"
@@ -124,6 +130,21 @@ constexpr auto kStatsSessionKillTimeout = 10 * crl::time(1000);
 using PhotoFileLocationId = Data::PhotoFileLocationId;
 using DocumentFileLocationId = Data::DocumentFileLocationId;
 using UpdatedFileReferences = Data::UpdatedFileReferences;
+
+[[nodiscard]] bool ShouldSkipPlainDraftCloudSave(
+		not_null<Main::Session*> session,
+		not_null<Data::Thread*> thread) {
+	const auto history = thread->owningHistory();
+	const auto topicRootId = thread->topicRootId();
+	const auto monoforumPeerId = thread->monoforumPeerId();
+	const auto cloudDraft = history->cloudDraft(topicRootId, monoforumPeerId);
+	return (Iv::Editor::IsComposeBoxOpen(
+			session,
+			history->peer->id,
+			topicRootId,
+			monoforumPeerId)
+		|| (cloudDraft && cloudDraft->hasRichMessage()));
+}
 
 [[nodiscard]] std::shared_ptr<ChatHelpers::Show> ShowForPeer(
 		not_null<PeerData*> peer) {
@@ -1860,14 +1881,20 @@ void ApiWrap::joinChannel(not_null<ChannelData*> channel) {
 	} else if (!_channelAmInRequests.contains(channel)) {
 		const auto requestId = request(MTPchannels_JoinChannel(
 			channel->inputChannel()
-		)).done([=](const MTPUpdates &result) {
+		)).done([=](const MTPmessages_ChatInviteJoinResult &result) {
 			_channelAmInRequests.remove(channel);
-			applyUpdates(result);
 
-			session().data().addRecentJoinChat({
-				.fromPeerId = channel->id,
-				.joinedPeerId = channel->id,
-			});
+			Api::ProcessChatInviteJoinResult(
+				_session,
+				ShowForPeer(channel),
+				result,
+				[=](const MTPUpdates &updates) {
+					applyUpdates(updates);
+					session().data().addRecentJoinChat({
+						.fromPeerId = channel->id,
+						.joinedPeerId = channel->id,
+					});
+				});
 		}).fail([=](const MTP::Error &error) {
 			const auto &type = error.type();
 
@@ -2070,6 +2097,9 @@ void ApiWrap::sendNotifySettingsUpdates() {
 }
 
 void ApiWrap::saveDraftToCloudDelayed(not_null<Data::Thread*> thread) {
+	if (ShouldSkipPlainDraftCloudSave(_session, thread)) {
+		return;
+	}
 	_draftsSaveRequestIds.emplace(base::make_weak(thread), 0);
 	if (!_draftsSaveTimer.isActive()) {
 		_draftsSaveTimer.callOnce(kSaveCloudDraftTimeout);
@@ -2261,6 +2291,9 @@ void ApiWrap::saveCurrentDraftToCloud() {
 			const auto cloudDraft = history->cloudDraft(
 				topicRootId,
 				monoforumPeerId);
+			if (ShouldSkipPlainDraftCloudSave(_session, thread)) {
+				continue;
+			}
 			if (!Data::DraftsAreEqual(localDraft, cloudDraft)
 				&& !_session->supportMode()) {
 				saveDraftToCloudDelayed(thread);
@@ -2269,74 +2302,169 @@ void ApiWrap::saveCurrentDraftToCloud() {
 	}
 }
 
-void ApiWrap::saveDraftsToCloud() {
-	for (auto i = begin(_draftsSaveRequestIds); i != end(_draftsSaveRequestIds);) {
-		const auto weak = i->first;
-		const auto thread = weak.get();
-		if (!thread) {
-			i = _draftsSaveRequestIds.erase(i);
-			continue;
-		} else if (i->second) {
-			++i;
-			continue; // sent already
-		}
+mtpRequestId ApiWrap::saveDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		Fn<void()> done,
+		Fn<void(const MTP::Error &)> fail) {
+	const auto weak = base::make_weak(thread);
+	const auto requestId = savePreparedDraftToCloud(
+		thread,
+		draft,
+		false,
+		std::move(done),
+		std::move(fail));
+	if (!requestId) {
+		return 0;
+	}
+	_draftsSaveRequestIds.emplace_or_assign(weak, requestId);
+	return requestId;
+}
 
-		const auto history = thread->owningHistory();
-		const auto topicRootId = thread->topicRootId();
-		const auto monoforumPeerId = thread->monoforumPeerId();
-		auto cloudDraft = history->cloudDraft(topicRootId, monoforumPeerId);
-		auto localDraft = history->localDraft(topicRootId, monoforumPeerId);
-		if (cloudDraft && cloudDraft->saveRequestId) {
-			request(base::take(cloudDraft->saveRequestId)).cancel();
-		}
-		if (!_session->supportMode()) {
-			cloudDraft = history->createCloudDraft(
-				topicRootId,
-				monoforumPeerId,
-				localDraft);
-		} else if (!cloudDraft) {
-			cloudDraft = history->createCloudDraft(
-				topicRootId,
-				monoforumPeerId,
-				nullptr);
-		}
+mtpRequestId ApiWrap::savePreparedDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		bool clearOnFail,
+		Fn<void()> done,
+		Fn<void(const MTP::Error &)> fail) {
+	const auto weak = base::make_weak(thread);
+	const auto history = thread->owningHistory();
+	const auto topicRootId = thread->topicRootId();
+	const auto monoforumPeerId = thread->monoforumPeerId();
+	struct Callbacks {
+		Fn<void()> done;
+		Fn<void(const MTP::Error &)> fail;
+	};
+	const auto callbacks = (done || fail)
+		? std::make_shared<Callbacks>(Callbacks{
+			.done = std::move(done),
+			.fail = std::move(fail),
+		})
+		: std::shared_ptr<Callbacks>();
 
-		auto flags = MTPmessages_SaveDraft::Flags(0);
-		auto &textWithTags = cloudDraft->textWithTags;
-		if (cloudDraft->webpage.removed) {
-			flags |= MTPmessages_SaveDraft::Flag::f_no_webpage;
-		} else if (!cloudDraft->webpage.url.isEmpty()) {
-			flags |= MTPmessages_SaveDraft::Flag::f_media;
-		}
-		if (cloudDraft->reply.messageId
-			|| cloudDraft->reply.topicRootId
-			|| cloudDraft->reply.monoforumPeerId) {
-			flags |= MTPmessages_SaveDraft::Flag::f_reply_to;
-		}
-		if (!textWithTags.tags.isEmpty()) {
-			flags |= MTPmessages_SaveDraft::Flag::f_entities;
-		}
-		if (cloudDraft->suggest) {
-			flags |= MTPmessages_SaveDraft::Flag::f_suggested_post;
-		}
-		auto entities = Api::EntitiesToMTP(
+	auto flags = MTPmessages_SaveDraft::Flags(0);
+	const auto &textWithTags = draft.textWithTags;
+	if (draft.webpage.removed) {
+		flags |= MTPmessages_SaveDraft::Flag::f_no_webpage;
+	} else if (!draft.webpage.url.isEmpty()) {
+		flags |= MTPmessages_SaveDraft::Flag::f_media;
+	}
+	if (draft.reply.messageId
+		|| draft.reply.topicRootId
+		|| draft.reply.monoforumPeerId) {
+		flags |= MTPmessages_SaveDraft::Flag::f_reply_to;
+	}
+	if (!textWithTags.tags.isEmpty()) {
+		flags |= MTPmessages_SaveDraft::Flag::f_entities;
+	}
+	if (draft.suggest) {
+		flags |= MTPmessages_SaveDraft::Flag::f_suggested_post;
+	}
+	auto richMessage = MTPInputRichMessage();
+	if (draft.hasRichMessage()) {
+		const auto serialized = Iv::SerializeInputRichMessage(
 			_session,
-			TextUtilities::ConvertTextTagsToEntities(textWithTags.tags),
-			Api::ConvertOption::SkipLocal);
+			*draft.richMessage,
+			Iv::SerializeInputRichMessageMode::Draft);
+		if (serialized.status != Iv::SerializeInputRichMessageStatus::Success
+			|| !serialized.value) {
+			return 0;
+		}
+		flags |= MTPmessages_SaveDraft::Flag::f_rich_message;
+		richMessage = std::move(*serialized.value);
+	}
+	auto entities = Api::EntitiesToMTP(
+		_session,
+		TextUtilities::ConvertTextTagsToEntities(textWithTags.tags),
+		Api::ConvertOption::SkipLocal);
+	const auto richDraftOrigin = Data::FileOrigin(Data::FileOriginCloudDraft{
+		.peerId = history->peer->id,
+		.topicRootId = topicRootId,
+		.monoforumPeerId = monoforumPeerId,
+	});
+	const auto serializeCurrent = [=]() -> std::optional<MTPInputRichMessage> {
+		if (!draft.hasRichMessage()) {
+			return MTPInputRichMessage();
+		}
+		const auto serialized = Iv::SerializeInputRichMessage(
+			_session,
+			*draft.richMessage,
+			Iv::SerializeInputRichMessageMode::Draft);
+		return (serialized.status
+				== Iv::SerializeInputRichMessageStatus::Success)
+			&& serialized.value
+			? std::make_optional(std::move(*serialized.value))
+			: std::nullopt;
+	};
 
-		history->startSavingCloudDraft(topicRootId, monoforumPeerId);
-		cloudDraft->saveRequestId = request(MTPmessages_SaveDraft(
+	const auto currentCloudDraft = history->cloudDraft(
+		topicRootId,
+		monoforumPeerId);
+	if (currentCloudDraft) {
+		if (currentCloudDraft->saveRequestId) {
+			request(base::take(currentCloudDraft->saveRequestId)).cancel();
+		}
+	}
+
+	history->startSavingCloudDraft(topicRootId, monoforumPeerId);
+	const auto trackRequestId = [=](mtpRequestId id) {
+		const auto cloudDraft = history->cloudDraft(
+			topicRootId,
+			monoforumPeerId);
+		if (cloudDraft) {
+			cloudDraft->saveRequestId = id;
+		}
+		const auto i = _draftsSaveRequestIds.find(weak);
+		if (i != _draftsSaveRequestIds.cend()) {
+			i->second = id;
+		}
+	};
+	const auto failCleanup = [=](
+			const MTP::Error &error,
+			const MTP::Response &response) {
+		const auto requestId = response.requestId;
+		history->finishSavingCloudDraft(
+			topicRootId,
+			monoforumPeerId,
+			Api::UnixtimeFromMsgId(response.outerMsgId));
+		const auto cloudDraft = history->cloudDraft(
+			topicRootId,
+			monoforumPeerId);
+		if (cloudDraft) {
+			if (cloudDraft->saveRequestId == requestId) {
+				cloudDraft->saveRequestId = 0;
+				if (clearOnFail) {
+					history->clearCloudDraft(topicRootId, monoforumPeerId);
+				}
+			}
+		}
+		const auto i = _draftsSaveRequestIds.find(weak);
+		if (i != _draftsSaveRequestIds.cend()
+			&& i->second == requestId) {
+			_draftsSaveRequestIds.erase(i);
+			checkQuitPreventFinished();
+		}
+		if (callbacks && callbacks->fail) {
+			callbacks->fail(error);
+		}
+	};
+	const auto performRequest = [=](
+			const auto &repeatRequest,
+			MTPInputRichMessage currentRichMessage,
+			bool refreshed) -> mtpRequestId {
+		const auto requestId = request(MTPmessages_SaveDraft(
 			MTP_flags(flags),
-			ReplyToForMTP(history, cloudDraft->reply),
+			ReplyToForMTP(history, draft.reply),
 			history->peer->input(),
 			MTP_string(textWithTags.text),
 			entities,
 			Data::WebPageForMTP(
-				cloudDraft->webpage,
+				draft.webpage,
 				textWithTags.text.isEmpty()),
 			MTP_long(0), // effect
-			Api::SuggestToMTP(cloudDraft->suggest)
-		)).done([=](const MTPBool &result, const MTP::Response &response) {
+			Api::SuggestToMTP(draft.suggest),
+			std::move(currentRichMessage)
+		)).done([=](const MTPBool &, const MTP::Response &response) {
 			const auto requestId = response.requestId;
 			history->finishSavingCloudDraft(
 				topicRootId,
@@ -2357,29 +2485,81 @@ void ApiWrap::saveDraftsToCloud() {
 				_draftsSaveRequestIds.erase(i);
 				checkQuitPreventFinished();
 			}
+			if (callbacks && callbacks->done) {
+				callbacks->done();
+			}
 		}).fail([=](const MTP::Error &error, const MTP::Response &response) {
-			const auto requestId = response.requestId;
-			history->finishSavingCloudDraft(
+			if (!refreshed
+				&& (error.code() == 400)
+				&& error.type().startsWith(u"FILE_REFERENCE_"_q)
+				&& draft.hasRichMessage()) {
+				refreshFileReference(richDraftOrigin, [=](const auto &) {
+					if (auto refreshedRichMessage = serializeCurrent()) {
+						const auto newId = repeatRequest(
+							repeatRequest,
+							std::move(*refreshedRichMessage),
+							true);
+						trackRequestId(newId);
+					} else {
+						failCleanup(error, response);
+					}
+				});
+				return;
+			}
+			failCleanup(error, response);
+		}).send();
+		return requestId;
+	};
+	const auto requestId = performRequest(
+		performRequest,
+		std::move(richMessage),
+		false);
+	const auto cloudDraft = history->cloudDraft(
+		topicRootId,
+		monoforumPeerId);
+	if (cloudDraft) {
+		cloudDraft->saveRequestId = requestId;
+	}
+	return requestId;
+}
+
+void ApiWrap::saveDraftsToCloud() {
+	for (auto i = begin(_draftsSaveRequestIds); i != end(_draftsSaveRequestIds);) {
+		const auto weak = i->first;
+		const auto thread = weak.get();
+		if (!thread) {
+			i = _draftsSaveRequestIds.erase(i);
+			continue;
+		} else if (i->second) {
+			++i;
+			continue; // sent already - keep in-flight saves tracked so
+			          // quit prevention waits for their done/fail handler.
+		} else if (ShouldSkipPlainDraftCloudSave(_session, thread)) {
+			i = _draftsSaveRequestIds.erase(i);
+			continue;
+		}
+
+		const auto history = thread->owningHistory();
+		const auto topicRootId = thread->topicRootId();
+		const auto monoforumPeerId = thread->monoforumPeerId();
+		auto cloudDraft = history->cloudDraft(topicRootId, monoforumPeerId);
+		auto localDraft = history->localDraft(topicRootId, monoforumPeerId);
+		if (!_session->supportMode()) {
+			cloudDraft = history->createCloudDraft(
 				topicRootId,
 				monoforumPeerId,
-				Api::UnixtimeFromMsgId(response.outerMsgId));
-			const auto cloudDraft = history->cloudDraft(
+				localDraft);
+		} else if (!cloudDraft) {
+			cloudDraft = history->createCloudDraft(
 				topicRootId,
-				monoforumPeerId);
-			if (cloudDraft) {
-				if (cloudDraft->saveRequestId == requestId) {
-					history->clearCloudDraft(topicRootId, monoforumPeerId);
-				}
-			}
-			const auto i = _draftsSaveRequestIds.find(weak);
-			if (i != _draftsSaveRequestIds.cend()
-				&& i->second == requestId) {
-				_draftsSaveRequestIds.erase(i);
-				checkQuitPreventFinished();
-			}
-		}).send();
-
-		i->second = cloudDraft->saveRequestId;
+				monoforumPeerId,
+				nullptr);
+		}
+		i->second = savePreparedDraftToCloud(thread, *cloudDraft, true);
+		if (!i->second) {
+			i = _draftsSaveRequestIds.erase(i);
+			continue;
+		}
 		++i;
 	}
 }
@@ -2390,7 +2570,7 @@ bool ApiWrap::isQuitPrevent() {
 	}
 	LOG(("ApiWrap prevents quit, saving drafts..."));
 	saveDraftsToCloud();
-	return true;
+	return !_draftsSaveRequestIds.empty();
 }
 
 void ApiWrap::checkQuitPreventFinished() {
@@ -2626,6 +2806,14 @@ void ApiWrap::refreshFileReference(
 						std::move(handler));
 				}
 			}
+			if (const auto source
+					= item->Get<HistoryMessageRichPageSource>()) {
+				if (source->draftOrigin) {
+					return refreshFileReference(
+						Data::FileOrigin(*source->draftOrigin),
+						std::move(handler));
+				}
+			}
 			const auto media = item->media();
 			const auto mediaStory = media ? media->storyId() : FullStoryId();
 			const auto storyId = mediaStory
@@ -2707,6 +2895,26 @@ void ApiWrap::refreshFileReference(
 			request(MTPmessages_GetFullChat(chat->inputChat()));
 		} else {
 			fail();
+		}
+	}, [&](Data::FileOriginCloudDraft data) {
+		const auto peer = _session->data().peer(data.peerId);
+		if (data.topicRootId) {
+			request(MTPmessages_GetForumTopicsByID(
+				peer->input(),
+				MTP_vector<MTPint>(1, MTP_int(data.topicRootId.bare))));
+		} else if (data.monoforumPeerId) {
+			const auto sublistPeer = _session->data().peer(data.monoforumPeerId);
+			using Flag = MTPmessages_GetSavedDialogsByID::Flag;
+			const auto hasParent = !peer->isSelf();
+			request(MTPmessages_GetSavedDialogsByID(
+				MTP_flags(hasParent ? Flag::f_parent_peer : Flag(0)),
+				hasParent ? peer->input() : MTPInputPeer(),
+				MTP_vector<MTPInputPeer>(1, sublistPeer->input())));
+		} else {
+			request(MTPmessages_GetPeerDialogs(
+				MTP_vector<MTPInputDialogPeer>(
+					1,
+					MTP_inputDialogPeer(peer->input()))));
 		}
 	}, [&](Data::FileOriginStickerSet data) {
 		const auto isRecentAttached
@@ -3595,6 +3803,10 @@ void ApiWrap::forwardMessages(
 		}
 		return;
 	}
+	draft.options = HistoryView::Controls::NormalizeForwardOptions(
+		_session,
+		draft.items,
+		draft.options);
 
 	struct SharedCallback {
 		int requestsLeft = 0;
@@ -4141,6 +4353,231 @@ void ApiWrap::sendShortcutMessages(
 	}).send();
 }
 
+void ApiWrap::sendRichMessage(
+		std::shared_ptr<const Iv::RichPage> page,
+		const MTPInputRichMessage &richMessage,
+		SendAction action) {
+	Expects(page != nullptr);
+
+	const auto history = action.history;
+	const auto peer = history->peer;
+	const auto newId = FullMsgId(
+		peer->id,
+		_session->data().nextLocalMessageId());
+	auto flags = NewMessageFlags(peer);
+	if (action.replyTo) {
+		flags |= MessageFlag::HasReplyInfo;
+	}
+	FillMessagePostFlags(action, peer, flags);
+	if (action.options.scheduled) {
+		flags |= MessageFlag::IsOrWasScheduled;
+	}
+	if (action.options.shortcutId) {
+		flags |= MessageFlag::ShortcutMessage;
+	}
+	const auto item = history->addNewLocalMessage({
+		.id = newId.msg,
+		.flags = flags,
+		.from = NewMessageFromId(action),
+		.replyTo = action.replyTo,
+		.date = NewMessageDate(action.options),
+		.scheduleRepeatPeriod = action.options.scheduleRepeatPeriod,
+		.shortcutId = action.options.shortcutId,
+		.starsPaid = std::min(
+			peer->starsPerMessageChecked(),
+			action.options.starsApproved),
+		.postAuthor = NewMessagePostAuthor(action),
+		.effectId = action.options.effectId,
+		.suggest = HistoryMessageSuggestInfo(action.options),
+	}, TextWithEntities(), MTP_messageMediaEmpty());
+	item->applyLocalRichPage(std::move(page));
+
+	sendRichMessage(item, richMessage, action);
+
+	_session->data().sendHistoryChangeNotifications();
+	_session->changes().historyUpdated(
+		history,
+		(action.options.scheduled
+			? Data::HistoryUpdate::Flag::ScheduledSent
+			: Data::HistoryUpdate::Flag::MessageSent));
+}
+
+void ApiWrap::sendRichMessage(
+		not_null<HistoryItem*> item,
+		const MTPInputRichMessage &richMessage,
+		SendAction action) {
+	Expects(item->history() == action.history);
+
+	const auto history = item->history();
+	const auto peer = history->peer;
+	action.generateLocal = true;
+	sendAction(action);
+
+	const auto clearCloudDraft = action.clearDraft;
+	const auto draftTopicRootId = action.replyTo.topicRootId;
+	const auto draftMonoforumPeerId = action.replyTo.monoforumPeerId;
+	const auto randomId = base::RandomValue<uint64>();
+	auto starsPaid = std::min(
+		peer->starsPerMessageChecked(),
+		action.options.starsApproved);
+	if (starsPaid) {
+		action.options.starsApproved -= starsPaid;
+	}
+	_session->data().registerMessageRandomId(randomId, item->fullId());
+	_session->data().registerMessageSentData(
+		randomId,
+		peer->id,
+		item->originalText().text);
+
+	using Flag = MTPmessages_SendMessage::Flag;
+	auto sendFlags = MTPmessages_SendMessage::Flags(0)
+		| Flag::f_rich_message;
+	if (action.replyTo) {
+		sendFlags |= Flag::f_reply_to;
+	}
+	if (ShouldSendSilent(peer, action.options)) {
+		sendFlags |= Flag::f_silent;
+	}
+	if (clearCloudDraft) {
+		sendFlags |= Flag::f_clear_draft;
+		history->clearCloudDraft(draftTopicRootId, draftMonoforumPeerId);
+		history->startSavingCloudDraft(
+			draftTopicRootId,
+			draftMonoforumPeerId);
+	}
+	if (action.options.sendAs) {
+		sendFlags |= Flag::f_send_as;
+	}
+	if (action.options.scheduled) {
+		sendFlags |= Flag::f_schedule_date;
+		if (action.options.scheduleRepeatPeriod) {
+			sendFlags |= Flag::f_schedule_repeat_period;
+		}
+	}
+	if (action.options.shortcutId) {
+		sendFlags |= Flag::f_quick_reply_shortcut;
+	}
+	if (action.options.effectId) {
+		sendFlags |= Flag::f_effect;
+	}
+	if (action.options.suggest) {
+		sendFlags |= Flag::f_suggested_post;
+	}
+	if (starsPaid) {
+		sendFlags |= Flag::f_allow_paid_stars;
+	}
+	const auto mtpShortcut = Data::ShortcutIdToMTP(
+		_session,
+		action.options.shortcutId);
+	const auto finishCloudDraft = [=](const MTP::Response &response) {
+		if (clearCloudDraft) {
+			history->finishSavingCloudDraft(
+				draftTopicRootId,
+				draftMonoforumPeerId,
+				Api::UnixtimeFromMsgId(response.outerMsgId));
+		}
+	};
+	const auto richDraftOrigin = Data::FileOrigin(Data::FileOriginCloudDraft{
+		.peerId = peer->id,
+		.topicRootId = draftTopicRootId,
+		.monoforumPeerId = draftMonoforumPeerId,
+	});
+	const auto serializeCurrent = [=]() -> std::optional<MTPInputRichMessage> {
+		const auto fullPage = item->fullRichPage();
+		const auto page = fullPage ? fullPage : item->richPage();
+		if (!page) {
+			return std::nullopt;
+		}
+		const auto serialized = Iv::SerializeInputRichMessage(
+			_session,
+			*page,
+			Iv::SerializeInputRichMessageMode::FinalSubmit);
+		return (serialized.status == Iv::SerializeInputRichMessageStatus::Success)
+			&& serialized.value
+			? std::make_optional(std::move(*serialized.value))
+			: std::nullopt;
+	};
+	const auto recoverRichFailure = [=](const QString &type) {
+		const auto show = ShowForPeer(peer);
+		if (const auto failed = _session->data().message(item->fullId())) {
+			const auto fullPage = failed->fullRichPage();
+			if (const auto page = fullPage ? fullPage : failed->richPage()) {
+				auto draft = Data::Draft();
+				draft.reply.topicRootId = draftTopicRootId;
+				draft.reply.monoforumPeerId = draftMonoforumPeerId;
+				draft.richMessage = page;
+				draft.richMessageSummary = failed->originalText();
+				history->createCloudDraft(
+					draftTopicRootId,
+					draftMonoforumPeerId,
+					&draft);
+				history->applyCloudDraft(draftTopicRootId, draftMonoforumPeerId);
+			}
+			if (randomId) {
+				_session->data().unregisterMessageRandomId(randomId);
+			}
+			failed->destroy();
+		}
+		if (show) {
+			show->showToast(type.isEmpty()
+				? tr::lng_edit_error(tr::now)
+				: type);
+		}
+	};
+	const auto performRequest = [=](
+			const auto &repeatRequest,
+			MTPInputRichMessage currentRichMessage,
+			bool refreshed) -> void {
+		history->owner().histories().sendPreparedMessage(
+			history,
+			action.replyTo,
+			randomId,
+			Data::Histories::PrepareMessage<MTPmessages_SendMessage>(
+				MTP_flags(sendFlags),
+				peer->input(),
+				Data::Histories::ReplyToPlaceholder(),
+				MTP_string(QString()),
+				MTP_long(randomId),
+				MTPReplyMarkup(),
+				MTPVector<MTPMessageEntity>(),
+				MTP_int(action.options.scheduled),
+				MTP_int(action.options.scheduleRepeatPeriod),
+				(action.options.sendAs
+					? action.options.sendAs->input()
+					: MTP_inputPeerEmpty()),
+				mtpShortcut,
+				MTP_long(action.options.effectId),
+				MTP_long(starsPaid),
+				Api::SuggestToMTP(action.options.suggest),
+				std::move(currentRichMessage)),
+			[=](const MTPUpdates &result, const MTP::Response &response) {
+				finishCloudDraft(response);
+			},
+			[=](const MTP::Error &error, const MTP::Response &response) {
+				if (!refreshed
+					&& (error.code() == 400)
+					&& error.type().startsWith(u"FILE_REFERENCE_"_q)) {
+					refreshFileReference(richDraftOrigin, [=](const auto &) {
+						if (const auto refreshedRichMessage = serializeCurrent()) {
+							repeatRequest(
+								repeatRequest,
+								*refreshedRichMessage,
+								true);
+						} else {
+							recoverRichFailure(error.type());
+							finishCloudDraft(response);
+						}
+					});
+					return;
+				}
+				recoverRichFailure(error.type());
+				finishCloudDraft(response);
+			});
+	};
+	performRequest(performRequest, richMessage, false);
+	finishForwarding(action);
+}
+
 void ApiWrap::sendMessage(
 		MessageToSend &&message,
 		std::optional<MsgId> localMessageId) {
@@ -4203,10 +4640,13 @@ void ApiWrap::sendMessage(
 	HistoryItem *lastMessage = nullptr;
 
 	auto &histories = history->owner().histories();
+	const auto messageLengthLimit = Data::PremiumLimits(
+		&history->session()
+	).messageLengthCurrent();
 
 	const auto exactWebPage = !message.webPage.url.isEmpty();
 	auto isFirst = true;
-	while (TextUtilities::CutPart(sending, left, MaxMessageSize)
+	while (TextUtilities::CutPart(sending, left, messageLengthLimit)
 		|| (isFirst && exactWebPage)) {
 		TextUtilities::Trim(left);
 		const auto isLast = left.empty();
@@ -4415,7 +4855,8 @@ void ApiWrap::sendMessage(
 					mtpShortcut,
 					MTP_long(action.options.effectId),
 					MTP_long(starsPaid),
-					Api::SuggestToMTP(action.options.suggest)
+					Api::SuggestToMTP(action.options.suggest),
+					MTPInputRichMessage()
 				), done, fail);
 		}
 		isFirst = false;

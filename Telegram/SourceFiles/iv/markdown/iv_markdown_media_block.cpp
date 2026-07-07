@@ -10,17 +10,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_article.h"
 #include "iv/markdown/iv_markdown_article_layout_blocks.h"
 #include "iv/markdown/iv_markdown_prepare.h"
+#include "iv/markdown/iv_markdown_slideshow_chrome.h"
 #include "lang/lang_keys.h"
 #include "ui/dynamic_image.h"
+#include "ui/effects/spoiler_mess.h"
 #include "ui/grouped_layout.h"
+#include "ui/power_saving.h"
 
 #include "rpl/lifetime.h"
 
 #include "styles/palette.h"
 #include "styles/style_iv.h"
 #include "styles/style_widgets.h"
-
-#include <QtGui/QPainterPath>
 
 #include <algorithm>
 #include <cmath>
@@ -73,6 +74,46 @@ constexpr auto kMaxGroupedMediaLayoutItems = 10;
 	return paintedPreviousThumbnail || paintedPreviousFull;
 }
 
+[[nodiscard]] QImage ResolvedImageFrame(
+		const std::shared_ptr<Ui::DynamicImage> &current,
+		const std::shared_ptr<Ui::DynamicImage> &previous,
+		int size) {
+	if (current) {
+		if (const auto frame = current->image(size); !frame.isNull()) {
+			return frame;
+		}
+	}
+	if (previous) {
+		return previous->image(size);
+	}
+	return QImage();
+}
+
+[[nodiscard]] const style::Markdown &PaintStyle(
+		const MarkdownArticlePaintContext &context,
+		const style::Markdown &st) {
+	return context.paintMarkdownStyle(st);
+}
+
+[[nodiscard]] MarkdownArticlePaintContext ClippedContext(
+		const MarkdownArticlePaintContext &context,
+		QRect clip) {
+	auto result = context;
+	result.clip = clip;
+	return result;
+}
+
+void PaintImageSpoiler(
+		Painter &p,
+		QRect rect,
+		const Ui::SpoilerMessFrame &frame) {
+	Ui::FillSpoilerRect(p, rect, frame);
+}
+
+void PaintImageSpoiler(Painter &p, QRect rect) {
+	PaintImageSpoiler(p, rect, Ui::DefaultImageSpoiler().frame());
+}
+
 [[nodiscard]] bool UpdateResolvedImage(
 		std::shared_ptr<Ui::DynamicImage> *current,
 		std::shared_ptr<Ui::DynamicImage> *previous,
@@ -88,6 +129,15 @@ constexpr auto kMaxGroupedMediaLayoutItems = 10;
 	*previous = std::move(*current);
 	*current = next;
 	return true;
+}
+
+[[nodiscard]] QSize ScaledRequestSize(QSize size, double scale) {
+	if (scale <= 1. || size.isEmpty()) {
+		return size;
+	}
+	return QSize(
+		int(std::ceil(size.width() * scale)),
+		int(std::ceil(size.height() * scale)));
 }
 
 template <typename Runtime, typename SubscribeCallback>
@@ -136,24 +186,13 @@ void PaintPhotoProgress(
 		size);
 	auto hq = PainterHighQualityEnabler(p);
 	p.setBrush(Qt::NoBrush);
-	p.setPen(QPen(QColor(0, 0, 0, 96), thickness));
+	p.setPen(QPen(style.progressBg->c, thickness));
 	p.drawEllipse(ring);
-	p.setPen(QPen(st::windowFg->c, thickness));
+	p.setPen(QPen(style.progressFg->c, thickness));
 	p.drawArc(
 		ring,
 		90 * 16,
 		-int(std::round(360. * 16. * std::clamp(progress, 0., 1.))));
-}
-
-[[nodiscard]] int MediaHeightForWidth(
-		int width,
-		int aspectWidth,
-		int aspectHeight) {
-	aspectWidth = std::max(aspectWidth, 1);
-	aspectHeight = std::max(aspectHeight, 1);
-	return std::max(
-		int((int64(width) * aspectHeight + aspectWidth - 1) / aspectWidth),
-		1);
 }
 
 void SetPlainTextLeaf(
@@ -183,18 +222,16 @@ void SetPlainTextLeaf(
 		const style::TextStyle &textStyle) {
 	const auto lines = leaf.countLinesGeometry(textRect.width(), true);
 	return textRect.y() + (lines.empty()
-		? std::max(TextLineHeight(textStyle) - textStyle.font->height, 0) / 2
-			+ textStyle.font->ascent
+		? TextLineBaseline(textStyle)
 		: lines.front().baseline);
 }
 
 void PaintTextLeaf(
 		Painter &p,
 		const Ui::Text::String &leaf,
-		const MarkdownArticlePaintCaches &caches,
+		const MarkdownArticlePaintContext &context,
 		QRect rect,
 		int width,
-		QRect clip,
 		style::align align = style::al_left) {
 	const auto availableWidth = std::max(width, 1);
 	leaf.draw(p, {
@@ -202,13 +239,13 @@ void PaintTextLeaf(
 		.availableWidth = availableWidth,
 		.geometry = TextGeometry(availableWidth),
 		.align = align,
-		.clip = clip,
+		.clip = context.clip,
 		.palette = &p.textPalette(),
-		.pre = caches.pre,
-		.blockquote = caches.blockquote,
-		.colors = caches.colors,
+		.pre = context.caches.pre,
+		.blockquote = context.caches.blockquote,
+		.colors = context.caches.colors,
 		.spoiler = Ui::Text::DefaultSpoilerCache(),
-		.now = crl::now(),
+		.now = context.now,
 	});
 }
 
@@ -244,32 +281,6 @@ void PaintCardSurface(
 	p.setPen(QPen(borderFg->c, border));
 	p.setBrush(bg->c);
 	p.drawRoundedRect(inner, radius, radius);
-}
-
-[[nodiscard]] QString AudioTitleText(const PreparedAudioBlockData &audio) {
-	if (!audio.title.isEmpty()) {
-		return audio.title;
-	}
-	if (!audio.fileName.isEmpty()) {
-		return audio.fileName;
-	}
-	return tr::lng_in_dlg_audio_file(tr::now);
-}
-
-[[nodiscard]] QString AudioSubtitleText(const PreparedAudioBlockData &audio) {
-	if (!audio.performer.isEmpty()) {
-		return audio.performer;
-	}
-	if (!audio.fileName.isEmpty() && audio.fileName != AudioTitleText(audio)) {
-		return audio.fileName;
-	}
-	return QString();
-}
-
-[[nodiscard]] QString AudioCopyText(const PreparedAudioBlockData &audio) {
-	const auto title = AudioTitleText(audio);
-	const auto subtitle = AudioSubtitleText(audio);
-	return subtitle.isEmpty() ? title : (title + u"\n"_q + subtitle);
 }
 
 [[nodiscard]] QString ChannelCopyText(const PreparedChannelBlockData &channel) {
@@ -327,38 +338,6 @@ void PaintCardSurface(
 	return result;
 }
 
-[[nodiscard]] QString GroupedMediaFallbackLabel(
-		const PreparedGroupedMediaBlockData &prepared,
-		const QString &copyText) {
-	if (!copyText.isEmpty()) {
-		return copyText;
-	}
-	return (prepared.intent == PreparedGroupedMediaIntent::Slideshow)
-		? u"Grouped media"_q
-		: u"Media"_q;
-}
-
-[[nodiscard]] QPainterPath RoundedRectPath(QRect rect, int radius) {
-	auto path = QPainterPath();
-	path.addRoundedRect(QRectF(rect), radius, radius);
-	return path;
-}
-
-void PaintRoundButton(
-		Painter &p,
-		QRect rect,
-		const style::color &bg,
-		const style::icon &icon) {
-	if (rect.isEmpty()) {
-		return;
-	}
-	auto hq = PainterHighQualityEnabler(p);
-	p.setPen(Qt::NoPen);
-	p.setBrush(bg->c);
-	p.drawEllipse(rect);
-	icon.paintInCenter(p, rect);
-}
-
 enum class ImageBackedMediaKind {
 	Photo,
 	Video,
@@ -399,8 +378,7 @@ public:
 
 	void paint(
 			Painter &p,
-			QRect clip,
-			const MarkdownArticlePaintCaches &caches) const override;
+			const MarkdownArticlePaintContext &context) const override;
 
 	[[nodiscard]] ClickHandlerPtr linkAt(QPoint point) const override;
 
@@ -438,6 +416,7 @@ private:
 	const uint64 _documentId = 0;
 	const QString _url;
 	const bool _viewerOpen = false;
+	const bool _spoiler = false;
 	const MapDescriptor _map;
 
 	QRect _geometry;
@@ -467,7 +446,8 @@ ImageBackedMediaBlock::ImageBackedMediaBlock(
 , _mediaRuntime(std::move(mediaRuntime))
 , _photoId(prepared.photoId)
 , _url(prepared.urlOverride)
-, _viewerOpen(prepared.viewerOpen) {
+, _viewerOpen(prepared.viewerOpen)
+, _spoiler(prepared.spoiler) {
 	if (!_url.isEmpty()) {
 		_activation.kind = MediaActivationKind::ExternalUrl;
 		_activation.url = _url;
@@ -483,7 +463,8 @@ ImageBackedMediaBlock::ImageBackedMediaBlock(
 , _aspectWidth(prepared.media.width)
 , _aspectHeight(prepared.media.height)
 , _mediaRuntime(std::move(mediaRuntime))
-, _documentId(prepared.media.id) {
+, _documentId(prepared.media.id)
+, _spoiler(prepared.media.spoiler) {
 }
 
 ImageBackedMediaBlock::ImageBackedMediaBlock(
@@ -531,35 +512,30 @@ int ImageBackedMediaBlock::firstLineBaseline() const {
 
 void ImageBackedMediaBlock::paint(
 		Painter &p,
-		QRect clip,
-		const MarkdownArticlePaintCaches &caches) const {
-	Q_UNUSED(caches);
-	const auto visible = clip.intersected(_geometry);
+		const MarkdownArticlePaintContext &context) const {
+	const auto visible = context.clip.intersected(_geometry);
 	if (visible.isEmpty()) {
 		return;
 	}
+	const auto &st = PaintStyle(context, layoutStyle());
 	p.save();
 	p.setClipRect(visible);
-	p.fillRect(_geometry, st::windowBgOver->c);
-	if (!PaintResolvedImages(
+	const auto painted = PaintResolvedImages(
 			p,
 			_geometry,
 			_thumbnailImage,
 			_fullImage,
 			_previousThumbnailImage,
-			_previousFullImage)) {
-		p.setPen(st::windowSubTextFg->c);
-		p.drawText(
-			_geometry,
-			Qt::AlignCenter | Qt::TextWordWrap,
-			_copyText);
+			_previousFullImage);
+	if (painted && _spoiler) {
+		PaintImageSpoiler(p, _geometry);
 	}
 
 	if (loading()) {
 		PaintPhotoProgress(
 			p,
 			_geometry,
-			st::defaultMarkdown.photo,
+			st.photo,
 			progress());
 	}
 	p.restore();
@@ -628,15 +604,16 @@ void ImageBackedMediaBlock::ensureVideoResolved(QSize size) {
 }
 
 void ImageBackedMediaBlock::ensureMapResolved(QSize size) {
-	if (!_mapRuntimeResolved || (_mapRuntimeSize != size)) {
+	const auto requestSize = ScaledRequestSize(size, mediaPixelScale());
+	if (!_mapRuntimeResolved || (_mapRuntimeSize != requestSize)) {
 		_mapRuntimeResolved = true;
-		_mapRuntimeSize = size;
+		_mapRuntimeSize = requestSize;
 		if (_mediaRuntime) {
 			_mapRuntime = _mediaRuntime->resolveMap(
 				_map.latitude,
 				_map.longitude,
 				_map.accessHash,
-				size,
+				requestSize,
 				_map.zoom);
 		}
 	}
@@ -649,7 +626,7 @@ void ImageBackedMediaBlock::resolveImages(
 		QSize size) {
 	RefreshResolvedImages(
 		runtime,
-		size,
+		ScaledRequestSize(size, mediaPixelScale()),
 		&_requestedImageSize,
 		&_thumbnailImage,
 		&_previousThumbnailImage,
@@ -697,233 +674,6 @@ double ImageBackedMediaBlock::progress() const {
 	return 0.;
 }
 
-class AudioMediaBlock final : public MediaBlock {
-public:
-	AudioMediaBlock(
-		const PreparedAudioBlockData &prepared,
-		std::shared_ptr<MediaRuntime> mediaRuntime);
-
-	[[nodiscard]] uint64 stableId() const override;
-
-	[[nodiscard]] int resizeGetHeight(int width) override;
-
-	void setGeometry(QRect geometry) override;
-
-	[[nodiscard]] QRect geometry() const override;
-
-	[[nodiscard]] int firstLineBaseline() const override;
-
-	void paint(
-			Painter &p,
-			QRect clip,
-			const MarkdownArticlePaintCaches &caches) const override;
-
-	[[nodiscard]] ClickHandlerPtr linkAt(QPoint point) const override;
-
-	[[nodiscard]] MediaActivation activationAt(QPoint point) const override;
-
-	[[nodiscard]] MediaBlockSelectionData selectionData() const override;
-
-private:
-	void rebuildLayout(int width);
-
-	void applyGeometry();
-
-	const uint64 _stableId = 0;
-	const QString _titleText;
-	const QString _subtitleText;
-	const QString _copyText;
-	std::shared_ptr<DocumentRuntime> _documentRuntime;
-	MediaActivation _activation;
-	QRect _geometry;
-	Ui::Text::String _titleLeaf;
-	Ui::Text::String _subtitleLeaf;
-	QRect _titleRect;
-	QRect _subtitleRect;
-	int _layoutWidth = 1;
-	int _height = 1;
-	int _titleWidth = 1;
-	int _subtitleWidth = 0;
-	int _textSkip = 0;
-	int _firstLineBaseline = 0;
-};
-
-AudioMediaBlock::AudioMediaBlock(
-	const PreparedAudioBlockData &prepared,
-	std::shared_ptr<MediaRuntime> mediaRuntime)
-: _stableId(prepared.id.value)
-, _titleText(AudioTitleText(prepared))
-, _subtitleText(AudioSubtitleText(prepared))
-, _copyText(AudioCopyText(prepared)) {
-	if (mediaRuntime) {
-		_documentRuntime = mediaRuntime->resolveDocument(prepared.documentId);
-	}
-	if (_documentRuntime) {
-		_activation.kind = MediaActivationKind::Document;
-		_activation.document = _documentRuntime;
-	}
-}
-
-uint64 AudioMediaBlock::stableId() const {
-	return _stableId;
-}
-
-int AudioMediaBlock::resizeGetHeight(int width) {
-	rebuildLayout(width);
-	return _height;
-}
-
-void AudioMediaBlock::setGeometry(QRect geometry) {
-	if (_layoutWidth != std::max(geometry.width(), 1)) {
-		rebuildLayout(geometry.width());
-	}
-	_geometry = QRect(
-		geometry.topLeft(),
-		QSize(_layoutWidth, _height));
-	applyGeometry();
-}
-
-QRect AudioMediaBlock::geometry() const {
-	return _geometry;
-}
-
-int AudioMediaBlock::firstLineBaseline() const {
-	return _firstLineBaseline;
-}
-
-void AudioMediaBlock::paint(
-		Painter &p,
-		QRect clip,
-		const MarkdownArticlePaintCaches &caches) const {
-	const auto visible = clip.intersected(_geometry);
-	if (visible.isEmpty()) {
-		return;
-	}
-	const auto &style = st::defaultMarkdown.audio;
-	p.save();
-	p.setClipRect(visible);
-	PaintCardSurface(
-		p,
-		_geometry,
-		style.border,
-		style.borderFg,
-		style.bg,
-		style.radius);
-	p.setPen(style.titleFg->c);
-	PaintTextLeaf(
-		p,
-		_titleLeaf,
-		caches,
-		_titleRect,
-		_titleWidth,
-		visible);
-	if (!_subtitleRect.isEmpty()) {
-		p.setPen(style.subtitleFg->c);
-		PaintTextLeaf(
-			p,
-			_subtitleLeaf,
-			caches,
-			_subtitleRect,
-			_subtitleWidth,
-			visible);
-	}
-	p.restore();
-}
-
-ClickHandlerPtr AudioMediaBlock::linkAt(QPoint point) const {
-	Q_UNUSED(point);
-	return nullptr;
-}
-
-MediaActivation AudioMediaBlock::activationAt(QPoint point) const {
-	return _geometry.contains(point) ? _activation : MediaActivation();
-}
-
-MediaBlockSelectionData AudioMediaBlock::selectionData() const {
-	return {
-		.copyText = _copyText,
-	};
-}
-
-void AudioMediaBlock::rebuildLayout(int width) {
-	const auto &card = st::defaultMarkdown.audio;
-	const auto &padding = card.padding;
-	const auto &titleStyle = card.titleStyle;
-	const auto &subtitleStyle = card.subtitleStyle;
-	_layoutWidth = std::max(width, 1);
-	const auto contentWidth = std::max(
-		_layoutWidth - padding.left() - padding.right(),
-		1);
-
-	_titleWidth = contentWidth;
-	SetPlainTextLeaf(
-		&_titleLeaf,
-		titleStyle,
-		_titleText,
-		_titleWidth);
-	const auto titleHeight = LeafHeight(
-		_titleLeaf,
-		titleStyle,
-		_titleWidth);
-
-	auto subtitleHeight = 0;
-	if (!_subtitleText.isEmpty()) {
-		_subtitleWidth = contentWidth;
-		SetPlainTextLeaf(
-			&_subtitleLeaf,
-			subtitleStyle,
-			_subtitleText,
-			_subtitleWidth);
-		subtitleHeight = LeafHeight(
-			_subtitleLeaf,
-			subtitleStyle,
-			_subtitleWidth);
-	} else {
-		_subtitleLeaf = Ui::Text::String();
-		_subtitleWidth = 0;
-	}
-	_textSkip = subtitleHeight ? card.textSkip : 0;
-	_height = padding.top()
-		+ titleHeight
-		+ _textSkip
-		+ subtitleHeight
-		+ padding.bottom();
-}
-
-void AudioMediaBlock::applyGeometry() {
-	const auto &card = st::defaultMarkdown.audio;
-	const auto &padding = card.padding;
-	const auto &titleStyle = card.titleStyle;
-	const auto &subtitleStyle = card.subtitleStyle;
-	const auto contentLeft = _geometry.x() + padding.left();
-	const auto titleHeight = LeafHeight(
-		_titleLeaf,
-		titleStyle,
-		_titleWidth);
-	_titleRect = QRect(
-		contentLeft,
-		_geometry.y() + padding.top(),
-		_titleWidth,
-		titleHeight);
-	_firstLineBaseline = LeafFirstLineBaseline(
-		_titleLeaf,
-		_titleRect,
-		titleStyle);
-	if (!_subtitleLeaf.isEmpty()) {
-		const auto subtitleHeight = LeafHeight(
-			_subtitleLeaf,
-			subtitleStyle,
-			_subtitleWidth);
-		_subtitleRect = QRect(
-			contentLeft,
-			_titleRect.y() + _titleRect.height() + _textSkip,
-			_subtitleWidth,
-			subtitleHeight);
-	} else {
-		_subtitleRect = QRect();
-	}
-}
-
 class ChannelMediaBlock final : public MediaBlock {
 public:
 	ChannelMediaBlock(
@@ -942,8 +692,7 @@ public:
 
 	void paint(
 			Painter &p,
-			QRect clip,
-			const MarkdownArticlePaintCaches &caches) const override;
+			const MarkdownArticlePaintContext &context) const override;
 
 	[[nodiscard]] ClickHandlerPtr linkAt(QPoint point) const override;
 
@@ -1037,45 +786,46 @@ int ChannelMediaBlock::firstLineBaseline() const {
 
 void ChannelMediaBlock::paint(
 		Painter &p,
-		QRect clip,
-		const MarkdownArticlePaintCaches &caches) const {
-	const auto visible = clip.intersected(_geometry);
+		const MarkdownArticlePaintContext &context) const {
+	const auto visible = context.clip.intersected(_geometry);
 	if (visible.isEmpty()) {
 		return;
 	}
-	const auto &style = st::defaultMarkdown.channel;
-	const auto &button = style.button;
+	const auto visibleContext = ClippedContext(context, visible);
+	const auto &layout = layoutStyle().channel;
+	const auto &paint = PaintStyle(context, layoutStyle()).channel;
+	const auto &buttonLayout = layout.button;
+	const auto &buttonPaint = paint.button;
 	p.save();
 	p.setClipRect(visible);
 	PaintCardSurface(
 		p,
 		_geometry,
-		style.border,
-		style.borderFg,
-		style.bg,
-		style.radius);
-	p.setPen(style.titleFg->c);
+		layout.border,
+		paint.borderFg,
+		paint.bg,
+		layout.radius);
+	p.setPen(paint.titleFg->c);
 	PaintTextLeaf(
 		p,
 		_titleLeaf,
-		caches,
+		visibleContext,
 		_titleRect,
-		_titleWidth,
-		visible);
+		_titleWidth);
 	if (_joinVisible && !_actionRect.isEmpty()) {
-		const auto innerRect = _actionRect.marginsRemoved(button.padding);
+		const auto innerRect = _actionRect.marginsRemoved(buttonLayout.padding);
 		PaintCardSurface(
 			p,
 			_actionRect,
-			button.border,
-			button.borderFg,
-			button.bg,
-			button.radius);
-		p.setPen(button.textFg->c);
+			buttonLayout.border,
+			buttonPaint.borderFg,
+			buttonPaint.bg,
+			buttonLayout.radius);
+		p.setPen(buttonPaint.textFg->c);
 		p.setFont((ClickHandler::showAsActive(_joinLink)
 			|| ClickHandler::showAsPressed(_joinLink))
-			? button.textStyle.font->underline()
-			: button.textStyle.font);
+			? buttonLayout.textStyle.font->underline()
+			: buttonLayout.textStyle.font);
 		p.drawText(innerRect, Qt::AlignCenter, _actionText);
 	}
 	p.restore();
@@ -1126,7 +876,7 @@ void ChannelMediaBlock::resolveChannel() {
 
 void ChannelMediaBlock::rebuildLayout(int width) {
 	resolveChannel();
-	const auto &card = st::defaultMarkdown.channel;
+	const auto &card = layoutStyle().channel;
 	const auto &padding = card.padding;
 	const auto &button = card.button;
 	const auto &buttonPadding = button.padding;
@@ -1191,7 +941,7 @@ void ChannelMediaBlock::rebuildLayout(int width) {
 }
 
 void ChannelMediaBlock::applyGeometry() {
-	const auto &card = st::defaultMarkdown.channel;
+	const auto &card = layoutStyle().channel;
 	const auto &padding = card.padding;
 	const auto &titleStyle = card.titleStyle;
 	const auto contentLeft = _geometry.x() + padding.left();
@@ -1268,8 +1018,7 @@ public:
 
 	void paint(
 			Painter &p,
-			QRect clip,
-			const MarkdownArticlePaintCaches &caches) const override;
+			const MarkdownArticlePaintContext &context) const override;
 
 	[[nodiscard]] ClickHandlerPtr linkAt(QPoint point) const override;
 
@@ -1293,6 +1042,7 @@ private:
 		std::shared_ptr<Ui::DynamicImage> previousThumbnailImage;
 		std::shared_ptr<Ui::DynamicImage> previousFullImage;
 		QSize requestedSize;
+		bool spoiler = false;
 		bool runtimeResolved = false;
 	};
 
@@ -1314,15 +1064,27 @@ private:
 
 	void handleImageUpdate(int index);
 
-	void paintItem(Painter &p, const ItemState &item) const;
+	void paintItem(
+		Painter &p,
+		const ItemState &item,
+		const style::Markdown &st) const;
 
 	[[nodiscard]] bool itemLoading(const ItemState &item) const;
 
 	[[nodiscard]] double itemProgress(const ItemState &item) const;
 
-	void paintActiveItem(Painter &p) const;
+	void paintActiveItem(
+		Painter &p,
+		const style::Markdown &st,
+		const MarkdownArticlePaintContext &context) const;
 
-	void paintNavigation(Painter &p) const;
+	[[nodiscard]] bool paintActiveItemWithBlurredBackground(
+		Painter &p,
+		const ItemState &item) const;
+
+	void paintNavigation(
+		Painter &p,
+		const style::Markdown &st) const;
 
 	void ensureNavigationLinks();
 
@@ -1330,7 +1092,11 @@ private:
 
 	void stepActiveIndex(int delta);
 
+	[[nodiscard]] int activeItemForegroundHeight(int width) const;
+
 	[[nodiscard]] int activeItemHeight(int width) const;
+
+	[[nodiscard]] int slideshowNavigationFrameHeight(int width) const;
 
 	[[nodiscard]] ItemState *activeItem();
 
@@ -1339,7 +1105,6 @@ private:
 	const uint64 _stableId = 0;
 	const PreparedGroupedMediaIntent _intent = PreparedGroupedMediaIntent::Collage;
 	const QString _copyText;
-	const QString _fallbackLabel;
 	const QSize _fallbackSize;
 	const std::shared_ptr<MediaRuntime> _mediaRuntime;
 	std::vector<ItemState> _items;
@@ -1353,6 +1118,7 @@ private:
 	int _height = 1;
 	int _activeIndex = 0;
 	bool _useCollageLayout = false;
+	mutable std::unique_ptr<Ui::SpoilerAnimation> _spoilerAnimation;
 };
 
 GroupedMediaBlock::GroupedMediaBlock(
@@ -1361,7 +1127,6 @@ GroupedMediaBlock::GroupedMediaBlock(
 : _stableId(prepared.id.value)
 , _intent(prepared.intent)
 , _copyText(GroupedMediaCopyText(prepared))
-, _fallbackLabel(GroupedMediaFallbackLabel(prepared, _copyText))
 , _fallbackSize(prepared.items.empty()
 	? QSize()
 	: QSize(
@@ -1377,6 +1142,7 @@ GroupedMediaBlock::GroupedMediaBlock(
 			std::max(item.media.width, 1),
 			std::max(item.media.height, 1));
 		state.copyText = GroupedMediaItemCopyText(item.media.kind);
+		state.spoiler = item.media.spoiler;
 		_items.push_back(std::move(state));
 	}
 }
@@ -1393,12 +1159,13 @@ int GroupedMediaBlock::resizeGetHeight(int width) {
 void GroupedMediaBlock::setGeometry(QRect geometry) {
 	rebuildLayout(geometry.width());
 	const auto contentWidth = std::max(_contentWidth, 1);
+	_height = std::max(_height, 1);
 	_geometry = QRect(
 		geometry.topLeft()
 			+ QPoint(
 				std::max((geometry.width() - contentWidth) / 2, 0),
 				0),
-		QSize(contentWidth, std::max(_height, 1)));
+		QSize(contentWidth, _height));
 	ensureNavigationLinks();
 	applyGeometry();
 }
@@ -1413,32 +1180,25 @@ int GroupedMediaBlock::firstLineBaseline() const {
 
 void GroupedMediaBlock::paint(
 		Painter &p,
-		QRect clip,
-		const MarkdownArticlePaintCaches &caches) const {
-	Q_UNUSED(caches);
-	const auto visible = clip.intersected(_geometry);
+		const MarkdownArticlePaintContext &context) const {
+	const auto visible = context.clip.intersected(_geometry);
 	if (visible.isEmpty()) {
 		return;
 	}
-	const auto &style = st::defaultMarkdown.groupedMedia;
+	const auto &layout = layoutStyle();
+	const auto &st = PaintStyle(context, layout);
+	const auto &layoutGrouped = layout.groupedMedia;
 	p.save();
 	p.setClipRect(visible);
-	const auto path = RoundedRectPath(_geometry, style.radius);
+	const auto path = RoundedRectPath(_geometry, layoutGrouped.radius);
 	p.setClipPath(path, Qt::IntersectClip);
 	if (_intent == PreparedGroupedMediaIntent::Slideshow) {
-		paintActiveItem(p);
-		paintNavigation(p);
+		paintActiveItem(p, st, context);
+		paintNavigation(p, st);
 	} else if (_useCollageLayout) {
 		for (const auto &item : _items) {
-			paintItem(p, item);
+			paintItem(p, item, st);
 		}
-	} else {
-		p.fillRect(_geometry, st::windowBgOver->c);
-		p.setPen(st::windowSubTextFg->c);
-		p.drawText(
-			_geometry,
-			Qt::AlignCenter | Qt::TextWordWrap,
-			_fallbackLabel);
 	}
 	p.restore();
 }
@@ -1462,15 +1222,20 @@ MediaActivation GroupedMediaBlock::activationAt(QPoint point) const {
 			return {};
 		}
 		if (const auto item = activeItem()) {
-			return item->activation;
+			auto activation = item->activation;
+			activation.itemIndex = _activeIndex;
+			return activation;
 		}
 		return {};
 	} else if (!_useCollageLayout) {
 		return {};
 	}
-	for (const auto &item : _items) {
+	for (auto i = 0, count = int(_items.size()); i != count; ++i) {
+		const auto &item = _items[i];
 		if (item.rect.contains(point)) {
-			return item.activation;
+			auto activation = item.activation;
+			activation.itemIndex = i;
+			return activation;
 		}
 	}
 	return {};
@@ -1500,7 +1265,7 @@ void GroupedMediaBlock::rebuildLayout(int width) {
 		return;
 	}
 
-	const auto spacing = st::defaultMarkdown.groupedMedia.itemSkip;
+	const auto spacing = layoutStyle().groupedMedia.itemSkip;
 	auto top = 0;
 	auto maxWidth = 0;
 	auto index = 0;
@@ -1550,7 +1315,7 @@ void GroupedMediaBlock::clearCollageLayout() {
 
 int GroupedMediaBlock::fallbackHeight(int width) const {
 	if (_fallbackSize.isEmpty()) {
-		return std::max(st::defaultMarkdown.placeholder.minHeight, 1);
+		return std::max(layoutStyle().placeholder.minHeight, 1);
 	}
 	return MediaHeightForWidth(
 		width,
@@ -1615,10 +1380,13 @@ void GroupedMediaBlock::resolveImages(ItemState &item) {
 	if (item.rect.isEmpty()) {
 		return;
 	}
+	const auto requestSize = ScaledRequestSize(
+		item.rect.size(),
+		mediaPixelScale());
 	if (item.photoRuntime) {
 		RefreshResolvedImages(
 			item.photoRuntime,
-			item.rect.size(),
+			requestSize,
 			&item.requestedSize,
 			&item.thumbnailImage,
 			&item.previousThumbnailImage,
@@ -1630,7 +1398,7 @@ void GroupedMediaBlock::resolveImages(ItemState &item) {
 	} else if (item.documentRuntime) {
 		RefreshResolvedImages(
 			item.documentRuntime,
-			item.rect.size(),
+			requestSize,
 			&item.requestedSize,
 			&item.thumbnailImage,
 			&item.previousThumbnailImage,
@@ -1670,29 +1438,28 @@ void GroupedMediaBlock::handleImageUpdate(int index) {
 	requestRepaint(_items[index].rect);
 }
 
-void GroupedMediaBlock::paintItem(Painter &p, const ItemState &item) const {
+void GroupedMediaBlock::paintItem(
+		Painter &p,
+		const ItemState &item,
+		const style::Markdown &st) const {
 	if (item.rect.isEmpty()) {
 		return;
 	}
-	p.fillRect(item.rect, st::windowBgOver->c);
-	if (!PaintResolvedImages(
+	const auto painted = PaintResolvedImages(
 			p,
 			item.rect,
 			item.thumbnailImage,
 			item.fullImage,
 			item.previousThumbnailImage,
-			item.previousFullImage)) {
-		p.setPen(st::windowSubTextFg->c);
-		p.drawText(
-			item.rect,
-			Qt::AlignCenter | Qt::TextWordWrap,
-			item.copyText);
+			item.previousFullImage);
+	if (painted && item.spoiler) {
+		PaintImageSpoiler(p, item.rect);
 	}
 	if (itemLoading(item)) {
 		PaintPhotoProgress(
 			p,
 			item.rect,
-			st::defaultMarkdown.photo,
+			st.photo,
 			itemProgress(item));
 	}
 }
@@ -1715,46 +1482,101 @@ double GroupedMediaBlock::itemProgress(const ItemState &item) const {
 	return 0.;
 }
 
-void GroupedMediaBlock::paintActiveItem(Painter &p) const {
+void GroupedMediaBlock::paintActiveItem(
+		Painter &p,
+		const style::Markdown &st,
+		const MarkdownArticlePaintContext &context) const {
 	const auto item = activeItem();
 	if (!item) {
-		p.fillRect(_geometry, st::windowBgOver->c);
-		p.setPen(st::windowSubTextFg->c);
-		p.drawText(
-			_geometry,
-			Qt::AlignCenter | Qt::TextWordWrap,
-			_fallbackLabel);
+		_spoilerAnimation = nullptr;
 		return;
 	}
-	p.fillRect(_geometry, st::windowBgOver->c);
-	if (!PaintResolvedImages(
+	const auto foregroundHeight = activeItemForegroundHeight(_geometry.width());
+	const auto painted = (foregroundHeight < _geometry.height())
+		? paintActiveItemWithBlurredBackground(p, *item)
+		: PaintResolvedImages(
 			p,
 			_geometry,
 			item->thumbnailImage,
 			item->fullImage,
 			item->previousThumbnailImage,
-			item->previousFullImage)) {
-		p.setPen(st::windowSubTextFg->c);
-		p.drawText(
+			item->previousFullImage);
+	if (painted && item->spoiler) {
+		if (!_spoilerAnimation) {
+			_spoilerAnimation = std::make_unique<Ui::SpoilerAnimation>([=] {
+				requestRepaint(_geometry);
+			});
+		}
+		const auto pausedSpoiler = context.paused
+			|| On(PowerSaving::kChatSpoiler);
+		PaintImageSpoiler(
+			p,
 			_geometry,
-			Qt::AlignCenter | Qt::TextWordWrap,
-			item->copyText.isEmpty() ? _fallbackLabel : item->copyText);
+			Ui::DefaultImageSpoiler().frame(
+				_spoilerAnimation->index(context.now, pausedSpoiler)));
+	} else {
+		_spoilerAnimation = nullptr;
 	}
 	if (itemLoading(*item)) {
 		PaintPhotoProgress(
 			p,
 			_geometry,
-			st::defaultMarkdown.photo,
+			st.photo,
 			itemProgress(*item));
 	}
 }
 
-void GroupedMediaBlock::paintNavigation(Painter &p) const {
+bool GroupedMediaBlock::paintActiveItemWithBlurredBackground(
+		Painter &p,
+		const ItemState &item) const {
+	const auto foregroundHeight = std::clamp(
+		activeItemForegroundHeight(_geometry.width()),
+		1,
+		std::max(_geometry.height(), 1));
+	if (foregroundHeight >= _geometry.height()) {
+		return false;
+	}
+	const auto size = std::max(_geometry.width(), _geometry.height());
+	auto large = ResolvedImageFrame(
+		item.fullImage,
+		item.previousFullImage,
+		size);
+	if (large.isNull()) {
+		large = ResolvedImageFrame(
+			item.thumbnailImage,
+			item.previousThumbnailImage,
+			size);
+	}
+	if (large.isNull()) {
+		return false;
+	}
+	auto blurred = ResolvedImageFrame(
+		item.thumbnailImage,
+		item.previousThumbnailImage,
+		size);
+	if (blurred.isNull()) {
+		blurred = large;
+	}
+	const auto prepared = PrepareWithBlurredBackground(
+		_geometry.size(),
+		QSize(_geometry.width(), foregroundHeight),
+		std::move(large),
+		std::move(blurred));
+	if (prepared.isNull()) {
+		return false;
+	}
+	p.drawImage(_geometry.topLeft(), prepared);
+	return true;
+}
+
+void GroupedMediaBlock::paintNavigation(
+		Painter &p,
+		const style::Markdown &st) const {
 	if ((_intent != PreparedGroupedMediaIntent::Slideshow)
 		|| (_items.size() < 2)) {
 		return;
 	}
-	const auto &style = st::defaultMarkdown.groupedMedia;
+	const auto &style = st.groupedMedia;
 	if (!_previousRect.isEmpty()) {
 		const auto active = ClickHandler::showAsActive(_previousLink)
 			|| ClickHandler::showAsPressed(_previousLink);
@@ -1801,29 +1623,18 @@ void GroupedMediaBlock::updateNavigationRects() {
 		|| _geometry.isEmpty()) {
 		return;
 	}
-	const auto &style = st::defaultMarkdown.groupedMedia;
-	const auto availableWidth = std::max(
-		(_geometry.width() - 2 * style.navButtonSkip) / 2,
-		0);
-	const auto size = std::min({
+	const auto &style = layoutStyle().groupedMedia;
+	const auto frameHeight = slideshowNavigationFrameHeight(_geometry.width());
+	const auto rects = ComputeSlideshowNavRects(
+		_geometry,
+		frameHeight,
 		style.navButtonSize,
-		std::max(_geometry.height(), 0),
-		availableWidth,
-	});
-	if (size <= 0) {
+		style.navButtonSkip);
+	if (rects.previous.isEmpty()) {
 		return;
 	}
-	const auto top = _geometry.y() + std::max((_geometry.height() - size) / 2, 0);
-	_previousRect = QRect(
-		_geometry.x() + style.navButtonSkip,
-		top,
-		size,
-		size);
-	_nextRect = QRect(
-		_geometry.x() + _geometry.width() - style.navButtonSkip - size,
-		top,
-		size,
-		size);
+	_previousRect = rects.previous;
+	_nextRect = rects.next;
 }
 
 void GroupedMediaBlock::stepActiveIndex(int delta) {
@@ -1843,6 +1654,7 @@ void GroupedMediaBlock::stepActiveIndex(int delta) {
 	const auto previousHeight = activeItemHeight(width);
 	_activeIndex = next;
 	const auto nextHeight = activeItemHeight(width);
+	_height = nextHeight;
 	if (_geometry.isEmpty()) {
 		return;
 	} else if (previousHeight != nextHeight) {
@@ -1857,7 +1669,7 @@ void GroupedMediaBlock::stepActiveIndex(int delta) {
 	requestRepaint(previousGeometry.united(_geometry));
 }
 
-int GroupedMediaBlock::activeItemHeight(int width) const {
+int GroupedMediaBlock::activeItemForegroundHeight(int width) const {
 	if (const auto item = activeItem()) {
 		return MediaHeightForWidth(
 			width,
@@ -1865,6 +1677,25 @@ int GroupedMediaBlock::activeItemHeight(int width) const {
 			item->original.height());
 	}
 	return fallbackHeight(width);
+}
+
+int GroupedMediaBlock::activeItemHeight(int width) const {
+	return std::max(
+		activeItemForegroundHeight(width),
+		std::max(layoutStyle().groupedMedia.slideshowMinHeight, 1));
+}
+
+int GroupedMediaBlock::slideshowNavigationFrameHeight(int width) const {
+	const auto minHeight = layoutStyle().groupedMedia.slideshowMinHeight;
+	if (_items.empty()) {
+		return std::max(fallbackHeight(width), std::max(minHeight, 1));
+	}
+	auto sizes = std::vector<QSize>();
+	sizes.reserve(_items.size());
+	for (const auto &item : _items) {
+		sizes.push_back(item.original);
+	}
+	return SlideshowFrameHeight(width, minHeight, sizes);
 }
 
 GroupedMediaBlock::ItemState *GroupedMediaBlock::activeItem() {
@@ -1884,11 +1715,45 @@ const GroupedMediaBlock::ItemState *GroupedMediaBlock::activeItem() const {
 MediaBlock::~MediaBlock() = default;
 
 void MediaBlock::setHost(MediaBlockHost *host) {
+	if (_host == host) {
+		return;
+	}
 	_host = host;
+	hostUpdated();
 }
 
 MediaBlockHost *MediaBlock::host() const {
 	return _host;
+}
+
+bool MediaBlock::hasHeavyPart() const {
+	return false;
+}
+
+void MediaBlock::unloadHeavyPart() {
+}
+
+void MediaBlock::hideSpoilers() {
+}
+
+void MediaBlock::setLayoutStyle(const style::Markdown &st) {
+	if (_st == &st) {
+		return;
+	}
+	_st = &st;
+	layoutStyleUpdated();
+}
+
+const style::Markdown &MediaBlock::layoutStyle() const {
+	return *_st;
+}
+
+void MediaBlock::setMediaPixelScale(double scale) {
+	_mediaPixelScale = std::max(scale, 1.);
+}
+
+double MediaBlock::mediaPixelScale() const {
+	return _mediaPixelScale;
 }
 
 void MediaBlock::requestRepaint(QRect articleRect) const {
@@ -1903,63 +1768,120 @@ void MediaBlock::requestRelayout(QRect articleRect) const {
 	}
 }
 
+void MediaBlock::layoutStyleUpdated() {
+}
+
+void MediaBlock::hostUpdated() {
+}
+
 std::shared_ptr<MediaBlock> CreatePhotoMediaBlock(
 		const PreparedPhotoBlockData &prepared,
-		const std::shared_ptr<MediaRuntime> &mediaRuntime) {
+		const std::shared_ptr<MediaRuntime> &mediaRuntime,
+		const style::Markdown &st) {
 	if (mediaRuntime
 		&& prepared.viewerOpen
 		&& prepared.urlOverride.isEmpty()) {
+		mediaRuntime->registerPhoto(prepared.photoId, prepared.caption);
 		if (const auto hosted = mediaRuntime->hostedMediaBlockFactory()) {
 			if (const auto block = hosted->createPhoto(prepared)) {
+				block->setLayoutStyle(st);
 				return block;
 			}
 		}
 	}
-	return std::make_shared<ImageBackedMediaBlock>(prepared, mediaRuntime);
+	auto result = std::make_shared<ImageBackedMediaBlock>(prepared, mediaRuntime);
+	result->setLayoutStyle(st);
+	return result;
 }
 
 std::shared_ptr<MediaBlock> CreateVideoMediaBlock(
 		const PreparedVideoBlockData &prepared,
-		const std::shared_ptr<MediaRuntime> &mediaRuntime) {
+		const std::shared_ptr<MediaRuntime> &mediaRuntime,
+		const style::Markdown &st) {
 	if (mediaRuntime) {
+		mediaRuntime->registerDocument(prepared.media.id, prepared.caption);
 		if (const auto hosted = mediaRuntime->hostedMediaBlockFactory()) {
 			if (const auto block = hosted->createVideo(prepared)) {
+				block->setLayoutStyle(st);
 				return block;
 			}
 		}
 	}
-	return std::make_shared<ImageBackedMediaBlock>(prepared, mediaRuntime);
+	auto result = std::make_shared<ImageBackedMediaBlock>(prepared, mediaRuntime);
+	result->setLayoutStyle(st);
+	return result;
 }
 
 std::shared_ptr<MediaBlock> CreateAudioMediaBlock(
 		const PreparedAudioBlockData &prepared,
-		const std::shared_ptr<MediaRuntime> &mediaRuntime) {
-	return std::make_shared<AudioMediaBlock>(prepared, mediaRuntime);
-}
-
-std::shared_ptr<MediaBlock> CreateMapMediaBlock(
-		const PreparedMapBlockData &prepared,
-		const std::shared_ptr<MediaRuntime> &mediaRuntime) {
+		const std::shared_ptr<MediaRuntime> &mediaRuntime,
+		const style::Markdown &st) {
 	if (mediaRuntime) {
 		if (const auto hosted = mediaRuntime->hostedMediaBlockFactory()) {
-			if (const auto block = hosted->createMap(prepared)) {
+			if (const auto block = hosted->createAudio(prepared)) {
+				block->setLayoutStyle(st);
 				return block;
 			}
 		}
 	}
-	return std::make_shared<ImageBackedMediaBlock>(prepared, mediaRuntime);
+	return nullptr;
+}
+
+std::shared_ptr<MediaBlock> CreateMapMediaBlock(
+		const PreparedMapBlockData &prepared,
+		const std::shared_ptr<MediaRuntime> &mediaRuntime,
+		const style::Markdown &st) {
+	if (mediaRuntime) {
+		if (const auto hosted = mediaRuntime->hostedMediaBlockFactory()) {
+			if (const auto block = hosted->createMap(prepared)) {
+				block->setLayoutStyle(st);
+				return block;
+			}
+		}
+	}
+	auto result = std::make_shared<ImageBackedMediaBlock>(prepared, mediaRuntime);
+	result->setLayoutStyle(st);
+	return result;
 }
 
 std::shared_ptr<MediaBlock> CreateChannelMediaBlock(
 		const PreparedChannelBlockData &prepared,
-		const std::shared_ptr<MediaRuntime> &mediaRuntime) {
-	return std::make_shared<ChannelMediaBlock>(prepared, mediaRuntime);
+		const std::shared_ptr<MediaRuntime> &mediaRuntime,
+		const style::Markdown &st) {
+	auto result = std::make_shared<ChannelMediaBlock>(prepared, mediaRuntime);
+	result->setLayoutStyle(st);
+	return result;
 }
 
 std::shared_ptr<MediaBlock> CreateGroupedMediaBlock(
 		const PreparedGroupedMediaBlockData &prepared,
-		const std::shared_ptr<MediaRuntime> &mediaRuntime) {
-	return std::make_shared<GroupedMediaBlock>(prepared, mediaRuntime);
+		const std::shared_ptr<MediaRuntime> &mediaRuntime,
+		const style::Markdown &st) {
+	if (mediaRuntime) {
+		for (const auto &item : prepared.items) {
+			switch (item.media.kind) {
+			case PreparedMediaItemKind::Photo:
+				mediaRuntime->registerPhoto(
+					item.media.id,
+					prepared.caption);
+				break;
+			case PreparedMediaItemKind::Document:
+				mediaRuntime->registerDocument(
+					item.media.id,
+					prepared.caption);
+				break;
+			}
+		}
+		if (const auto hosted = mediaRuntime->hostedMediaBlockFactory()) {
+			if (const auto block = hosted->createGroupedMedia(prepared)) {
+				block->setLayoutStyle(st);
+				return block;
+			}
+		}
+	}
+	auto result = std::make_shared<GroupedMediaBlock>(prepared, mediaRuntime);
+	result->setLayoutStyle(st);
+	return result;
 }
 
 } // namespace Iv::Markdown

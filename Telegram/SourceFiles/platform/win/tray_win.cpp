@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
+#include "core/version.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "storage/localstorage.h"
@@ -73,6 +74,46 @@ bool DarkTasbarValueValid/* = false*/;
 		DarkTaskbar = ReadDarkTaskbarValue();
 	}
 	return DarkTaskbar;
+[[nodiscard]] QImage MonochromeIconFor(int size, bool darkMode) {
+	Expects(size > 0);
+
+	static const auto Content = [&] {
+		auto f = QFile(u":/gui/icons/tray/monochrome.svg"_q);
+		return f.open(QIODevice::ReadOnly) ? f.readAll() : QByteArray();
+	}();
+	static auto Mask = QImage();
+	static auto Size = 0;
+	if (Mask.isNull() || Size != size) {
+		Size = size;
+		Mask = QImage(size, size, QImage::Format_ARGB32_Premultiplied);
+		Mask.fill(Qt::transparent);
+		auto p = QPainter(&Mask);
+		QSvgRenderer(Content).render(&p, QRectF(0, 0, size, size));
+	}
+	static auto Colored = QImage();
+	static auto ColoredDark = QImage();
+	auto &use = darkMode ? ColoredDark : Colored;
+	if (use.size() != Mask.size()) {
+		const auto color = darkMode ? 255 : 0;
+		const auto alpha = darkMode ? 255 : 228;
+		use = style::colorizeImage(Mask, { color, color, color, alpha });
+	}
+	return use;
+}
+
+[[nodiscard]] QImage MonochromeWithDot(QImage image, style::color color) {
+	auto p = QPainter(&image);
+	auto hq = PainterHighQualityEnabler(p);
+	const auto xm = image.width() / 16.;
+	const auto ym = image.height() / 16.;
+	p.setBrush(color);
+	p.setPen(Qt::NoPen);
+	p.drawEllipse(QRectF( // cx=3.9, cy=12.7, r=2.2
+		1.7 * xm,
+		10.5 * ym,
+		4.4 * xm,
+		4.4 * ym));
+	return image;
 }
 
 [[nodiscard]] QImage ImageIconWithCounter(
@@ -384,6 +425,23 @@ QString Tray::GhostJumpListIconPath() {
 
 bool HasMonochromeSetting() {
 	return IsDarkTaskbar().has_value();
+}
+
+std::optional<bool> IsDarkTaskbar() {
+	static const auto kSystemVersion = QOperatingSystemVersion::current();
+	static const auto kDarkModeAddedVersion = QOperatingSystemVersion(
+		QOperatingSystemVersion::Windows,
+		10,
+		0,
+		18282);
+	static const auto kSupported = (kSystemVersion >= kDarkModeAddedVersion);
+	if (!kSupported) {
+		return std::nullopt;
+	} else if (!DarkTasbarValueValid) {
+		DarkTasbarValueValid = true;
+		DarkTaskbar = ReadDarkTaskbarValue();
+	}
+	return DarkTaskbar;
 }
 
 void RefreshTaskbarThemeValue() {

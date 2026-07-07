@@ -4,15 +4,7 @@
 # For license and copyright information please follow this link:
 # https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
-cmake_minimum_required(VERSION 3.31)
-
-# Workaround some linking errors in GCC due to static library order.
-if (POLICY CMP0156)
-    cmake_policy(SET CMP0156 OLD)
-endif()
-if (POLICY CMP0179)
-    cmake_policy(SET CMP0179 OLD)
-endif()
+cmake_minimum_required(VERSION 3.25...3.31)
 
 # ggml (via bundled llama.cpp) calls nested project(ASM); CMake 4.x treats unset CMP194 as fatal in dev mode.
 set(CMAKE_POLICY_DEFAULT_CMP194 NEW)
@@ -36,7 +28,6 @@ project(Telegram
 
 if (APPLE)
     enable_language(OBJC OBJCXX)
-    set(QT_NO_PRIVATE_MODULE_WARNING ON)
 endif()
 
 if (configuration_types_init

@@ -1121,6 +1121,10 @@ void Updates::handleSendActionUpdate(
 		const auto &data = action.c_sendMessageTextDraftAction();
 		history->streamedDrafts().apply(rootId, fromId, when, data);
 		return;
+	} else if (action.type() == mtpc_sendMessageRichMessageDraftAction) {
+		const auto &data = action.c_sendMessageRichMessageDraftAction();
+		history->streamedDrafts().apply(rootId, fromId, when, data);
+		return;
 	}
 	session().data().sendActionManager().registerFor(
 		history,
@@ -1243,7 +1247,8 @@ void Updates::applyUpdatesNoPtsCheck(const MTPUpdates &updates) {
 				MTPlong(), // paid_message_stars
 				MTPSuggestedPost(),
 				MTPint(), // schedule_repeat_period
-				MTPstring()), // summary_from_language
+				MTPstring(), // summary_from_language
+				MTPRichMessage()),
 			MessageFlags(),
 			NewMessageType::Unread);
 	} break;
@@ -1287,7 +1292,8 @@ void Updates::applyUpdatesNoPtsCheck(const MTPUpdates &updates) {
 				MTPlong(), // paid_message_stars
 				MTPSuggestedPost(),
 				MTPint(), // schedule_repeat_period
-				MTPstring()), // summary_from_language
+				MTPstring(), // summary_from_language
+				MTPRichMessage()),
 			MessageFlags(),
 			NewMessageType::Unread);
 	} break;
@@ -1615,17 +1621,6 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 	case mtpc_updateNewChannelMessage: {
 		auto &d = update.c_updateNewChannelMessage();
 		auto channel = session().data().channelLoaded(peerToChannel(PeerFromMessage(d.vmessage())));
-		{
-			// Todo delete.
-			const auto messageId = IdFromMessage(d.vmessage());
-			if (const auto history = channel ? session().data().historyLoaded(channel) : nullptr) {
-				if (history->isUnknownMessageDeleted(messageId)) {
-					LOG(("Unknown message deleted detected for channel %1, message %2")
-						.arg(channel->id.value & PeerId::kChatTypeMask)
-						.arg(messageId.bare));
-				}
-			}
-		}
 		if (!requestingDifference() && !channel) {
 			MTP_LOG(0, ("getDifference "
 				"{ good - after not all data loaded in updateNewChannelMessage }%1"
@@ -2241,6 +2236,15 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 	case mtpc_updateWebViewResultSent: {
 		const auto &d = update.c_updateWebViewResultSent();
 		session().data().webViewResultSent({ .queryId = d.vquery_id().v });
+	} break;
+
+	case mtpc_updateJoinChatWebViewDecision: {
+		const auto &d = update.c_updateJoinChatWebViewDecision();
+		session().data().joinChatWebViewDecision({
+			.peerId = peerFromMTP(d.vpeer()),
+			.queryId = uint64(d.vquery_id().v),
+			.result = d.vresult(),
+		});
 	} break;
 
 	case mtpc_updateBotMenuButton: {
