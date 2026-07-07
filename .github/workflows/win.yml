@@ -112,6 +112,7 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
           sdk: ${{ env.SDK }}
+          toolset: ${{ matrix.arch != 'arm64' && '14.44' || '' }}
 
       - name: NuGet sources.
         run: |
