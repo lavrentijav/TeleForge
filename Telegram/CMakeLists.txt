@@ -111,6 +111,7 @@ set(teleforge_extension_files
         ayu/ayu_state.h
         ayu/ayu_settings.cpp
         ayu/ayu_settings.h
+        ayu/ayu_ui_settings.cpp
         ayu/ayu_ui_settings.h
         ayu/ayu_lang.cpp
         ayu/ayu_lang.h
