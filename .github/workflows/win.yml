@@ -96,6 +96,11 @@ jobs:
 
           echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
           echo "$SDK" >> CACHE_KEY.txt
+          # Include the Visual Studio build version so prebuilt dependency
+          # caches are invalidated when the runner image bumps MSVC. Otherwise
+          # stale deps link against a different runtime and fail with
+          # unresolved __std_* vectorized-algorithm symbols.
+          echo "$('/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe' -latest -property catalog_buildVersion 2>/dev/null || echo novs)" >> CACHE_KEY.txt
           echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
 
           echo "Configurate git for cherry-picks."
