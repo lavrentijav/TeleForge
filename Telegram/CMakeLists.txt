@@ -24,6 +24,13 @@ add_subdirectory(codegen)
 # TeleForge extensions
 add_subdirectory(lib_icu)
 
+# The bundled ICU sources use APIs deprecated in newer ICU/compilers
+# (e.g. ucnv_safeClone); GCC 15 turns -Wdeprecated-declarations into an error
+# under the global -Werror. Don't treat warnings as errors for vendored ICU.
+if (TARGET icu_regex_minimal)
+    set_target_properties(icu_regex_minimal PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
+endif()
+
 get_filename_component(src_loc SourceFiles REALPATH)
 get_filename_component(res_loc Resources REALPATH)
 
@@ -104,6 +111,7 @@ set(teleforge_extension_files
         ayu/ayu_state.h
         ayu/ayu_settings.cpp
         ayu/ayu_settings.h
+        ayu/ayu_ui_settings.h
         ayu/ayu_lang.cpp
         ayu/ayu_lang.h
         ayu/ayu_infra.cpp
