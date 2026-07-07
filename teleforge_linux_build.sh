@@ -100,6 +100,18 @@ docker run --rm \
 	"$IMAGE" \
 	bash -lc '
 		set -e
+		export HOME=/tmp
+		# The centos_env image ships CMake 3.26, but the project requires 3.31+.
+		# Fetch a self-contained CMake for the container arch and prepend to PATH.
+		CMAKE_VER=3.31.6
+		CMAKE_ARCH="$(uname -m)"
+		if ! cmake --version | head -1 | grep -qE "3\.(3[1-9]|[4-9][0-9])"; then
+			curl -sSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-linux-${CMAKE_ARCH}.tar.gz" -o /tmp/cmake.tgz
+			mkdir -p /tmp/cmake-dist
+			tar -xzf /tmp/cmake.tgz -C /tmp/cmake-dist --strip-components=1
+			export PATH="/tmp/cmake-dist/bin:$PATH"
+		fi
+		cmake --version
 		cd "/usr/src/teleforge/${SRC_REL}/Telegram"
 		rm -rf ../out
 		# shellcheck disable=SC2086
