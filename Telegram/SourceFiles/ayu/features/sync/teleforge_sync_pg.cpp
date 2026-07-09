@@ -9,6 +9,7 @@
 
 #ifdef TELEFORGE_WITH_POSTGRES
 
+#include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
 #include "ayu/features/sync/teleforge_sync_snapshot.h"
 
@@ -18,6 +19,7 @@
 
 #include <QtCore/QDateTime>
 #include <QtCore/QString>
+#include <QtCore/QStringList>
 
 #include <libpq-fe.h>
 
@@ -69,6 +71,45 @@ constexpr auto kUpsertSql =
 constexpr auto kSelectSql =
 	"SELECT payload FROM teleforge_sync WHERE tenant_id=$1";
 
+// Plaintext, queryable embeddings table (kept alongside the encrypted blob).
+// `embedding` is a real[] array — portable and inspectable without pgvector;
+// pgvector can be layered on top later if server-side ANN search is wanted.
+constexpr auto kCreateEmbeddingsTableSql =
+	"CREATE TABLE IF NOT EXISTS teleforge_embeddings ("
+	"tenant_id TEXT NOT NULL,"
+	"memory_id BIGINT NOT NULL,"
+	"model_id TEXT,"
+	"dims INT,"
+	"embedding REAL[],"
+	"scope_type TEXT,"
+	"chat_id BIGINT,"
+	"user_id BIGINT,"
+	"title TEXT,"
+	"summary TEXT,"
+	"updated_at BIGINT,"
+	"PRIMARY KEY (tenant_id, memory_id))";
+
+constexpr auto kEmbeddingUpsertSql =
+	"INSERT INTO teleforge_embeddings (tenant_id,memory_id,model_id,dims,"
+	"embedding,scope_type,chat_id,user_id,title,summary,updated_at)"
+	" VALUES ($1,$2,$3,$4,$5::real[],$6,$7,$8,$9,$10,$11)"
+	" ON CONFLICT (tenant_id,memory_id) DO UPDATE SET"
+	" model_id=EXCLUDED.model_id, dims=EXCLUDED.dims,"
+	" embedding=EXCLUDED.embedding, scope_type=EXCLUDED.scope_type,"
+	" chat_id=EXCLUDED.chat_id, user_id=EXCLUDED.user_id,"
+	" title=EXCLUDED.title, summary=EXCLUDED.summary,"
+	" updated_at=EXCLUDED.updated_at";
+
+// PostgreSQL array literal, e.g. {0.12,-0.34,...}
+[[nodiscard]] QByteArray VectorToPgArray(const std::vector<float> &v) {
+	auto parts = QStringList();
+	parts.reserve(int(v.size()));
+	for (const auto f : v) {
+		parts.push_back(QString::number(f, 'g', 9));
+	}
+	return (u"{"_q + parts.join(',') + u"}"_q).toUtf8();
+}
+
 [[nodiscard]] QString ConnStringFromSettings() {
 	const auto core = LoadPersonalityCore();
 	return core ? core->pgConnString : QString();
@@ -114,7 +155,84 @@ struct UploadPayload {
 	qint64 revision = 0;
 	int dateFrom = 0;
 	int dateTo = 0;
+	std::vector<EmbeddingRow> embeddings;
 };
+
+// Pushes the plaintext embedding rows in one transaction. Best-effort: a
+// failure here is logged but does not fail the (already committed) snapshot
+// upload. Runs on the worker thread.
+void UploadEmbeddings(PGconn *conn, const UploadPayload &up) {
+	if (up.embeddings.empty()) {
+		return;
+	}
+	auto err = QString();
+	{
+		auto res = PQexec(conn, kCreateEmbeddingsTableSql);
+		const auto ok = res && (PQresultStatus(res) == PGRES_COMMAND_OK);
+		if (res) {
+			PQclear(res);
+		}
+		if (!ok) {
+			LOG(("TeleForge Sync PG: embeddings table create failed: %1")
+				.arg(QString::fromUtf8(PQerrorMessage(conn)).trimmed()));
+			return;
+		}
+	}
+	PQclear(PQexec(conn, "BEGIN"));
+	const auto tenant = up.tenantId.toUtf8();
+	for (const auto &row : up.embeddings) {
+		const auto memoryId = QByteArray::number(row.memoryId);
+		const auto modelId = row.modelId.toUtf8();
+		const auto dims = QByteArray::number(row.dims);
+		const auto vec = VectorToPgArray(row.vector);
+		const auto scope = row.scopeType.toUtf8();
+		const auto chatId = row.chatId
+			? QByteArray::number(*row.chatId)
+			: QByteArray();
+		const auto userId = row.userId
+			? QByteArray::number(*row.userId)
+			: QByteArray();
+		const auto title = row.title.toUtf8();
+		const auto summary = row.summary.toUtf8();
+		const auto updatedAt = QByteArray::number(row.updatedAt);
+		const char *values[11] = {
+			tenant.constData(),
+			memoryId.constData(),
+			modelId.constData(),
+			dims.constData(),
+			vec.constData(),
+			scope.constData(),
+			row.chatId ? chatId.constData() : nullptr,
+			row.userId ? userId.constData() : nullptr,
+			title.constData(),
+			summary.constData(),
+			updatedAt.constData(),
+		};
+		auto res = PQexecParams(
+			conn,
+			kEmbeddingUpsertSql,
+			11,
+			nullptr,
+			values,
+			nullptr,
+			nullptr,
+			0);
+		if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
+			err = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
+			if (res) {
+				PQclear(res);
+			}
+			break;
+		}
+		PQclear(res);
+	}
+	if (err.isEmpty()) {
+		PQclear(PQexec(conn, "COMMIT"));
+	} else {
+		PQclear(PQexec(conn, "ROLLBACK"));
+		LOG(("TeleForge Sync PG: embeddings upload failed: %1").arg(err));
+	}
+}
 
 // Blocking; runs on a worker thread.
 [[nodiscard]] bool DoUpload(const UploadPayload &up, QString &error) {
@@ -165,6 +283,10 @@ struct UploadPayload {
 	}
 	if (res) {
 		PQclear(res);
+	}
+	if (ok) {
+		// Best-effort plaintext embeddings mirror; never fails the snapshot.
+		UploadEmbeddings(conn, up);
 	}
 	return ok;
 }
@@ -244,6 +366,7 @@ void RunPgUpload(
 		.revision = QDateTime::currentMSecsSinceEpoch(),
 		.dateFrom = dataShard->dateFrom,
 		.dateTo = dataShard->dateTo,
+		.embeddings = CollectEmbeddingRows(),
 	};
 	const auto sessionPtr = session.get();
 	crl::async([up = std::move(up), done, sessionPtr] {

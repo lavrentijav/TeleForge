@@ -310,6 +310,8 @@ set(teleforge_extension_files
         ayu/features/sync/teleforge_sync.h
         ayu/features/sync/teleforge_sync_crypto.cpp
         ayu/features/sync/teleforge_sync_crypto.h
+        ayu/features/sync/teleforge_sync_embeddings.cpp
+        ayu/features/sync/teleforge_sync_embeddings.h
         ayu/features/sync/teleforge_sync_files.cpp
         ayu/features/sync/teleforge_sync_files.h
         ayu/features/sync/teleforge_sync_merger.cpp

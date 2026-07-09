@@ -412,6 +412,9 @@ PerChatSettingsRecord effectivePerChatSettings(long long peerId) {
 	if (const auto global = loadPerChatSettings(kTeleForgeGlobalDefaultsPeerId)) {
 		auto merged = *global;
 		merged.peerId = peerId;
+		// AI auto-answer never inherits from the global defaults row — it is
+		// opt-in per chat, so a chat without its own row is always off.
+		merged.aiAnswer = false;
 		return merged;
 	}
 	return PerChatSettingsRecord{ .peerId = peerId };

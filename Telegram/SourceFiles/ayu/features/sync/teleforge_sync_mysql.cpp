@@ -9,6 +9,7 @@
 
 #ifdef TELEFORGE_WITH_MYSQL
 
+#include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
 #include "ayu/features/sync/teleforge_sync_snapshot.h"
 
@@ -19,6 +20,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QString>
+#include <QtCore/QStringList>
 
 #include <cstring>
 
@@ -70,6 +72,23 @@ constexpr auto kUpsertSql =
 	" date_from=IF(VALUES(revision)>=revision,VALUES(date_from),date_from),"
 	" date_to=IF(VALUES(revision)>=revision,VALUES(date_to),date_to),"
 	" revision=IF(VALUES(revision)>=revision,VALUES(revision),revision)";
+
+// Plaintext, queryable embeddings table (kept alongside the encrypted blob).
+// The vector is stored as a JSON array for inspection with MySQL JSON funcs.
+constexpr auto kCreateEmbeddingsTableSql =
+	"CREATE TABLE IF NOT EXISTS teleforge_embeddings ("
+	"tenant_id VARCHAR(128) NOT NULL,"
+	"memory_id BIGINT NOT NULL,"
+	"model_id VARCHAR(255),"
+	"dims INT,"
+	"embedding JSON,"
+	"scope_type VARCHAR(64),"
+	"chat_id BIGINT NULL,"
+	"user_id BIGINT NULL,"
+	"title TEXT,"
+	"summary TEXT,"
+	"updated_at BIGINT,"
+	"PRIMARY KEY (tenant_id, memory_id))";
 
 struct ConnParams {
 	QByteArray host = QByteArray("127.0.0.1");
@@ -156,7 +175,80 @@ struct UploadPayload {
 	long long revision = 0;
 	long long dateFrom = 0;
 	long long dateTo = 0;
+	std::vector<EmbeddingRow> embeddings;
 };
+
+// JSON array literal, e.g. [0.12,-0.34,...]
+[[nodiscard]] QByteArray VectorToJson(const std::vector<float> &v) {
+	auto parts = QStringList();
+	parts.reserve(int(v.size()));
+	for (const auto f : v) {
+		parts.push_back(QString::number(f, 'g', 9));
+	}
+	return (u"["_q + parts.join(',') + u"]"_q).toUtf8();
+}
+
+[[nodiscard]] QByteArray MySqlQuote(MYSQL *conn, const QByteArray &in) {
+	auto out = QByteArray(in.size() * 2 + 1, Qt::Uninitialized);
+	const auto len = mysql_real_escape_string(
+		conn,
+		out.data(),
+		in.constData(),
+		(unsigned long)in.size());
+	out.resize(int(len));
+	return "'" + out + "'";
+}
+
+// Best-effort plaintext embeddings mirror; logs but never fails the snapshot.
+void UploadEmbeddings(MYSQL *conn, const UploadPayload &up) {
+	if (up.embeddings.empty()) {
+		return;
+	}
+	if (mysql_query(conn, kCreateEmbeddingsTableSql) != 0) {
+		LOG(("TeleForge Sync MySQL: embeddings table create failed: %1")
+			.arg(QString::fromUtf8(mysql_error(conn)).trimmed()));
+		return;
+	}
+	mysql_query(conn, "START TRANSACTION");
+	const auto tenant = MySqlQuote(conn, up.tenantId);
+	auto err = QString();
+	for (const auto &row : up.embeddings) {
+		const auto nullable = [](const std::optional<long long> &v) {
+			return v ? QByteArray::number(*v) : QByteArray("NULL");
+		};
+		const auto query = QByteArray(
+			"INSERT INTO teleforge_embeddings (tenant_id,memory_id,model_id,"
+			"dims,embedding,scope_type,chat_id,user_id,title,summary,"
+			"updated_at) VALUES (")
+			+ tenant + ","
+			+ QByteArray::number(row.memoryId) + ","
+			+ MySqlQuote(conn, row.modelId.toUtf8()) + ","
+			+ QByteArray::number(row.dims) + ","
+			+ MySqlQuote(conn, VectorToJson(row.vector)) + ","
+			+ MySqlQuote(conn, row.scopeType.toUtf8()) + ","
+			+ nullable(row.chatId) + ","
+			+ nullable(row.userId) + ","
+			+ MySqlQuote(conn, row.title.toUtf8()) + ","
+			+ MySqlQuote(conn, row.summary.toUtf8()) + ","
+			+ QByteArray::number(row.updatedAt)
+			+ ") ON DUPLICATE KEY UPDATE"
+			" model_id=VALUES(model_id), dims=VALUES(dims),"
+			" embedding=VALUES(embedding), scope_type=VALUES(scope_type),"
+			" chat_id=VALUES(chat_id), user_id=VALUES(user_id),"
+			" title=VALUES(title), summary=VALUES(summary),"
+			" updated_at=VALUES(updated_at)";
+		if (mysql_real_query(conn, query.constData(), query.size()) != 0) {
+			err = QString::fromUtf8(mysql_error(conn)).trimmed();
+			break;
+		}
+	}
+	if (err.isEmpty()) {
+		mysql_query(conn, "COMMIT");
+	} else {
+		mysql_query(conn, "ROLLBACK");
+		LOG(("TeleForge Sync MySQL: embeddings upload failed: %1").arg(err));
+	}
+}
 
 // Blocking; runs on a worker thread.
 [[nodiscard]] bool DoUpload(const UploadPayload &up, QString &error) {
@@ -224,6 +316,8 @@ struct UploadPayload {
 		error = QString::fromUtf8(mysql_stmt_error(stmt)).trimmed();
 		return false;
 	}
+	// Best-effort plaintext embeddings mirror; never fails the snapshot.
+	UploadEmbeddings(conn, up);
 	return true;
 }
 
@@ -305,6 +399,7 @@ void RunMySqlUpload(
 		.revision = QDateTime::currentMSecsSinceEpoch(),
 		.dateFrom = dataShard->dateFrom,
 		.dateTo = dataShard->dateTo,
+		.embeddings = CollectEmbeddingRows(),
 	};
 	const auto sessionPtr = session.get();
 	crl::async([up = std::move(up), done, sessionPtr] {
