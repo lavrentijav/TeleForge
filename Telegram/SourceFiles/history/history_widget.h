@@ -488,7 +488,7 @@ private:
 	void supportInitAutocomplete();
 	void supportInsertText(const QString &text);
 	void supportShareContact(Support::Contact contact);
-	void teleForgeSuggestReply();
+	void teleForgeSuggestReply(bool automatic = false);
 
 	[[nodiscard]] auto computeSendButtonType() const;
 

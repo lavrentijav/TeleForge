@@ -331,6 +331,21 @@ public:
 	[[nodiscard]] rpl::producer<bool> peerArchiveEnabledChanges() const {
 		return _peerArchiveEnabled.changes();
 	}
+	[[nodiscard]] int archiveChatRefreshSeconds() const {
+		return _archiveChatRefreshSeconds.current();
+	}
+	[[nodiscard]] int archiveKnownUserOnlineSeconds() const {
+		return _archiveKnownUserOnlineSeconds.current();
+	}
+	[[nodiscard]] int archivePrivateOnlineSeconds() const {
+		return _archivePrivateOnlineSeconds.current();
+	}
+	[[nodiscard]] int archivePrivateProfileSeconds() const {
+		return _archivePrivateProfileSeconds.current();
+	}
+	[[nodiscard]] int archiveOtherProfileSeconds() const {
+		return _archiveOtherProfileSeconds.current();
+	}
 	[[nodiscard]] bool adaptiveCoverColor() const { return _adaptiveCoverColor.current(); }
 	[[nodiscard]] bool improveLinkPreviews() const { return _improveLinkPreviews.current(); }
 	[[nodiscard]] bool crashReporting() const { return _crashReporting.current(); }
@@ -418,6 +433,11 @@ public:
 	void setSpyModeGloballyEnabled(bool val);
 	void setSpyRetentionDays(int val);
 	void setPeerArchiveEnabled(bool val);
+	void setArchiveChatRefreshSeconds(int val);
+	void setArchiveKnownUserOnlineSeconds(int val);
+	void setArchivePrivateOnlineSeconds(int val);
+	void setArchivePrivateProfileSeconds(int val);
+	void setArchiveOtherProfileSeconds(int val);
 	void setAdaptiveCoverColor(bool val);
 	void setImproveLinkPreviews(bool val);
 	void setCrashReporting(bool val);
@@ -684,6 +704,11 @@ private:
 	rpl::variable<bool> _spyModeGloballyEnabled = true;
 	rpl::variable<int> _spyRetentionDays = 30;
 	rpl::variable<bool> _peerArchiveEnabled = false;
+	rpl::variable<int> _archiveChatRefreshSeconds = 300;
+	rpl::variable<int> _archiveKnownUserOnlineSeconds = 60;
+	rpl::variable<int> _archivePrivateOnlineSeconds = 15;
+	rpl::variable<int> _archivePrivateProfileSeconds = 600;
+	rpl::variable<int> _archiveOtherProfileSeconds = 3600;
 	rpl::variable<bool> _adaptiveCoverColor = true;
 	rpl::variable<bool> _improveLinkPreviews = false;
 	rpl::variable<bool> _crashReporting = true;

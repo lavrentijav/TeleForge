@@ -25,6 +25,113 @@ using namespace AyBuilder;
 
 namespace {
 
+[[nodiscard]] QString FormatDurationLabel(int seconds) {
+	if (seconds < 60) {
+		return QString::number(seconds) + u" сек"_q;
+	}
+	if (seconds < 3600) {
+		return QString::number(seconds / 60) + u" мин"_q;
+	}
+	const auto hours = seconds / 3600;
+	const auto mins = (seconds % 3600) / 60;
+	return mins
+		? (QString::number(hours) + u" ч "_q + QString::number(mins) + u" мин"_q)
+		: (QString::number(hours) + u" ч"_q);
+}
+
+[[nodiscard]] int IndexForValue(
+		int value,
+		int minValue,
+		int step) {
+	return (value - minValue) / step;
+}
+
+void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
+	const auto &settings = AyuSettings::getInstance();
+
+	ayu.addCollapsibleSection({
+		.id = u"teleforge/archivePollIntervals"_q,
+		.title = rpl::single(u"Интервалы опроса"_q),
+		.fill = [&](not_null<Ui::VerticalLayout*> inner) {
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archiveChatRefresh"_q,
+				.title = rpl::single(u"Обновление всех чатов"_q),
+				.steps = 59,
+				.current = IndexForValue(
+					settings.archiveChatRefreshSeconds(),
+					60,
+					60),
+				.indexToValue = [](int index) { return 60 + index * 60; },
+				.onFinalChanged = [](int seconds) {
+					AyuSettings::getInstance().setArchiveChatRefreshSeconds(seconds);
+				},
+				.formatLabel = FormatDurationLabel,
+			});
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archiveKnownUserOnline"_q,
+				.title = rpl::single(u"Онлайн известных пользователей"_q),
+				.steps = 40,
+				.current = IndexForValue(
+					settings.archiveKnownUserOnlineSeconds(),
+					15,
+					15),
+				.indexToValue = [](int index) { return 15 + index * 15; },
+				.onFinalChanged = [](int seconds) {
+					AyuSettings::getInstance().setArchiveKnownUserOnlineSeconds(seconds);
+				},
+				.formatLabel = FormatDurationLabel,
+			});
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archivePrivateOnline"_q,
+				.title = rpl::single(u"Онлайн в личных чатах"_q),
+				.steps = 24,
+				.current = IndexForValue(
+					settings.archivePrivateOnlineSeconds(),
+					5,
+					5),
+				.indexToValue = [](int index) { return 5 + index * 5; },
+				.onFinalChanged = [](int seconds) {
+					AyuSettings::getInstance().setArchivePrivateOnlineSeconds(seconds);
+				},
+				.formatLabel = FormatDurationLabel,
+			});
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archivePrivateProfile"_q,
+				.title = rpl::single(u"Имя и био в личных чатах"_q),
+				.steps = 119,
+				.current = IndexForValue(
+					settings.archivePrivateProfileSeconds(),
+					60,
+					60),
+				.indexToValue = [](int index) { return 60 + index * 60; },
+				.onFinalChanged = [](int seconds) {
+					AyuSettings::getInstance().setArchivePrivateProfileSeconds(seconds);
+				},
+				.formatLabel = FormatDurationLabel,
+			});
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archiveOtherProfile"_q,
+				.title = rpl::single(u"Имя и био остальных"_q),
+				.steps = 72,
+				.current = IndexForValue(
+					settings.archiveOtherProfileSeconds(),
+					300,
+					300),
+				.indexToValue = [](int index) { return 300 + index * 300; },
+				.onFinalChanged = [](int seconds) {
+					AyuSettings::getInstance().setArchiveOtherProfileSeconds(seconds);
+				},
+				.formatLabel = FormatDurationLabel,
+			});
+		},
+	});
+
+	ayu.base().addSkip();
+	ayu.base().addDividerText(rpl::single(
+		u"Время «был в сети» и даты в архиве округляются до интервала опроса: "
+		u"раз в минуту — до минуты, раз в 15 секунд — до 15 секунд и т.д."_q));
+}
+
 void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 
@@ -45,7 +152,8 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	builder.addSkip();
 	builder.addDividerText(rpl::single(
 		u"Отслеживает онлайн-статус пользователей и сохраняет историю. "
-		u"Для отдельного человека включите «Отслеживать онлайн» в профиле пользователя."_q));
+		u"Глобальный режим включает отслеживание для всех; в профиле пользователя "
+		u"можно задать исключение или включить отдельно при выключенном глобальном режиме."_q));
 
 	ayu.addSlider({
 		.id = u"teleforge/spyRetentionDays"_q,
@@ -84,6 +192,8 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		u"Сохраняет имена, юзернеймы, био, аватары (локально) и чаты, где встречался пользователь. "
 		u"Имена, юзернеймы и био синхронизируются между устройствами; файлы аватаров — нет. "
 		u"Удалённые аватары помечаются значком корзины. По умолчанию выключено."_q));
+
+	BuildPollIntervalSettings(ayu);
 
 	ayu.addSectionDivider();
 	builder.addSubsectionTitle(rpl::single(u"Сохранение сообщений"_q));

@@ -1,6 +1,7 @@
 #include "ayu/features/spy/online_history_storage.h"
 
 #include "ayu/ayu_settings.h"
+#include "ayu/features/teleforge/tf_peer_archive_scheduler.h"
 #include "ayu/data/ayu_database.h"
 #include "base/unixtime.h"
 
@@ -29,11 +30,33 @@ void NoteManualLastSeen(long long userId, int timestamp) {
 	g_manualCache[userId] = timestamp;
 }
 
-[[nodiscard]] QString FormatSpyOnlineText(TimeId till, TimeId now) {
-	const auto &settings = AyuSettings::getInstance();
-	const auto onlineFull = base::unixtime::parse(till);
+[[nodiscard]] QString FormatSpyOnlineText(
+		TimeId till,
+		TimeId now,
+		int precisionSeconds) {
+	const auto rounded = TeleForge::PeerArchive::roundTimestampToPrecision(
+		int(till),
+		precisionSeconds);
+	const auto onlineFull = base::unixtime::parse(TimeId(rounded));
 	const auto nowFull = base::unixtime::parse(now);
 	const auto locale = QLocale();
+	if (precisionSeconds >= 3600) {
+		const auto time = locale.toString(onlineFull.time(), QLocale::ShortFormat);
+		if (onlineFull.date() == nowFull.date()) {
+			return u"~"_q + time.left(2) + u":00"_q;
+		}
+		const auto date = locale.toString(onlineFull.date(), QLocale::ShortFormat);
+		return u"~%1 %2:00"_q.arg(date, time.left(2));
+	}
+	if (precisionSeconds >= 60) {
+		const auto time = locale.toString(onlineFull.time(), QLocale::ShortFormat);
+		if (onlineFull.date() == nowFull.date()) {
+			return u"~"_q + time;
+		}
+		const auto date = locale.toString(onlineFull.date(), QLocale::ShortFormat);
+		return u"~%1 %2"_q.arg(date, time);
+	}
+	const auto &settings = AyuSettings::getInstance();
 	const auto timeFmt = settings.showMessageSeconds()
 		? QLocale::LongFormat
 		: QLocale::ShortFormat;
@@ -103,12 +126,19 @@ void setSpyTargetEnabled(long long userId, bool enabled) {
 	AyuDatabase::upsertSpyTarget(userId, enabled);
 }
 
+bool hasSpyTargetOverride(long long userId) {
+	return AyuDatabase::hasSpyTargetOverride(userId);
+}
+
 bool isSpyTargetEnabled(long long userId) {
 	return AyuDatabase::isSpyTargetEnabled(userId);
 }
 
 bool isSpyEnabledForUser(long long userId) {
-	return spyModeGloballyEnabled() || isSpyTargetEnabled(userId);
+	if (AyuDatabase::hasSpyTargetOverride(userId)) {
+		return isSpyTargetEnabled(userId);
+	}
+	return spyModeGloballyEnabled();
 }
 
 bool spyModeGloballyEnabled() {
@@ -210,7 +240,9 @@ std::optional<QString> spyOnlineText(not_null<UserData*> user, TimeId now) {
 	if (till <= 0) {
 		return std::nullopt;
 	}
-	return FormatSpyOnlineText(till, now);
+	const auto precision = TeleForge::PeerArchive::onlinePollPrecisionSeconds(
+		user->id.value);
+	return FormatSpyOnlineText(till, now, precision);
 }
 
 void noteManualLastSeen(long long userId, int timestamp) {

@@ -168,6 +168,78 @@ void LmStudioBridge::requestChatCompletion(
 	});
 }
 
+void LmStudioBridge::requestChatCompletionRaw(
+		const QJsonArray &messages,
+		const QJsonArray &tools,
+		RawSuccessCallback onSuccess,
+		ErrorCallback onError,
+		const LmStudioRequestOptions &options) {
+	if (_nativeChat) {
+		// In-process llama.cpp has no OpenAI tool-calling contract here, so we
+		// fall back to a plain completion and wrap it as an assistant message.
+		requestChatCompletion(
+			messages,
+			[onSuccess = std::move(onSuccess)](const QString &content) {
+				if (onSuccess) {
+					onSuccess(QJsonObject{
+						{ QStringLiteral("role"), QStringLiteral("assistant") },
+						{ QStringLiteral("content"), content },
+					});
+				}
+			},
+			std::move(onError),
+			options);
+		return;
+	}
+
+	auto payload = QJsonObject{
+		{ "model", options.model.isEmpty() ? QString("local-model") : options.model },
+		{ "temperature", options.temperature },
+		{ "max_tokens", options.maxTokens },
+		{ "messages", messages },
+	};
+	if (!tools.isEmpty()) {
+		payload.insert(QStringLiteral("tools"), tools);
+	}
+
+	auto request = QNetworkRequest(QUrl(chatCompletionsUrl()));
+	request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+	if (!_apiKey.isEmpty()) {
+		request.setRawHeader(
+			"Authorization",
+			QByteArrayLiteral("Bearer ") + _apiKey.toUtf8());
+	}
+	const auto reply = _manager.post(
+		request,
+		QJsonDocument(payload).toJson(QJsonDocument::Compact));
+
+	QObject::connect(reply, &QNetworkReply::finished, [
+			reply,
+			onSuccess = std::move(onSuccess),
+			onError = std::move(onError)] {
+		if (reply->error() != QNetworkReply::NoError) {
+			if (onError) {
+				onError(reply->errorString());
+			}
+			reply->deleteLater();
+			return;
+		}
+		const auto document = QJsonDocument::fromJson(reply->readAll());
+		const auto choices = document.object().value("choices").toArray();
+		if (choices.isEmpty()) {
+			if (onError) {
+				onError("LM Studio returned an empty choices array.");
+			}
+			reply->deleteLater();
+			return;
+		}
+		if (onSuccess) {
+			onSuccess(choices[0].toObject().value("message").toObject());
+		}
+		reply->deleteLater();
+	});
+}
+
 void LmStudioBridge::requestCompletion(
 		const QString &systemPrompt,
 		const QString &userPrompt,

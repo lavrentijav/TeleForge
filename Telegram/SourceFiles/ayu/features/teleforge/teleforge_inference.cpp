@@ -6,15 +6,19 @@
 #include "ayu/features/teleforge/teleforge_prompt_builder.h"
 #include "ayu/features/teleforge/teleforge_openai_models.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
+#include "ayu/features/teleforge/teleforge_tools.h"
+#include "ayu/features/plugins/plugin_tool_registry.h"
 
 #include "logs.h"
 
 #include <crl/crl.h>
 
+#include <memory>
 #include <unordered_set>
 
 #include <QtCore/QFileInfo>
 #include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QUrl>
@@ -221,10 +225,14 @@ void RequestMemoryFactSplit(
 	opt.model = personality.chatModelId.trimmed();
 	opt.temperature = 0.;
 	opt.maxTokens = 768;
+	// NB: capture `onFallback` by copy in BOTH callbacks. Moving it into the
+	// success lambda and then again into the error lambda would leave the
+	// error path with a moved-from (empty) Fn, so when the chat LLM endpoint
+	// is unreachable nothing gets written to memory at all.
 	LmStudioBridge::instance().requestCompletion(
 		system,
 		trimmed,
-		[onFacts = std::move(onFacts), onFallback = std::move(onFallback)](
+		[onFacts = std::move(onFacts), onFallback](
 				const QString &reply) {
 			const auto facts = ParseModelOutputToFacts(reply);
 			if (facts.isEmpty()) {
@@ -237,7 +245,7 @@ void RequestMemoryFactSplit(
 				onFacts(facts);
 			}
 		},
-		[onFallback = std::move(onFallback)](const QString &) {
+		[onFallback](const QString &) {
 			if (onFallback) {
 				onFallback();
 			}
@@ -335,6 +343,143 @@ void RequestTeleForgeCompletionAsync(
 			std::move(onError),
 			lmOptions);
 	});
+}
+
+namespace {
+
+constexpr auto kMaxToolRounds = 4;
+
+struct ToolLoopState {
+	QJsonArray messages;
+	QJsonArray tools;
+	LmStudioRequestOptions options;
+	long long peerId = 0;
+	int rounds = 0;
+	Fn<void(TeleForgeReplyOutcome)> onDone;
+	ToolActionExecutor onAction;
+};
+
+[[nodiscard]] QJsonObject ParseToolArguments(const QJsonValue &raw) {
+	if (raw.isObject()) {
+		return raw.toObject();
+	}
+	return QJsonDocument::fromJson(raw.toString().toUtf8()).object();
+}
+
+void FinishToolLoop(
+		const std::shared_ptr<ToolLoopState> &state,
+		TeleForgeReplyOutcome outcome) {
+	if (state->onDone) {
+		state->onDone(std::move(outcome));
+	}
+}
+
+// One round of the tool loop. Recurses through the async network callback
+// (capturing `state` keeps it alive); no self-referencing closure, so there is
+// no reference cycle to leak.
+void RunToolLoopStep(std::shared_ptr<ToolLoopState> state) {
+	LmStudioBridge::instance().requestChatCompletionRaw(
+		state->messages,
+		state->tools,
+		[state](const QJsonObject &message) {
+			const auto toolCalls = message.value(
+				QStringLiteral("tool_calls")).toArray();
+			if (toolCalls.isEmpty()) {
+				auto outcome = TeleForgeReplyOutcome{};
+				outcome.shouldReply = true;
+				const auto content = message.value(
+					QStringLiteral("content")).toString().trimmed();
+				if (!content.isEmpty()) {
+					outcome.parts.push_back(content);
+				}
+				FinishToolLoop(state, std::move(outcome));
+				return;
+			}
+
+			// Echo the assistant tool-call message back into the history.
+			state->messages.push_back(message);
+
+			auto directive = Tools::ReplyDirective{};
+			for (const auto &callValue : toolCalls) {
+				const auto call = callValue.toObject();
+				const auto id = call.value(QStringLiteral("id")).toString();
+				const auto fn = call.value(
+					QStringLiteral("function")).toObject();
+				const auto name = fn.value(
+					QStringLiteral("name")).toString();
+				const auto args = ParseToolArguments(
+					fn.value(QStringLiteral("arguments")));
+
+				auto result = QString();
+				if (Tools::IsControlTool(name)) {
+					Tools::ApplyControlTool(name, args, directive);
+					result = QStringLiteral("ok");
+				} else if (const auto data = Tools::RunDataTool(
+						name,
+						args,
+						state->peerId)) {
+					result = *data;
+				} else if (state->onAction
+					&& !(result = state->onAction(name, args)).isNull()) {
+					// handled by the chat action executor
+				} else {
+					result = QStringLiteral(
+						"Tool '%1' is not available.").arg(name);
+				}
+				state->messages.push_back(QJsonObject{
+					{ QStringLiteral("role"), QStringLiteral("tool") },
+					{ QStringLiteral("tool_call_id"), id },
+					{ QStringLiteral("name"), name },
+					{ QStringLiteral("content"), result },
+				});
+			}
+
+			if (directive.decided) {
+				auto outcome = TeleForgeReplyOutcome{};
+				outcome.shouldReply = directive.shouldReply;
+				outcome.parts = directive.parts;
+				FinishToolLoop(state, std::move(outcome));
+				return;
+			}
+			if (++state->rounds >= kMaxToolRounds) {
+				auto outcome = TeleForgeReplyOutcome{};
+				outcome.error = QStringLiteral(
+					"Tool call loop limit reached.");
+				FinishToolLoop(state, std::move(outcome));
+				return;
+			}
+			RunToolLoopStep(state);
+		},
+		[state](const QString &err) {
+			auto outcome = TeleForgeReplyOutcome{};
+			outcome.error = err;
+			FinishToolLoop(state, std::move(outcome));
+		},
+		state->options);
+}
+
+} // namespace
+
+void RequestTeleForgeReply(
+		const InferenceParams &params,
+		Fn<void(TeleForgeReplyOutcome)> onDone,
+		ToolActionExecutor onAction) {
+	const auto prepared = PrepareTeleForgeCompletion(params);
+
+	auto tools = Tools::BuiltinToolsJson();
+	for (const auto &pluginTool : Plugins::PluginToolsForInference()) {
+		tools.push_back(pluginTool);
+	}
+
+	const auto state = std::make_shared<ToolLoopState>();
+	state->messages = prepared.messages;
+	state->tools = std::move(tools);
+	state->options = prepared.lmOptions;
+	state->peerId = params.peerId;
+	state->onDone = std::move(onDone);
+	state->onAction = std::move(onAction);
+
+	RunToolLoopStep(state);
 }
 
 } // namespace TeleForge

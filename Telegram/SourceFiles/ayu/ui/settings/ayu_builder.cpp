@@ -181,68 +181,113 @@ void AyuSectionBuilder::addChooseButton(ChooseButtonArgs &&args) {
 	});
 }
 
+void AyuSectionBuilder::addCollapsibleSection(CollapsibleSectionArgs &&args) {
+	auto id = std::move(args.id);
+	auto altIds = std::move(args.altIds);
+	auto keywords = std::move(args.keywords);
+	auto resolvedTitle = ResolveTitle(rpl::duplicate(args.title));
+	auto fill = std::move(args.fill);
+	const auto expanded = args.expandedByDefault;
+
+	_builder.add([&](const Builder::BuildContext &ctx) {
+		v::match(ctx, [&](const Builder::WidgetContext &wctx) {
+			auto section = AddCollapsibleArrowSection(
+				wctx.container,
+				rpl::duplicate(args.title),
+				expanded);
+			if (section.inner) {
+				fill(section.inner);
+			}
+			if (!id.isEmpty() && wctx.highlights && section.header) {
+				wctx.highlights->push_back({
+					id,
+					{ section.header, {} },
+				});
+			}
+		}, [&](const Builder::SearchContext &sctx) {
+			if (!id.isEmpty()) {
+				sctx.entries->push_back({
+					.id = id,
+					.altIds = altIds,
+					.title = resolvedTitle,
+					.keywords = keywords,
+					.section = sctx.sectionId,
+				});
+			}
+		});
+	});
+}
+
+void AyuSectionBuilder::addSliderTo(
+		not_null<Ui::VerticalLayout*> container,
+		SliderArgs &&args) {
+	if (args.showTitle) {
+		container->add(
+			object_ptr<Button>(container,
+				rpl::duplicate(args.title),
+				st::settingsButtonNoIcon)
+		)->setAttribute(Qt::WA_TransparentForMouseEvents);
+	}
+
+	auto sliderWithLabel = MakeSliderWithLabel(
+		container,
+		st::autoDownloadLimitSlider,
+		st::settingsScaleLabel,
+		0,
+		args.showTitle ? st::settingsScaleLabel.style.font->width("8%%%") : 0);
+	container->add(
+		std::move(sliderWithLabel.widget),
+		st::recentStickersLimitPadding);
+	const auto slider = sliderWithLabel.slider;
+	const auto label = sliderWithLabel.label;
+
+	auto formatLabel = std::move(args.formatLabel);
+	auto indexToValue = std::move(args.indexToValue);
+	auto onChanged = std::move(args.onChanged);
+	auto onFinalChanged = std::move(args.onFinalChanged);
+	const auto current = args.current;
+	const auto steps = args.steps;
+
+	if (formatLabel) {
+		label->setText(formatLabel(current));
+	}
+
+	slider->setPseudoDiscrete(
+		steps,
+		[=](int index) {
+			return indexToValue ? indexToValue(index) : index;
+		},
+		current,
+		[=](int value) {
+			if (formatLabel) {
+				label->setText(formatLabel(value));
+			}
+			if (onChanged) {
+				onChanged(value);
+			}
+		},
+		[=](int value) {
+			if (formatLabel) {
+				label->setText(formatLabel(value));
+			}
+			if (onFinalChanged) {
+				onFinalChanged(value);
+			}
+		});
+}
+
 void AyuSectionBuilder::addSlider(SliderArgs &&args) {
 	auto id = std::move(args.id);
 	auto altIds = std::move(args.altIds);
 	auto keywords = std::move(args.keywords);
 	auto resolvedTitle = ResolveTitle(rpl::duplicate(args.title));
+	const auto showTitle = args.showTitle;
 
-	_builder.add([&](const Builder::BuildContext &ctx) {
+	_builder.add([=, args = std::move(args)](const Builder::BuildContext &ctx) mutable {
 		v::match(ctx, [&](const Builder::WidgetContext &wctx) {
-			const auto container = wctx.container;
-			if (args.showTitle) {
-				container->add(
-					object_ptr<Button>(container,
-						std::move(args.title),
-						st::settingsButtonNoIcon)
-				)->setAttribute(Qt::WA_TransparentForMouseEvents);
-			}
-
-			auto sliderWithLabel = MakeSliderWithLabel(
-				container,
-				st::autoDownloadLimitSlider,
-				st::settingsScaleLabel,
-				0,
-				args.showTitle ? st::settingsScaleLabel.style.font->width("8%%%") : 0);
-			container->add(
-				std::move(sliderWithLabel.widget),
-				st::recentStickersLimitPadding);
-			const auto slider = sliderWithLabel.slider;
-			const auto label = sliderWithLabel.label;
-
-			auto formatLabel = std::move(args.formatLabel);
-			auto indexToValue = std::move(args.indexToValue);
-			auto onChanged = std::move(args.onChanged);
-			auto onFinalChanged = std::move(args.onFinalChanged);
-
-			if (formatLabel) {
-				label->setText(formatLabel(args.current));
-			}
-
-			slider->setPseudoDiscrete(
-				args.steps,
-				[=](int index) {
-					return indexToValue ? indexToValue(index) : index;
-				},
-				args.current,
-				[=](int value) {
-					if (formatLabel) {
-						label->setText(formatLabel(value));
-					}
-					if (onChanged) {
-						onChanged(value);
-					}
-				},
-				[=](int value) {
-					if (formatLabel) {
-						label->setText(formatLabel(value));
-					}
-					if (onFinalChanged) {
-						onFinalChanged(value);
-					}
-				});
+			addSliderTo(wctx.container, std::move(args));
 		}, [&](const Builder::SearchContext &sctx) {
-			if (!id.isEmpty() && args.showTitle) {
+			if (!id.isEmpty() && showTitle) {
 				sctx.entries->push_back({
 					.id = id,
 					.altIds = altIds,

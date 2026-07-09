@@ -226,14 +226,14 @@ WHERE EXISTS (
 	};
 	for (const auto *query : coreQueries) {
 		if (!Exec(live, query)) {
-			Exec(live, "DETACH remote;");
+			(void)Exec(live, "DETACH remote;");
 			return false;
 		}
 	}
 	if (RemoteTableExists(live, "PeerArchiveProfile")) {
 		for (const auto *query : peerArchiveQueries) {
 			if (!Exec(live, query)) {
-				Exec(live, "DETACH remote;");
+				(void)Exec(live, "DETACH remote;");
 				return false;
 			}
 		}
@@ -245,7 +245,7 @@ WHERE NOT EXISTS (
 	SELECT 1 FROM PeerArchiveBio l
 	WHERE l.peerId = r.peerId AND l.bio = r.bio);
 )SQL")) {
-				Exec(live, "DETACH remote;");
+				(void)Exec(live, "DETACH remote;");
 				return false;
 			}
 		}

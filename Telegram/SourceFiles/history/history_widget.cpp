@@ -93,9 +93,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_histories.h"
 #include "data/data_group_call.h"
 #include "data/data_message_reactions.h"
+#include "data/data_message_reaction_id.h"
 #include "data/data_peer_values.h" // Data::AmPremiumValue.
 #include "data/data_premium_limits.h" // Data::PremiumLimits.
 #include "data/stickers/data_stickers.h"
+#include "data/stickers/data_stickers_set.h"
 #include "data/stickers/data_custom_emoji.h"
 #include "history/history.h"
 #include "history/history_item.h"
@@ -1562,14 +1564,16 @@ void HistoryWidget::supportInsertText(const QString &text) {
 	_field->ensureCursorVisible();
 }
 
-void HistoryWidget::teleForgeSuggestReply() {
+void HistoryWidget::teleForgeSuggestReply(bool automatic) {
 	if (!_history || !_peer || !canWriteMessage()) {
 		return;
 	}
 	const auto peerTf = static_cast<long long>(SerializePeerId(_peer->id));
 	if (!TeleForge::LoadMemorySettings(peerTf).aiAnswer) {
-		controller()->showToast(
-			u"TeleForge: AI reply is disabled for this chat."_q);
+		if (!automatic) {
+			controller()->showToast(
+				u"TeleForge: AI reply is disabled for this chat."_q);
+		}
 		return;
 	}
 	const auto tfCore = TeleForge::LoadPersonalityCore().value_or(
@@ -1580,8 +1584,10 @@ void HistoryWidget::teleForgeSuggestReply() {
 		128);
 	auto turns = TeleForge::CollectInferenceTurns(_history, maxTurns);
 	if (turns.empty()) {
-		controller()->showToast(
-			u"TeleForge: add some text messages to the chat first."_q);
+		if (!automatic) {
+			controller()->showToast(
+				u"TeleForge: add some text messages to the chat first."_q);
+		}
 		return;
 	}
 	const auto query = TeleForge::BuildRetrievalQueryFromTurns(turns, 4);
@@ -1601,17 +1607,203 @@ void HistoryWidget::teleForgeSuggestReply() {
 	params.lmOptions.maxTokens = 1024;
 	params.lmOptions.temperature = 0.7;
 
-	controller()->showToast(u"TeleForge: generating replyтАж"_q);
-	TeleForge::RequestTeleForgeCompletionAsync(
-		std::move(params),
-		crl::guard(this, [=](const QString &text) {
-			supportInsertText(text.trimmed());
-			controller()->showToast(u"TeleForge: reply inserted."_q);
+	if (!automatic) {
+		controller()->showToast(u"TeleForge: generating reply..."_q);
+	}
+	const auto autoSendNow = TeleForge::LoadPersonalityCore().value_or(
+		TeleForge::DefaultPersonalityCore()).autoSendEnabled;
+	const auto weakSelf = base::make_weak(this);
+	auto onAction = TeleForge::ToolActionExecutor();
+	if (autoSendNow) {
+		onAction = [=](const QString &name, const QJsonObject &args) -> QString {
+			const auto strong = weakSelf.get();
+			if (!strong
+				|| !strong->_history
+				|| !strong->_peer
+				|| static_cast<long long>(
+					SerializePeerId(strong->_peer->id)) != peerTf) {
+				return QString();
+			}
+			if (name == u"reply_to"_q) {
+				const auto text = args.value(u"text"_q).toString().trimmed();
+				if (text.isEmpty()) {
+					return QStringLiteral("Empty reply text.");
+				}
+				const auto msgId = MsgId(args.value(u"message_id"_q).toInt());
+				auto message = Api::MessageToSend(
+					Api::SendAction(strong->_history));
+				message.textWithTags = { text, TextWithTags::Tags() };
+				message.action.replyTo = FullReplyTo{
+					.messageId = FullMsgId(strong->_peer->id, msgId),
+				};
+				strong->session().api().sendMessage(std::move(message));
+				return QStringLiteral("sent");
+			}
+			if (name == u"typing"_q) {
+				strong->session().sendProgressManager().update(
+					strong->_history,
+					Api::SendProgressType::Typing);
+				return QStringLiteral("ok");
+			}
+			if (name == u"mark_read"_q) {
+				strong->_history->owner().histories().readInbox(
+					strong->_history);
+				return QStringLiteral("ok");
+			}
+			if (name == u"set_reaction"_q) {
+				const auto emoji = args.value(u"emoji"_q).toString();
+				if (emoji.isEmpty()) {
+					return QStringLiteral("empty emoji");
+				}
+				const auto rid = MsgId(args.value(u"message_id"_q).toInt());
+				const auto item = strong->session().data().message(
+					strong->_peer->id,
+					rid);
+				if (!item) {
+					return QStringLiteral("message not found");
+				}
+				if (!item->canReact()) {
+					return QStringLiteral("cannot react to this message");
+				}
+				item->toggleReaction(
+					Data::ReactionId{ emoji },
+					HistoryReactionSource::Selector);
+				return QStringLiteral("ok");
+			}
+			if (name == u"edit_message"_q) {
+				const auto text = args.value(u"text"_q).toString();
+				if (text.isEmpty()) {
+					return QStringLiteral("empty text");
+				}
+				const auto rid = MsgId(args.value(u"message_id"_q).toInt());
+				const auto item = strong->session().data().message(
+					strong->_peer->id,
+					rid);
+				if (!item || !item->out()) {
+					return QStringLiteral("can only edit your own message");
+				}
+				Api::EditTextMessage(
+					item,
+					TextWithEntities{ text },
+					Data::WebPageDraft(),
+					Api::SendOptions{},
+					[](mtpRequestId) {},
+					[](const QString &, mtpRequestId) {},
+					false);
+				return QStringLiteral("ok");
+			}
+			if (name == u"delete_message"_q) {
+				const auto rid = MsgId(args.value(u"message_id"_q).toInt());
+				const auto item = strong->session().data().message(
+					strong->_peer->id,
+					rid);
+				if (!item || !item->out()) {
+					return QStringLiteral("can only delete your own message");
+				}
+				strong->session().data().histories().deleteMessages(
+					MessageIdsList{ item->fullId() },
+					true);
+				return QStringLiteral("ok");
+			}
+			if (name == u"send_sticker"_q) {
+				const auto emoji = args.value(u"emoji"_q).toString();
+				if (emoji.isEmpty()) {
+					return QStringLiteral("empty emoji");
+				}
+				auto &stickers = strong->session().data().stickers();
+				const auto matches = [&](DocumentData *doc) {
+					return doc
+						&& doc->sticker()
+						&& doc->sticker()->alt == emoji;
+				};
+				DocumentData *found = nullptr;
+				for (const auto &pair : stickers.getRecentPack()) {
+					if (matches(pair.first)) {
+						found = pair.first;
+						break;
+					}
+				}
+				if (!found) {
+					const auto &sets = stickers.sets();
+					for (const auto setId : {
+							Data::Stickers::FavedSetId,
+							Data::Stickers::CloudRecentSetId }) {
+						const auto it = sets.find(setId);
+						if (it == sets.end()) {
+							continue;
+						}
+						for (const auto doc : it->second->stickers) {
+							if (matches(doc)) {
+								found = doc;
+								break;
+							}
+						}
+						if (found) {
+							break;
+						}
+					}
+				}
+				if (!found) {
+					return QStringLiteral(
+						"no sticker matching this emoji in recent/favorites");
+				}
+				Api::SendExistingDocument(
+					Api::MessageToSend(Api::SendAction(strong->_history)),
+					found);
+				return QStringLiteral("sent");
+			}
+			return QString();
+		};
+	}
+	TeleForge::RequestTeleForgeReply(
+		params,
+		crl::guard(this, [=](TeleForge::TeleForgeReplyOutcome outcome) {
+			if (!outcome.error.isEmpty()) {
+				if (!automatic) {
+					controller()->showToast(
+						u"TeleForge: %1"_q.arg(outcome.error));
+				}
+				return;
+			}
+			if (!outcome.shouldReply) {
+				if (!automatic) {
+					controller()->showToast(u"TeleForge: no reply."_q);
+				}
+				return;
+			}
+			if (outcome.parts.isEmpty()) {
+				if (!automatic) {
+					controller()->showToast(u"TeleForge: empty reply."_q);
+				}
+				return;
+			}
+			const auto autoSend = TeleForge::LoadPersonalityCore().value_or(
+				TeleForge::DefaultPersonalityCore()).autoSendEnabled;
+			const auto sameChat = _history && _peer
+				&& (static_cast<long long>(SerializePeerId(_peer->id)) == peerTf);
+			if (!autoSend || !sameChat) {
+				// In automatic mode without auto-send we still surface the
+				// draft so the user can review it, but stay quiet otherwise.
+				supportInsertText(outcome.parts.join(QChar(10)).trimmed());
+				if (!automatic) {
+					controller()->showToast((autoSend && !sameChat)
+						? u"TeleForge: chat changed, inserted as draft."_q
+						: u"TeleForge: reply inserted."_q);
+				}
+				return;
+			}
+			for (const auto &part : outcome.parts) {
+				const auto text = part.trimmed();
+				if (text.isEmpty()) {
+					continue;
+				}
+				auto message = Api::MessageToSend(Api::SendAction(_history));
+				message.textWithTags = { text, TextWithTags::Tags() };
+				session().api().sendMessage(std::move(message));
+			}
+			controller()->showToast(u"TeleForge: sent."_q);
 		}),
-		crl::guard(this, [=](const QString &err) {
-			controller()->showToast(
-				u"TeleForge: %1"_q.arg(err));
-		}));
+		std::move(onAction));
 }
 
 void HistoryWidget::supportShareContact(Support::Contact contact) {
@@ -4078,6 +4270,15 @@ void HistoryWidget::newItemAdded(not_null<HistoryItem*> item) {
 	}
 	if (!item->out() && !item->isLocal()) {
 		TeleForge::MaybeIngestHistoryItem(item);
+		// Per-chat AI auto-answer: when enabled, every incoming message is fed
+		// to the model. teleForgeSuggestReply() re-checks the aiAnswer flag and
+		// either sends automatically (autoSendEnabled) or inserts a draft.
+		if (!item->isService()
+			&& _peer
+			&& TeleForge::LoadMemorySettings(
+				static_cast<long long>(SerializePeerId(_peer->id))).aiAnswer) {
+			teleForgeSuggestReply(true);
+		}
 	}
 	if (item->isSponsored()) {
 		if (const auto view = item->mainView()) {
@@ -6034,6 +6235,15 @@ void HistoryWidget::insertTextAtCursor(const QString &text) {
 bool HistoryWidget::eventFilter(QObject *obj, QEvent *e) {
 	if (e->type() == QEvent::KeyPress) {
 		const auto k = static_cast<QKeyEvent*>(e);
+		if ((k->modifiers() & kCommonModifiers)
+				== (Qt::ControlModifier | Qt::ShiftModifier)
+			&& k->key() == Qt::Key_M) {
+			// TeleForge: manual AI reply. keyPressEvent() only fires when the
+			// history widget itself has focus, so intercept here too — this is
+			// installed as an event filter on the message field's text edit.
+			teleForgeSuggestReply();
+			return true;
+		}
 		if ((k->modifiers() & kCommonModifiers) == Qt::ControlModifier) {
 			if (k->key() == Qt::Key_Up) {
 #ifdef Q_OS_MAC

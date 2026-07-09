@@ -17,7 +17,7 @@
 namespace TeleForge::Storage {
 namespace {
 
-constexpr auto kSchemaVersion = 11;
+constexpr auto kSchemaVersion = 14;
 
 std::unique_ptr<UnifiedStorage> gTeleForgeDb;
 
@@ -220,12 +220,12 @@ WHERE NOT EXISTS (
 	};
 	for (const auto *query : queries) {
 		if (!ExecSqlite(live, query)) {
-			ExecSqlite(live, "DETACH legacy;");
+			(void)ExecSqlite(live, "DETACH legacy;");
 			sqlite3_close(live);
 			return;
 		}
 	}
-	ExecSqlite(live, "DETACH legacy;");
+	(void)ExecSqlite(live, "DETACH legacy;");
 	sqlite3_close(live);
 	const auto backup = legacyPath + u".migrated_"_q + QString::number(base::unixtime::now());
 	QFile::rename(legacyPath, backup);
@@ -248,6 +248,18 @@ void MigrateToV10() {
 
 void MigrateToV11() {
 	// V11 adds PeerArchiveBio table (via sync_schema).
+}
+
+void MigrateToV12() {
+	// V12 adds autoSendEnabled / visionEnabled on PersonalityCore (via sync_schema).
+}
+
+void MigrateToV13() {
+	// V13 adds cloudBackend / pgConnString on PersonalityCore (via sync_schema).
+}
+
+void MigrateToV14() {
+	// V14 adds pgVersion on PersonalityCore (via sync_schema).
 }
 
 void RunMigrations() {
@@ -282,6 +294,12 @@ void RunMigrations() {
 				MigrateToV10();
 			} else if (next == 11) {
 				MigrateToV11();
+			} else if (next == 12) {
+				MigrateToV12();
+			} else if (next == 13) {
+				MigrateToV13();
+			} else if (next == 14) {
+				MigrateToV14();
 			}
 			DbImpl().replace(SchemaVersionRecord{
 				.singletonId = 1,

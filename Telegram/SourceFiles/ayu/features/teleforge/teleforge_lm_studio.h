@@ -3,6 +3,7 @@
 #include <functional>
 
 #include <QtCore/QJsonArray>
+#include <QtCore/QJsonObject>
 #include <QtCore/QString>
 #include <QtNetwork/QNetworkAccessManager>
 
@@ -18,6 +19,8 @@ class LmStudioBridge final {
 public:
 	using SuccessCallback = std::function<void(const QString &)>;
 	using ErrorCallback = std::function<void(const QString &)>;
+	// Receives the raw `choices[0].message` object (content + tool_calls).
+	using RawSuccessCallback = std::function<void(const QJsonObject &)>;
 
 	static LmStudioBridge &instance();
 
@@ -37,6 +40,16 @@ public:
 	void requestChatCompletion(
 		const QJsonArray &messages,
 		SuccessCallback onSuccess,
+		ErrorCallback onError = {},
+		const LmStudioRequestOptions &options = {});
+
+	// Like requestChatCompletion, but hands back the whole assistant message
+	// (so callers can inspect tool_calls) and lets the caller supply the tools
+	// array explicitly. When `tools` is empty no tools are advertised.
+	void requestChatCompletionRaw(
+		const QJsonArray &messages,
+		const QJsonArray &tools,
+		RawSuccessCallback onSuccess,
 		ErrorCallback onError = {},
 		const LmStudioRequestOptions &options = {});
 

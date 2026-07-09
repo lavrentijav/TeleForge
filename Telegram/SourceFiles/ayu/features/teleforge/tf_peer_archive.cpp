@@ -8,6 +8,7 @@
 #include "ayu/features/teleforge/tf_peer_archive_entities.h"
 #include "ayu/features/teleforge/tf_peer_archive_crawler.h"
 #include "ayu/features/teleforge/tf_peer_archive_scanner.h"
+#include "ayu/features/teleforge/tf_peer_archive_scheduler.h"
 #include "ayu/libs/sqlite/sqlite_orm.h"
 #include "base/call_delayed.h"
 #include "base/unixtime.h"
@@ -28,6 +29,11 @@
 
 #include <QDir>
 #include <QFileInfo>
+
+#include <algorithm>
+#include <map>
+#include <utility>
+#include <vector>
 
 namespace TeleForge::PeerArchive {
 namespace {
@@ -310,6 +316,111 @@ void bindSessionWindow(not_null<Main::Session*> session) {
 	}
 }
 
+// --- Batched observation processing --------------------------------------
+// The dialogs/updates burst right after launch fires peerUpdates and
+// newItemAdded hundreds of times. Running the archive writes synchronously
+// from each event (every one its own sqlite auto-commit, plus a 512px
+// userpic JPEG encode) blocked the UI thread for seconds. We coalesce
+// observations into a queue keyed by (user, chat) and drain it in bounded
+// slices inside a single transaction, off the synchronous event path.
+// Duplicate userpic encodes are skipped by the existing HasStoredUserpic
+// guard, so keying by (user, chat) preserves memberships without extra cost.
+
+constexpr auto kObservationFlushDelayMs = crl::time(250);
+constexpr auto kMaxObservationsPerFlush = 24;
+
+struct PendingObservation {
+	MsgId messageId = 0;
+	ObservationSource::Kind kind = ObservationSource::Kind::Update;
+};
+
+// (userId.value, chatId.value); chatId.value == 0 for plain profile updates.
+using ObservationKey = std::pair<uint64, uint64>;
+
+[[nodiscard]] std::map<ObservationKey, PendingObservation> &PendingObservations() {
+	static auto value = std::map<ObservationKey, PendingObservation>();
+	return value;
+}
+
+[[nodiscard]] bool &ObservationFlushScheduled() {
+	static auto value = false;
+	return value;
+}
+
+void FlushObservations(not_null<Main::Session*> session);
+
+void ScheduleObservationFlush(not_null<Main::Session*> session) {
+	if (ObservationFlushScheduled()) {
+		return;
+	}
+	ObservationFlushScheduled() = true;
+	base::call_delayed(kObservationFlushDelayMs, session, [=] {
+		ObservationFlushScheduled() = false;
+		FlushObservations(session);
+	});
+}
+
+void EnqueueObservation(
+		not_null<Main::Session*> session,
+		PeerId userId,
+		PeerId chatId,
+		MsgId messageId,
+		ObservationSource::Kind kind) {
+	if (!ArchiveEnabledCache() || !userId) {
+		return;
+	}
+	auto &slot = PendingObservations()[ObservationKey(
+		userId.value,
+		chatId.value)];
+	slot.messageId = messageId;
+	slot.kind = kind;
+	ScheduleObservationFlush(session);
+}
+
+void FlushObservations(not_null<Main::Session*> session) {
+	auto &pending = PendingObservations();
+	if (!ArchiveEnabledCache()) {
+		pending.clear();
+		return;
+	}
+	if (pending.empty()) {
+		return;
+	}
+	// Drain a bounded slice so one event-loop turn stays short; the rest is
+	// picked up by the next scheduled flush.
+	auto batch = std::vector<std::pair<ObservationKey, PendingObservation>>();
+	batch.reserve(std::min<std::size_t>(
+		pending.size(),
+		kMaxObservationsPerFlush));
+	for (auto it = pending.begin();
+			it != pending.end()
+				&& int(batch.size()) < kMaxObservationsPerFlush;) {
+		batch.push_back(*it);
+		it = pending.erase(it);
+	}
+	auto &data = session->data();
+	ArchiveDb().transaction([&] {
+		for (const auto &[key, obs] : batch) {
+			const auto userPeer = data.peerLoaded(PeerId(key.first));
+			const auto user = userPeer ? userPeer->asUser() : nullptr;
+			if (!user) {
+				continue;
+			}
+			if (key.second) {
+				if (const auto chatPeer = data.peerLoaded(PeerId(key.second))) {
+					noteMessageAuthor(user, chatPeer, obs.messageId);
+					continue;
+				}
+			}
+			noteUserObserved(user, { .kind = obs.kind });
+		}
+		return true;
+	});
+	if (!pending.empty()) {
+		ScheduleObservationFlush(session);
+	}
+}
+
 } // namespace
 
 bool archiveEnabled() {
@@ -340,7 +451,12 @@ void attachSession(not_null<Main::Session*> session) {
 			return;
 		}
 		if (const auto user = update.peer->asUser()) {
-			noteUserObserved(user, { .kind = ObservationSource::Kind::Update });
+			EnqueueObservation(
+				session,
+				user->id,
+				PeerId(0),
+				MsgId(0),
+				ObservationSource::Kind::Update);
 		}
 	}, session->lifetime());
 
@@ -351,17 +467,24 @@ void attachSession(not_null<Main::Session*> session) {
 		}
 		if (const auto from = item->from() ? item->from()->asUser() : nullptr) {
 			if (!from->isSelf()) {
-				noteMessageAuthor(from, item->history()->peer, item->id);
+				EnqueueObservation(
+					session,
+					from->id,
+					item->history()->peer->id,
+					item->id,
+					ObservationSource::Kind::Message);
 			}
 		}
 		if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
 			if (const auto sender = forwarded->originalSender) {
 				if (const auto from = sender->asUser()) {
 					if (!from->isSelf()) {
-						noteMessageAuthor(
-							from,
-							item->history()->peer,
-							item->id);
+						EnqueueObservation(
+							session,
+							from->id,
+							item->history()->peer->id,
+							item->id,
+							ObservationSource::Kind::Message);
 					}
 				}
 			}
@@ -370,6 +493,7 @@ void attachSession(not_null<Main::Session*> session) {
 
 	bindSessionWindow(session);
 	attachCrawler(session);
+	attachScheduler(session);
 }
 
 void noteChatPeerObserved(not_null<PeerData*> chatPeer) {
@@ -428,7 +552,7 @@ void noteUserObserved(
 	}
 	if (source.chatId) {
 		if (const auto chatPeer = user->session().data().peer(
-				PeerId(source.chatId))) {
+				DeserializePeerId(static_cast<quint64>(source.chatId)))) {
 			noteChat(
 				peerId,
 				source.chatId,
@@ -638,7 +762,8 @@ void refreshMembershipFromApi(
 	const auto rows = ArchiveDb().get_all<ChatMembershipRecord>(
 		where(c(&ChatMembershipRecord::peerId) == peerId));
 	for (auto row : rows) {
-		const auto chatPeer = session->data().peer(PeerId(row.chatId));
+		const auto chatPeer = session->data().peer(
+			DeserializePeerId(static_cast<quint64>(row.chatId)));
 		if (!chatPeer) {
 			continue;
 		}

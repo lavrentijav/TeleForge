@@ -277,6 +277,8 @@ set(teleforge_extension_files
         ayu/features/teleforge/teleforge_prompt_builder.h
         ayu/features/teleforge/teleforge_rerank.cpp
         ayu/features/teleforge/teleforge_rerank.h
+        ayu/features/teleforge/teleforge_tools.cpp
+        ayu/features/teleforge/teleforge_tools.h
         ayu/features/teleforge/teleforge_paths.cpp
         ayu/features/teleforge/teleforge_paths.h
         ayu/features/teleforge/teleforge_llama_runtime.cpp
@@ -292,6 +294,8 @@ set(teleforge_extension_files
         ayu/features/teleforge/tf_peer_archive_scanner.h
         ayu/features/teleforge/tf_peer_archive_crawler.cpp
         ayu/features/teleforge/tf_peer_archive_crawler.h
+        ayu/features/teleforge/tf_peer_archive_scheduler.cpp
+        ayu/features/teleforge/tf_peer_archive_scheduler.h
         ayu/features/teleforge/tf_archive_userpics_box.cpp
         ayu/features/teleforge/tf_archive_userpics_box.h
         ayu/features/teleforge/tf_archive_users_box.cpp
@@ -310,6 +314,10 @@ set(teleforge_extension_files
         ayu/features/sync/teleforge_sync_files.h
         ayu/features/sync/teleforge_sync_merger.cpp
         ayu/features/sync/teleforge_sync_merger.h
+        ayu/features/sync/teleforge_sync_mysql.cpp
+        ayu/features/sync/teleforge_sync_mysql.h
+        ayu/features/sync/teleforge_sync_pg.cpp
+        ayu/features/sync/teleforge_sync_pg.h
         ayu/features/sync/teleforge_sync_snapshot.cpp
         ayu/features/sync/teleforge_sync_snapshot.h
         ayu/features/sync/teleforge_sync_transport.cpp
@@ -2348,6 +2356,103 @@ if (WIN32)
             message(STATUS "TeleForge: bundled CPython not built yet; linking system Python. Run teleforge_build_python.bat.")
             target_link_libraries(Telegram PRIVATE Python3::Python)
         endif()
+    endif()
+
+    # TeleForge: optional PostgreSQL cloud sync backend (libpq). When libpq dev
+    # files are present we compile the backend and ship libpq's runtime DLLs
+    # next to the executable; otherwise the backend degrades to a runtime error.
+    # Prefer a standard-install directory (newest version first) so we know the
+    # sibling bin/ dir for DLL bundling; fall back to find_package otherwise.
+    set(_tf_pg_root "")
+    foreach(_pgver 18 17 16)
+        if (EXISTS "C:/Program Files/PostgreSQL/${_pgver}/include/libpq-fe.h")
+            set(_tf_pg_root "C:/Program Files/PostgreSQL/${_pgver}")
+            break()
+        endif()
+    endforeach()
+    if (_tf_pg_root)
+        set(PostgreSQL_FOUND TRUE)
+        set(PostgreSQL_INCLUDE_DIRS "${_tf_pg_root}/include")
+        set(PostgreSQL_LIBRARIES "${_tf_pg_root}/lib/libpq.lib")
+    else()
+        find_package(PostgreSQL QUIET)
+    endif()
+    if (PostgreSQL_FOUND)
+        message(STATUS "TeleForge: linking libpq for PostgreSQL sync backend")
+        target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_POSTGRES=1)
+        # Scope the libpq headers to the single backend TU. The PostgreSQL
+        # include dir ships its own bundled ICU (unicode/*.h) which, if added
+        # target-wide, shadows the project's ICU 78 and breaks <unicode/*>
+        # consumers like filters_controller.h. (Same isolation trick as the
+        # embedded CPython headers above.)
+        # Sources are attached via nice_target_sources(${src_loc} ...), so the
+        # property key must be the absolute path under SourceFiles.
+        set_source_files_properties(
+            "${src_loc}/ayu/features/sync/teleforge_sync_pg.cpp"
+            PROPERTIES
+            INCLUDE_DIRECTORIES "${PostgreSQL_INCLUDE_DIRS}")
+        target_link_libraries(Telegram PRIVATE ${PostgreSQL_LIBRARIES})
+        if (EXISTS "${_tf_pg_root}/bin")
+            foreach(_tf_pg_dll
+                    libpq.dll libssl-3-x64.dll libcrypto-3-x64.dll
+                    libintl-9.dll libiconv-2.dll libwinpthread-1.dll
+                    zlib1.dll libzstd.dll liblz4.dll)
+                if (EXISTS "${_tf_pg_root}/bin/${_tf_pg_dll}")
+                    add_custom_command(TARGET Telegram POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                            "${_tf_pg_root}/bin/${_tf_pg_dll}"
+                            $<TARGET_FILE_DIR:Telegram>
+                        COMMENT "TeleForge: bundling ${_tf_pg_dll}"
+                        VERBATIM)
+                endif()
+            endforeach()
+        endif()
+    else()
+        message(STATUS "TeleForge: PostgreSQL not found; cloud sync PG backend disabled.")
+    endif()
+
+    # TeleForge: optional MySQL / MariaDB cloud sync backend. libmariadb (the
+    # MariaDB Connector/C) is API-compatible with libmysql; either satisfies it.
+    set(_tf_mysql_hdr "")
+    file(GLOB _tf_mysql_hdrs
+        "C:/Program Files/MariaDB */include/mysql/mysql.h"
+        "C:/Program Files/MySQL/MySQL Server */include/mysql.h"
+        "C:/Program Files/MySQL/Connector C */include/mysql.h")
+    if (_tf_mysql_hdrs)
+        list(GET _tf_mysql_hdrs 0 _tf_mysql_hdr)
+    endif()
+    set(_tf_mysql_lib "")
+    file(GLOB _tf_mysql_libs
+        "C:/Program Files/MariaDB */lib/libmariadb.lib"
+        "C:/Program Files/MySQL/MySQL Server */lib/libmysql.lib"
+        "C:/Program Files/MySQL/Connector C */lib/libmysql.lib")
+    if (_tf_mysql_libs)
+        list(GET _tf_mysql_libs 0 _tf_mysql_lib)
+    endif()
+    if (_tf_mysql_hdr AND _tf_mysql_lib)
+        get_filename_component(_tf_mysql_incdir "${_tf_mysql_hdr}" DIRECTORY)
+        get_filename_component(_tf_mysql_incparent "${_tf_mysql_incdir}" DIRECTORY)
+        get_filename_component(_tf_mysql_libdir "${_tf_mysql_lib}" DIRECTORY)
+        message(STATUS "TeleForge: linking MySQL/MariaDB connector: ${_tf_mysql_lib}")
+        target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_MYSQL=1)
+        # Scope connector headers to the single backend TU (same reason as PG).
+        set_source_files_properties(
+            "${src_loc}/ayu/features/sync/teleforge_sync_mysql.cpp"
+            PROPERTIES
+            INCLUDE_DIRECTORIES "${_tf_mysql_incdir};${_tf_mysql_incparent}")
+        target_link_libraries(Telegram PRIVATE "${_tf_mysql_lib}")
+        # Ship the connector runtime DLLs (plus any SSL siblings) next to the exe.
+        file(GLOB _tf_mysql_rundlls "${_tf_mysql_libdir}/*.dll")
+        foreach(_tf_mysql_dll ${_tf_mysql_rundlls})
+            add_custom_command(TARGET Telegram POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${_tf_mysql_dll}"
+                    $<TARGET_FILE_DIR:Telegram>
+                COMMENT "TeleForge: bundling MySQL connector DLL"
+                VERBATIM)
+        endforeach()
+    else()
+        message(STATUS "TeleForge: MySQL/MariaDB connector not found; MySQL backend disabled.")
     endif()
 elseif (LINUX)
     if (DESKTOP_APP_USE_LLAMA_CPP)

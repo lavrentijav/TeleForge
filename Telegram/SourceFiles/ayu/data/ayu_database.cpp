@@ -484,6 +484,15 @@ void upsertSpyTarget(ID userId, bool enabled) {
 	}
 }
 
+bool hasSpyTargetOverride(ID userId) {
+	try {
+		return db().get_pointer<SpyTarget>(userId) != nullptr;
+	} catch (const std::exception &ex) {
+		LOG(("Failed hasSpyTargetOverride: %1").arg(ex.what()));
+		return false;
+	}
+}
+
 bool isSpyTargetEnabled(ID userId) {
 	try {
 		if (const auto row = db().get_pointer<SpyTarget>(userId)) {

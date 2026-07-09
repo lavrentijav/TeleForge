@@ -29,11 +29,16 @@
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
 
+#include "apiwrap.h"
 #include "core/application.h"
 #include "core/file_utilities.h"
+#include "data/data_peer.h"
+#include "data/data_search_controller.h"
+#include "data/data_session.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/history_view_element.h"
+#include "main/main_session.h"
 #include "settings.h"
 
 #include <QtCore/QDateTime>
@@ -69,6 +74,93 @@ namespace {
 	auto ok = false;
 	const auto v = text.trimmed().toDouble(&ok);
 	return ok ? v : fallback;
+}
+
+void ApplyTunedStyle(
+		std::shared_ptr<std::vector<QString>> texts,
+		not_null<Window::SessionController*> controller) {
+	if (texts->size() < 5) {
+		controller->showToast(
+			u"Не удалось собрать хотя бы 5 ваших сообщений в этом чате."_q);
+		return;
+	}
+	auto tuned = TeleForge::BuildPersonalityCoreFromMessages(*texts);
+	auto p = TeleForge::LoadPersonalityCore().value_or(
+		TeleForge::DefaultPersonalityCore());
+	p.weights = tuned.weights;
+	if (!tuned.systemPrompt.isEmpty()) {
+		p.systemPrompt = tuned.systemPrompt;
+	}
+	p.updatedAt = QDateTime::currentDateTimeUtc();
+	TeleForge::PersistPersonalityCore(p);
+	controller->showToast(
+		u"Стиль ответов обновлён по вашим сообщениям."_q);
+}
+
+// Pulls the account owner's own (outgoing) messages for the given peer from
+// the server, page by page, so style tuning does not depend on how far the
+// chat view happens to be scrolled. Mirrors the paging used by the
+// "delete my messages" feature.
+void AutoTuneStyleFromServer(
+		not_null<Window::SessionController*> controller,
+		not_null<PeerData*> peer) {
+	const auto session = &peer->session();
+	auto texts = std::make_shared<std::vector<QString>>();
+	const auto requestNext = std::make_shared<Fn<void(MsgId)>>();
+
+	*requestNext = [=](MsgId from) {
+		using Flag = MTPmessages_Search::Flag;
+		session->api().request(MTPmessages_Search(
+			MTP_flags(Flag::f_from_id),
+			peer->input(),
+			MTP_string(),
+			MTP_inputPeerSelf(),
+			MTPInputPeer(),
+			MTPVector<MTPReaction>(),
+			MTP_int(0), // top_msg_id
+			MTP_inputMessagesFilterEmpty(),
+			MTP_int(0), // min_date
+			MTP_int(0), // max_date
+			MTP_int(from.bare), // offset_id
+			MTP_int(0), // add_offset
+			MTP_int(100), // limit
+			MTP_int(0), // max_id
+			MTP_int(0), // min_id
+			MTP_long(0)) // hash
+		).done([=](const Api::HistoryRequestResult &result) {
+			auto parsed = Api::ParseHistoryResult(
+				peer,
+				from,
+				Data::LoadDirection::Before,
+				result);
+			auto minId = MsgId();
+			for (const auto &id : parsed.messageIds) {
+				if (!minId || id < minId) {
+					minId = id;
+				}
+				const auto item = session->data().message(peer->id, id);
+				if (!item || !item->out() || !item->isRegular()) {
+					continue;
+				}
+				const auto t = item->originalText().text.trimmed();
+				if (t.size() >= 8) {
+					texts->push_back(t);
+				}
+			}
+			if (parsed.messageIds.size() == 100
+				&& minId
+				&& texts->size() < 300) {
+				(*requestNext)(minId - MsgId(1));
+			} else {
+				ApplyTunedStyle(texts, controller);
+			}
+		}).fail([=](const MTP::Error &error) {
+			ApplyTunedStyle(texts, controller);
+		}).send();
+	};
+
+	controller->showToast(u"Анализирую ваши сообщения…"_q);
+	(*requestNext)(MsgId(0));
 }
 
 void UpsertGlobalDefaults(
@@ -448,7 +540,7 @@ const auto kMeta = BuildHelper({
 					c,
 					rpl::single(u"Сохранить подключение"_q),
 					st::settingsButtonNoIcon));
-			save->setClickedCallback([=] {
+			const auto persistConnection = [=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
 					TeleForge::DefaultPersonalityCore());
 				p.lmStudioBaseUrl = lm->getLastText().trimmed();
@@ -473,11 +565,58 @@ const auto kMeta = BuildHelper({
 				p.rerankModelPath = rerankPath->getLastText().trimmed();
 				p.updatedAt = QDateTime::currentDateTimeUtc();
 				TeleForge::PersistPersonalityCore(p);
+			};
+			for (const auto field : {
+					lm, apiKey, chatModelIdField, chatGguf, ctxMsgs,
+					emb, embModel, rerankUrl, rerankModel, rerankPath }) {
+				field->focusedChanges(
+				) | rpl::on_next([=](bool focused) {
+					if (!focused) {
+						persistConnection();
+					}
+				}, field->lifetime());
+			}
+			save->setClickedCallback([=] {
+				persistConnection();
 				controller->showToast(u"Подключение сохранено."_q);
 			});
 
 		}, [](const SearchContext &) {});
 	});
+
+	ayu.addSectionDivider();
+	builder.addSubsectionTitle(rpl::single(u"Доставка ответов ИИ"_q));
+	ayu.addToggle({
+		.id = u"teleforge/autoSend"_q,
+		.title = rpl::single(u"Автоотправка ответа (иначе — черновик)"_q),
+		.getter = [] {
+			return TeleForge::LoadPersonalityCore().value_or(
+				TeleForge::DefaultPersonalityCore()).autoSendEnabled;
+		},
+		.setter = [](bool v) {
+			auto p = TeleForge::LoadPersonalityCore().value_or(
+				TeleForge::DefaultPersonalityCore());
+			p.autoSendEnabled = v;
+			p.updatedAt = QDateTime::currentDateTimeUtc();
+			TeleForge::PersistPersonalityCore(p);
+		},
+	});
+	ayu.addToggle({
+		.id = u"teleforge/vision"_q,
+		.title = rpl::single(u"Модель поддерживает изображения (vision)"_q),
+		.getter = [] {
+			return TeleForge::LoadPersonalityCore().value_or(
+				TeleForge::DefaultPersonalityCore()).visionEnabled;
+		},
+		.setter = [](bool v) {
+			auto p = TeleForge::LoadPersonalityCore().value_or(
+				TeleForge::DefaultPersonalityCore());
+			p.visionEnabled = v;
+			p.updatedAt = QDateTime::currentDateTimeUtc();
+			TeleForge::PersistPersonalityCore(p);
+		},
+	});
+	builder.addSkip();
 
 	ayu.addSectionDivider();
 	builder.addSubsectionTitle(rpl::single(u"Перевод через ИИ"_q));
@@ -504,12 +643,21 @@ const auto kMeta = BuildHelper({
 					c,
 					rpl::single(u"Сохранить системный промпт"_q),
 					st::settingsButtonNoIcon));
-			save->setClickedCallback([=] {
+			const auto persistPrompt = [=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
 					TeleForge::DefaultPersonalityCore());
 				p.systemPrompt = prompt->getLastText();
 				p.updatedAt = QDateTime::currentDateTimeUtc();
 				TeleForge::PersistPersonalityCore(p);
+			};
+			prompt->focusedChanges(
+			) | rpl::on_next([=](bool focused) {
+				if (!focused) {
+					persistPrompt();
+				}
+			}, prompt->lifetime());
+			save->setClickedCallback([=] {
+				persistPrompt();
 				controller->showToast(u"Системный промпт сохранён."_q);
 			});
 		}, [](const SearchContext &) {});
@@ -608,45 +756,13 @@ const auto kMeta = BuildHelper({
 					rpl::single(u"Подстроить стиль по моим сообщениям (текущий чат)"_q),
 					st::settingsButtonNoIcon));
 			autoTune->setClickedCallback([=] {
-				auto texts = std::vector<QString>();
-				const auto history = controller->activeChatCurrent().owningHistory();
-				if (!history) {
-					controller->showToast(u"Откройте чат для анализа."_q);
-					return;
-				}
-				for (const auto &block : history->blocks) {
-					for (const auto &view : block->messages) {
-						const auto item = view->data();
-						if (!item->out() || !item->isRegular()) {
-							continue;
-						}
-						const auto t = item->originalText().text.trimmed();
-						if (t.size() >= 8) {
-							texts.push_back(t);
-						}
-						if (texts.size() >= 200) {
-							break;
-						}
+				const auto history =
+						controller->activeChatCurrent().owningHistory();
+					if (!history) {
+						controller->showToast(u"Откройте чат для анализа."_q);
+						return;
 					}
-					if (texts.size() >= 200) {
-						break;
-					}
-				}
-				if (texts.size() < 5) {
-					controller->showToast(
-						u"Нужно хотя бы 5 исходящих сообщений в чате."_q);
-					return;
-				}
-				auto tuned = TeleForge::BuildPersonalityCoreFromMessages(texts);
-				auto p = TeleForge::LoadPersonalityCore().value_or(
-					TeleForge::DefaultPersonalityCore());
-				p.weights = tuned.weights;
-				if (!tuned.systemPrompt.isEmpty()) {
-					p.systemPrompt = tuned.systemPrompt;
-				}
-				p.updatedAt = QDateTime::currentDateTimeUtc();
-				TeleForge::PersistPersonalityCore(p);
-				controller->showToast(u"Стиль ответов обновлён по вашим сообщениям."_q);
+					AutoTuneStyleFromServer(controller, history->peer);
 			});
 		}, [](const SearchContext &) {});
 	});

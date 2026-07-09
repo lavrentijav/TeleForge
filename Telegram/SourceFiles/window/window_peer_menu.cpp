@@ -709,8 +709,8 @@ void Filler::addToggleUnreadBadgeExclude() {
 	const auto excluded = AyuSettings::getInstance().isUnreadBadgeExcluded(
 		peer->id.value);
 	const auto label = excluded
-		? u"╨г╤З╨╕╤В╤Л╨▓╨░╤В╤М ╨▓ ╤Б╤З╤С╤В╤З╨╕╨║╨╡ ╨╜╨╡╨┐╤А╨╛╤З╨╕╤В╨░╨╜╨╜╤Л╤Е"_q
-		: u"╨Ш╤Б╨║╨╗╤О╤З╨╕╤В╤М ╨╕╨╖ ╤Б╤З╤С╤В╤З╨╕╨║╨░ ╨╜╨╡╨┐╤А╨╛╤З╨╕╤В╨░╨╜╨╜╤Л╤Е"_q;
+		? u"Учитывать в счётчике непрочитанных"_q
+		: u"Исключить из счётчика непрочитанных"_q;
 	_addAction(label, [=] {
 		AyuSettings::getInstance().toggleUnreadBadgeExcluded(peer->id.value);
 	}, &st::menuIconMute);
@@ -1786,6 +1786,7 @@ void Filler::fillHistoryActions() {
 	addToggleMuteSubmenu(true);
 	addCreateTopic();
 	addInfo();
+	AyuUi::AddAiModeAction(_peer, _controller, _addAction);
 	AyuUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
 	AyuUi::AddOpenChannelAction(_peer, _controller, _addAction);
 	addViewAsTopics();

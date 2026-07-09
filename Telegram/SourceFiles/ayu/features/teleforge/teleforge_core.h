@@ -44,6 +44,18 @@ struct PersonalityCore {
 	QString rerankModelId;
 	/// Path to reranker *.gguf — used by in-process llama.cpp embeddings when rerankEndpointUrl is empty.
 	QString rerankModelPath;
+	/// When true, tool-aware AI replies are sent to the chat automatically
+	/// (ladder = several messages); when false they are inserted as a draft.
+	bool autoSendEnabled = false;
+	/// When true, recent images from the chat are attached to the request as
+	/// image_url parts (requires a vision-capable model).
+	bool visionEnabled = false;
+	/// Cloud sync backend: 0 = Telegram sync chat, 1 = PostgreSQL, 2 = MySQL.
+	int cloudBackend = 0;
+	/// Connection string (key=value) shared by the PostgreSQL/MySQL backends.
+	QString pgConnString;
+	/// Informational PostgreSQL server version selected in the UI (e.g. "18").
+	QString pgVersion = u"18"_q;
 };
 
 PersonalityCore DefaultPersonalityCore();

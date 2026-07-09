@@ -33,6 +33,15 @@ struct PersonalityCoreRecord {
 	std::string rerankEndpointUrl;
 	std::string rerankModelId;
 	std::string rerankModelPath;
+	bool autoSendEnabled = false;
+	bool visionEnabled = false;
+	// Cloud sync backend: 0 = Telegram sync chat, 1 = PostgreSQL, 2 = MySQL.
+	int cloudBackend = 0;
+	// Connection string (key=value tokens) shared by the PostgreSQL and MySQL
+	// backends: host=.. port=.. dbname=.. user=.. password=..
+	std::string pgConnString;
+	// Informational PostgreSQL server version selected in the UI (e.g. "18").
+	std::string pgVersion = "18";
 };
 
 /// Template row for chats without their own row in PerChatSettings.
@@ -40,7 +49,8 @@ inline constexpr long long kTeleForgeGlobalDefaultsPeerId = 0;
 
 struct PerChatSettingsRecord {
 	long long peerId = 0;
-	bool aiAnswer = true;
+	// AI auto-answer is a strictly per-chat, opt-in toggle: off by default.
+	bool aiAnswer = false;
 	bool webAccess = false;
 	bool calendarAccess = false;
 	bool pcAgent = false;

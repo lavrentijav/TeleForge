@@ -80,6 +80,11 @@ namespace {
 		.rerankEndpointUrl = core.rerankEndpointUrl.toStdString(),
 		.rerankModelId = core.rerankModelId.toStdString(),
 		.rerankModelPath = core.rerankModelPath.toStdString(),
+		.autoSendEnabled = core.autoSendEnabled,
+		.visionEnabled = core.visionEnabled,
+		.cloudBackend = core.cloudBackend,
+		.pgConnString = core.pgConnString.toStdString(),
+		.pgVersion = core.pgVersion.toStdString(),
 	};
 }
 
@@ -108,6 +113,13 @@ namespace {
 		.rerankEndpointUrl = QString::fromStdString(record.rerankEndpointUrl),
 		.rerankModelId = QString::fromStdString(record.rerankModelId),
 		.rerankModelPath = QString::fromStdString(record.rerankModelPath),
+		.autoSendEnabled = record.autoSendEnabled,
+		.visionEnabled = record.visionEnabled,
+		.cloudBackend = record.cloudBackend,
+		.pgConnString = QString::fromStdString(record.pgConnString),
+		.pgVersion = record.pgVersion.empty()
+			? u"18"_q
+			: QString::fromStdString(record.pgVersion),
 	};
 }
 
@@ -248,6 +260,10 @@ QString SerializePersonalityCore(const PersonalityCore &core) {
 	}
 	lines.push_back(
 		"memory_sync=" + QString::number(core.memorySyncEnabled ? 1 : 0));
+	lines.push_back(
+		"auto_send=" + QString::number(core.autoSendEnabled ? 1 : 0));
+	lines.push_back(
+		"vision=" + QString::number(core.visionEnabled ? 1 : 0));
 	if (!core.rerankEndpointUrl.isEmpty()) {
 		lines.push_back("rerank_endpoint=" + QString::fromUtf8(
 			core.rerankEndpointUrl.toUtf8().toPercentEncoding()));
@@ -310,6 +326,10 @@ std::optional<PersonalityCore> ParsePersonalityCore(const QString &serialized) {
 			core.chatContextMessages = value.toInt();
 		} else if (key == "memory_sync") {
 			core.memorySyncEnabled = (value.toInt() != 0);
+		} else if (key == "auto_send") {
+			core.autoSendEnabled = (value.toInt() != 0);
+		} else if (key == "vision") {
+			core.visionEnabled = (value.toInt() != 0);
 		} else if (key == "rerank_endpoint") {
 			core.rerankEndpointUrl = QUrl::fromPercentEncoding(value.toUtf8());
 		} else if (key == "rerank_model") {

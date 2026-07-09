@@ -3,7 +3,9 @@
 #include "info/profile/info_tf_peer_archive_panel.h"
 
 #include "ayu/features/teleforge/tf_archive_userpics_box.h"
+#include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/features/teleforge/tf_peer_archive.h"
+#include "ayu/features/teleforge/tf_peer_archive_scheduler.h"
 #include "base/unixtime.h"
 #include "data/data_peer_id.h"
 #include "data/data_user.h"
@@ -24,11 +26,10 @@
 namespace Info::Profile {
 namespace {
 
-[[nodiscard]] QString FormatTs(int ts) {
-	if (!ts) {
-		return u"—"_q;
-	}
-	return QDateTime::fromSecsSinceEpoch(ts).toString(u"dd.MM.yyyy HH:mm"_q);
+[[nodiscard]] QString FormatTs(int ts, int precisionSeconds = 60) {
+	return TeleForge::PeerArchive::formatTimestampWithPrecision(
+		ts,
+		precisionSeconds);
 }
 
 void CopyText(not_null<Window::SessionController*> session, const QString &text) {
@@ -85,17 +86,10 @@ void AddExpandableHistory(
 		return;
 	}
 
-	const auto header = parent->add(object_ptr<Ui::SettingsButton>(
+	const auto inner = ::Settings::AddCollapsibleArrowSection(
 		parent,
 		rpl::single(title),
-		st::infoSharedMediaButton));
-	header->toggleOn(rpl::single(false));
-
-	const auto wrap = parent->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		parent,
-		object_ptr<Ui::VerticalLayout>(parent)));
-	const auto inner = wrap->entity();
-	wrap->setDuration(st::infoSlideDuration)->toggleOn(header->toggledValue());
+		false).inner;
 
 	for (const auto &[text, date] : rows) {
 		AddHistoryEntry(inner, session, text, date);
@@ -107,17 +101,10 @@ not_null<Ui::VerticalLayout*> AddCollapsibleSection(
 		const QString &title,
 		bool expandedByDefault,
 		Fn<void(not_null<Ui::VerticalLayout*>)> fill) {
-	const auto header = parent->add(object_ptr<Ui::SettingsButton>(
+	const auto inner = ::Settings::AddCollapsibleArrowSection(
 		parent,
 		rpl::single(title),
-		st::infoSharedMediaButton));
-	header->toggleOn(rpl::single(expandedByDefault));
-
-	const auto wrap = parent->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		parent,
-		object_ptr<Ui::VerticalLayout>(parent)));
-	const auto inner = wrap->entity();
-	wrap->setDuration(st::infoSlideDuration)->toggleOn(header->toggledValue());
+		expandedByDefault).inner;
 	fill(inner);
 	return inner;
 }
@@ -146,17 +133,10 @@ object_ptr<Ui::RpWidget> SetupPeerArchivePanel(
 
 	const auto snapshot = TeleForge::PeerArchive::loadProfile(peerStorageId);
 
-	const auto header = outer->add(object_ptr<Ui::SettingsButton>(
+	const auto inner = ::Settings::AddCollapsibleArrowSection(
 		outer,
 		rpl::single(u"Архив TeleForge"_q),
-		st::infoSharedMediaButton));
-	header->toggleOn(rpl::single(false));
-
-	const auto bodyWrap = outer->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		outer,
-		object_ptr<Ui::VerticalLayout>(outer)));
-	const auto inner = bodyWrap->entity();
-	bodyWrap->setDuration(st::infoSlideDuration)->toggleOn(header->toggledValue());
+		false).inner;
 
 	Ui::AddSkip(inner);
 

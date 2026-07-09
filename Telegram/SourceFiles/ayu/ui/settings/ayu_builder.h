@@ -81,6 +81,19 @@ public:
 	};
 	void addSlider(SliderArgs &&args);
 
+	struct CollapsibleSectionArgs {
+		QString id;
+		QStringList altIds;
+		rpl::producer<QString> title;
+		Fn<void(not_null<Ui::VerticalLayout*>)> fill;
+		bool expandedByDefault = false;
+		QStringList keywords;
+	};
+	void addCollapsibleSection(CollapsibleSectionArgs &&args);
+	void addSliderTo(
+		not_null<Ui::VerticalLayout*> container,
+		SliderArgs &&args);
+
 	void addBetaBadge(not_null<Ui::SettingsButton*> button);
 
 	void addSectionDivider();

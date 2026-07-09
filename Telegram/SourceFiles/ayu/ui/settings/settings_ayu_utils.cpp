@@ -658,4 +658,87 @@ not_null<Button*> AddSettingToggle(
 		icon);
 }
 
+CollapsibleArrowResult AddCollapsibleArrowSection(
+		not_null<Ui::VerticalLayout*> container,
+		rpl::producer<QString> title,
+		bool expandedByDefault) {
+	struct State final {
+		Ui::Animations::Simple animation;
+	};
+	const auto state = container->lifetime().make_state<State>();
+
+	const auto button = container->add(object_ptr<Ui::SettingsButton>(
+		container,
+		nullptr,
+		st::settingsButtonNoIcon));
+
+	const auto wrap = container->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			container,
+			object_ptr<Ui::VerticalLayout>(container)));
+	const auto inner = wrap->entity();
+	wrap->toggle(expandedByDefault, anim::type::instant);
+
+	const auto label = Ui::CreateChild<Ui::FlatLabel>(
+		button,
+		std::move(title),
+		st::boxLabel);
+	label->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+	const auto arrow = Ui::CreateChild<Ui::RpWidget>(button);
+	{
+		const auto &icon = st::permissionsExpandIcon;
+		arrow->resize(icon.size());
+		arrow->paintRequest(
+		) | rpl::on_next([=, &icon] {
+			auto p = QPainter(arrow);
+			const auto center = QPointF(
+				icon.width() / 2.,
+				icon.height() / 2.);
+			const auto progress = state->animation.value(
+				wrap->toggled() ? 1. : 0.);
+			auto hq = std::optional<PainterHighQualityEnabler>();
+			if (progress > 0.) {
+				hq.emplace(p);
+				p.translate(center);
+				p.rotate(progress * 180.);
+				p.translate(-center);
+			}
+			icon.paint(p, 0, 0, arrow->width());
+		}, arrow->lifetime());
+	}
+
+	button->sizeValue(
+	) | rpl::on_next([=](const QSize &s) {
+		const auto &st = st::settingsButtonNoIcon;
+		const auto labelLeft = st.padding.left();
+		const auto labelRight = s.width() - st.padding.right();
+		label->resizeToWidth(labelRight - labelLeft - arrow->width());
+		label->moveToLeft(
+			labelLeft,
+			(s.height() - label->height()) / 2);
+		arrow->moveToLeft(
+			std::min(
+				labelLeft + label->naturalWidth(),
+				labelRight - arrow->width()),
+			(s.height() - arrow->height()) / 2);
+	}, button->lifetime());
+
+	wrap->toggledValue(
+	) | rpl::skip(1) | rpl::on_next([=](bool toggled) {
+		state->animation.start(
+			[=] { arrow->update(); },
+			toggled ? 0. : 1.,
+			toggled ? 1. : 0.,
+			st::slideWrapDuration,
+			anim::easeOutCubic);
+	}, button->lifetime());
+
+	button->setClickedCallback([=] {
+		wrap->toggle(!wrap->toggled(), anim::type::normal);
+	});
+
+	return CollapsibleArrowResult{ inner, button };
+}
+
 } // namespace Settings

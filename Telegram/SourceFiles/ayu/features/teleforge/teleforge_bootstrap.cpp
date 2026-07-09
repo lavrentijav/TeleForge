@@ -53,12 +53,13 @@ void initialize() {
 			TeleForge::Sync::tryDownloadOnStartup(session);
 		});
 	}
+	static auto sessionChangesLifetime = rpl::lifetime();
 	Core::App().domain().activeSessionChanges(
 	) | rpl::on_next([=](Main::Session *session) {
 		if (session) {
 			attachPeerArchive(session);
 		}
-	});
+	}, sessionChangesLifetime);
 	LOG(("TeleForge::initialize finished — inference endpoints applied from storage"));
 
 	if (const auto app = QCoreApplication::instance()) {

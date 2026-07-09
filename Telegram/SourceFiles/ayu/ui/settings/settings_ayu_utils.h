@@ -110,4 +110,14 @@ not_null<Button*> AddSettingToggle(
 	BoolSetter setter,
 	const style::icon &icon);
 
+struct CollapsibleArrowResult {
+	Ui::VerticalLayout *inner = nullptr;
+	Ui::RpWidget *header = nullptr;
+};
+
+[[nodiscard]] CollapsibleArrowResult AddCollapsibleArrowSection(
+	not_null<Ui::VerticalLayout*> container,
+	rpl::producer<QString> title,
+	bool expandedByDefault = false);
+
 } // namespace Settings

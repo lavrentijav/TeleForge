@@ -1019,6 +1019,41 @@ void AyuSettings::setPeerArchiveEnabled(bool val) {
 	save();
 }
 
+void AyuSettings::setArchiveChatRefreshSeconds(int val) {
+	const auto clamped = std::clamp(val, 60, 3600);
+	if (_archiveChatRefreshSeconds.current() == clamped) return;
+	_archiveChatRefreshSeconds = clamped;
+	save();
+}
+
+void AyuSettings::setArchiveKnownUserOnlineSeconds(int val) {
+	const auto clamped = std::clamp(val, 15, 600);
+	if (_archiveKnownUserOnlineSeconds.current() == clamped) return;
+	_archiveKnownUserOnlineSeconds = clamped;
+	save();
+}
+
+void AyuSettings::setArchivePrivateOnlineSeconds(int val) {
+	const auto clamped = std::clamp(val, 5, 120);
+	if (_archivePrivateOnlineSeconds.current() == clamped) return;
+	_archivePrivateOnlineSeconds = clamped;
+	save();
+}
+
+void AyuSettings::setArchivePrivateProfileSeconds(int val) {
+	const auto clamped = std::clamp(val, 60, 7200);
+	if (_archivePrivateProfileSeconds.current() == clamped) return;
+	_archivePrivateProfileSeconds = clamped;
+	save();
+}
+
+void AyuSettings::setArchiveOtherProfileSeconds(int val) {
+	const auto clamped = std::clamp(val, 300, 21600);
+	if (_archiveOtherProfileSeconds.current() == clamped) return;
+	_archiveOtherProfileSeconds = clamped;
+	save();
+}
+
 void AyuSettings::setAdaptiveCoverColor(bool val) {
 	if (_adaptiveCoverColor.current() == val) return;
 	_adaptiveCoverColor = val;
@@ -1142,6 +1177,11 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"spyModeGloballyEnabled", s._spyModeGloballyEnabled.current()},
 		{"spyRetentionDays", s._spyRetentionDays.current()},
 		{"peerArchiveEnabled", s._peerArchiveEnabled.current()},
+		{"archiveChatRefreshSeconds", s._archiveChatRefreshSeconds.current()},
+		{"archiveKnownUserOnlineSeconds", s._archiveKnownUserOnlineSeconds.current()},
+		{"archivePrivateOnlineSeconds", s._archivePrivateOnlineSeconds.current()},
+		{"archivePrivateProfileSeconds", s._archivePrivateProfileSeconds.current()},
+		{"archiveOtherProfileSeconds", s._archiveOtherProfileSeconds.current()},
 		{"adaptiveCoverColor", s._adaptiveCoverColor.current()},
 		{"improveLinkPreviews", s._improveLinkPreviews.current()},
 		{"crashReporting", s._crashReporting.current()},
@@ -1248,6 +1288,21 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._spyModeGloballyEnabled = j.value("spyModeGloballyEnabled", defaults._spyModeGloballyEnabled.current());
 	s._spyRetentionDays = j.value("spyRetentionDays", defaults._spyRetentionDays.current());
 	s._peerArchiveEnabled = j.value("peerArchiveEnabled", defaults._peerArchiveEnabled.current());
+	s._archiveChatRefreshSeconds = j.value(
+		"archiveChatRefreshSeconds",
+		defaults._archiveChatRefreshSeconds.current());
+	s._archiveKnownUserOnlineSeconds = j.value(
+		"archiveKnownUserOnlineSeconds",
+		defaults._archiveKnownUserOnlineSeconds.current());
+	s._archivePrivateOnlineSeconds = j.value(
+		"archivePrivateOnlineSeconds",
+		defaults._archivePrivateOnlineSeconds.current());
+	s._archivePrivateProfileSeconds = j.value(
+		"archivePrivateProfileSeconds",
+		defaults._archivePrivateProfileSeconds.current());
+	s._archiveOtherProfileSeconds = j.value(
+		"archiveOtherProfileSeconds",
+		defaults._archiveOtherProfileSeconds.current());
 	s._adaptiveCoverColor = j.value("adaptiveCoverColor", defaults._adaptiveCoverColor.current());
 	s._improveLinkPreviews = j.value("improveLinkPreviews", defaults._improveLinkPreviews.current());
 	s._crashReporting = j.value("crashReporting", defaults._crashReporting.current());

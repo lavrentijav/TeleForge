@@ -91,7 +91,12 @@ using namespace sqlite_orm;
 			make_column("memorySyncEnabled", &PersonalityCoreRecord::memorySyncEnabled),
 			make_column("rerankEndpointUrl", &PersonalityCoreRecord::rerankEndpointUrl),
 			make_column("rerankModelId", &PersonalityCoreRecord::rerankModelId),
-			make_column("rerankModelPath", &PersonalityCoreRecord::rerankModelPath)),
+			make_column("rerankModelPath", &PersonalityCoreRecord::rerankModelPath),
+			make_column("autoSendEnabled", &PersonalityCoreRecord::autoSendEnabled),
+			make_column("visionEnabled", &PersonalityCoreRecord::visionEnabled),
+			make_column("cloudBackend", &PersonalityCoreRecord::cloudBackend),
+			make_column("pgConnString", &PersonalityCoreRecord::pgConnString),
+			make_column("pgVersion", &PersonalityCoreRecord::pgVersion)),
 		make_table<PerChatSettingsRecord>(
 			"PerChatSettings",
 			make_column("peerId", &PerChatSettingsRecord::peerId, primary_key()),

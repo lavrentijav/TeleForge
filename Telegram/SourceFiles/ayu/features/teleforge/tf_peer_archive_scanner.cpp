@@ -2,6 +2,7 @@
 
 #include "ayu/features/teleforge/tf_peer_archive_scanner.h"
 
+#include "ayu/ayu_settings.h"
 #include "ayu/features/teleforge/tf_peer_archive.h"
 #include "ayu/features/teleforge/tf_peer_archive_crawler.h"
 #include "apiwrap.h"
@@ -22,7 +23,9 @@
 namespace TeleForge::PeerArchive {
 namespace {
 
-constexpr auto kScanCooldownSeconds = 300;
+[[nodiscard]] int ScanCooldownSeconds() {
+	return AyuSettings::getInstance().archiveChatRefreshSeconds();
+}
 constexpr auto kParticipantsPerPage = 200;
 constexpr auto kParticipantsFirstPage = 50;
 
@@ -174,7 +177,7 @@ void scanOpenedChat(
 	const auto chatId = static_cast<long long>(SerializePeerId(chatPeer->id));
 	const auto now = base::unixtime::now();
 	const auto last = LastChatScan().find(chatId);
-	if (last != end(LastChatScan()) && (now - last->second) < kScanCooldownSeconds) {
+	if (last != end(LastChatScan()) && (now - last->second) < ScanCooldownSeconds()) {
 		return;
 	}
 	LastChatScan()[chatId] = now;

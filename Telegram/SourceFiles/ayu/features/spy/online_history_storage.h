@@ -24,6 +24,7 @@ void noteManualLastSeen(long long userId, int timestamp);
 [[nodiscard]] std::vector<OnlineEvent> loadRecentForUser(long long userId, int sinceTs);
 [[nodiscard]] std::optional<int> manualLastSeenForUser(long long userId);
 void setSpyTargetEnabled(long long userId, bool enabled);
+[[nodiscard]] bool hasSpyTargetOverride(long long userId);
 [[nodiscard]] bool isSpyTargetEnabled(long long userId);
 [[nodiscard]] bool spyModeGloballyEnabled();
 void setSpyModeGloballyEnabled(bool enabled);

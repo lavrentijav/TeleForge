@@ -2,6 +2,7 @@
 
 #include "ayu/features/teleforge/tf_peer_archive_crawler.h"
 
+#include "ayu/ayu_settings.h"
 #include "ayu/features/teleforge/tf_peer_archive.h"
 #include "ayu/features/teleforge/tf_peer_archive_scanner.h"
 #include "base/call_delayed.h"
@@ -16,12 +17,23 @@
 
 #include <QRegularExpression>
 
+#include <algorithm>
+
 namespace TeleForge::PeerArchive {
 namespace {
 
-constexpr auto kTickMs = 40000;
-constexpr auto kTickJitterMs = 15000;
-constexpr auto kReseedMs = 1800000;
+constexpr auto kTickJitterMs = 5000;
+constexpr auto kMinTickMs = 10000;
+
+[[nodiscard]] crl::time TickMs() {
+	const auto seconds = AyuSettings::getInstance().archiveKnownUserOnlineSeconds();
+	return std::max(crl::time(kMinTickMs), crl::time(seconds) * crl::time(1000));
+}
+
+[[nodiscard]] crl::time ReseedMs() {
+	const auto seconds = AyuSettings::getInstance().archiveChatRefreshSeconds();
+	return crl::time(seconds) * crl::time(1000);
+}
 constexpr auto kMaxQueue = 1500;
 
 auto &CrawlQueue() {
@@ -120,7 +132,8 @@ void ProcessNext(not_null<Main::Session*> session) {
 	const auto storageId = *queue.begin();
 	queue.erase(queue.begin());
 
-	const auto peer = session->data().peer(PeerId(storageId));
+	const auto peer = session->data().peer(
+		DeserializePeerId(static_cast<quint64>(storageId)));
 	if (!peer || peer->isSelf()) {
 		return;
 	}
@@ -147,12 +160,12 @@ void ScheduleTick(not_null<Main::Session*> session, crl::time delay) {
 		}
 		ProcessNext(session);
 		const auto jitter = crl::time(base::RandomIndex(kTickJitterMs));
-		ScheduleTick(session, kTickMs + jitter);
+		ScheduleTick(session, TickMs() + jitter);
 	});
 }
 
 void ScheduleReseed(not_null<Main::Session*> session) {
-	base::call_delayed(kReseedMs, session, [=] {
+	base::call_delayed(ReseedMs(), session, [=] {
 		if (!archiveEnabled()) {
 			return;
 		}
@@ -183,7 +196,7 @@ void enqueueLinksFromText(
 
 void attachCrawler(not_null<Main::Session*> session) {
 	SeedQueue(session);
-	ScheduleTick(session, kTickMs);
+	ScheduleTick(session, TickMs());
 	ScheduleReseed(session);
 }
 

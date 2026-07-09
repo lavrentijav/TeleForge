@@ -13,6 +13,7 @@
 #include "ayu/ayu_state.h"
 #include "ayu/data/messages_storage.h"
 #include "ayu/features/forward/ayu_forward.h"
+#include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/ui/context_menu/menu_item_subtext.h"
 #include "ayu/ui/message_history/history_section.h"
 #include "ayu/ui/settings/filters/edit_filter.h"
@@ -25,6 +26,7 @@
 #include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_forum_topic.h"
+#include "data/data_peer_id.h"
 #include "data/data_saved_sublist.h"
 #include "data/data_search_controller.h"
 #include "data/data_session.h"
@@ -350,6 +352,35 @@ void AddShadowBanAction(PeerData *peerData,
 					 : tr::ayu_FiltersQuickShadowBan(tr::now)),
 		.handler = toggleShadowBan,
 		.icon = shadowBanned ? &st::menuIconShowInChat : &st::menuIconStealth,
+	});
+}
+
+void AddAiModeAction(PeerData *peerData,
+					 not_null<Window::SessionController*> sessionController,
+					 const Window::PeerMenuCallback &addCallback) {
+	if (!peerData || peerData->isSelf()) {
+		return;
+	}
+	const auto peerStorageId = static_cast<long long>(
+		SerializePeerId(peerData->id));
+	// Per-chat AI auto-answer toggle. Default off; when on, each incoming
+	// message is forwarded to the model and the reply is sent automatically.
+	const auto enabled = TeleForge::Storage::effectivePerChatSettings(
+		peerStorageId).aiAnswer;
+	const auto toggle = [=] {
+		auto r = TeleForge::Storage::effectivePerChatSettings(peerStorageId);
+		r.aiAnswer = !r.aiAnswer;
+		r.peerId = peerStorageId;
+		r.updatedAt = base::unixtime::now();
+		TeleForge::Storage::upsertPerChatSettings(r);
+		sessionController->showToast(r.aiAnswer
+			? u"AI-режим включён для этого чата."_q
+			: u"AI-режим выключен для этого чата."_q);
+	};
+	addCallback({
+		.text = enabled ? u"AI mode: вкл"_q : u"AI mode: выкл"_q,
+		.handler = toggle,
+		.icon = &st::menuIconBot,
 	});
 }
 
@@ -692,7 +723,7 @@ void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 				sendOptions.sendAs = nullptr;
 			}
 
-			applyGhostScheduling(session, sendOptions);
+			(void)applyGhostScheduling(session, sendOptions);
 
 			auto action = Api::SendAction(history, sendOptions);
 			action.clearDraft = false;

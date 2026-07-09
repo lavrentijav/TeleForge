@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_teleforge_peer_panel.h"
 
 #include "ayu/features/spy/online_history_storage.h"
+#include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
 #include "data/data_peer_id.h"
 #include "data/data_user.h"
@@ -102,17 +103,10 @@ void AddCollapsibleSpyHistory(
 		return;
 	}
 
-	const auto header = parent->add(object_ptr<Ui::SettingsButton>(
+	const auto inner = ::Settings::AddCollapsibleArrowSection(
 		parent,
 		rpl::single(u"История онлайн (%1)"_q.arg(lines.size())),
-		st::infoSharedMediaButton));
-	header->toggleOn(rpl::single(false));
-
-	const auto wrap = parent->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		parent,
-		object_ptr<Ui::VerticalLayout>(parent)));
-	const auto inner = wrap->entity();
-	wrap->setDuration(st::infoSlideDuration)->toggleOn(header->toggledValue());
+		false).inner;
 
 	for (const auto &line : lines) {
 		inner->add(object_ptr<Ui::SettingsButton>(
@@ -127,17 +121,10 @@ not_null<Ui::VerticalLayout*> AddCollapsibleSection(
 		const QString &title,
 		bool expandedByDefault,
 		Fn<void(not_null<Ui::VerticalLayout*>)> fill) {
-	const auto header = parent->add(object_ptr<Ui::SettingsButton>(
+	const auto inner = ::Settings::AddCollapsibleArrowSection(
 		parent,
 		rpl::single(title),
-		st::infoSharedMediaButton));
-	header->toggleOn(rpl::single(expandedByDefault));
-
-	const auto wrap = parent->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		parent,
-		object_ptr<Ui::VerticalLayout>(parent)));
-	const auto inner = wrap->entity();
-	wrap->setDuration(st::infoSlideDuration)->toggleOn(header->toggledValue());
+		expandedByDefault).inner;
 	fill(inner);
 	return inner;
 }
@@ -159,17 +146,10 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 	auto wrap = object_ptr<Ui::VerticalLayout>(parent);
 	const auto outer = wrap.get();
 
-	const auto rootHeader = outer->add(object_ptr<Ui::SettingsButton>(
+	const auto inner = ::Settings::AddCollapsibleArrowSection(
 		outer,
 		rpl::single(u"TeleForge"_q),
-		st::infoSharedMediaButton));
-	rootHeader->toggleOn(rpl::single(false));
-
-	const auto rootWrap = outer->add(object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		outer,
-		object_ptr<Ui::VerticalLayout>(outer)));
-	const auto inner = rootWrap->entity();
-	rootWrap->setDuration(st::infoSlideDuration)->toggleOn(rootHeader->toggledValue());
+		false).inner;
 
 	Ui::AddSkip(inner);
 
@@ -278,7 +258,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 				section,
 				u"Отслеживать онлайн этого пользователя"_q,
 				[=] {
-					return TeleForge::Spy::isSpyTargetEnabled(user->id.value);
+					return TeleForge::Spy::isSpyEnabledForUser(user->id.value);
 				},
 				[=](bool v) {
 					TeleForge::Spy::setSpyTargetEnabled(user->id.value, v);

@@ -2,6 +2,8 @@
 
 #include "ayu/ayu_settings.h"
 #include "ayu/features/sync/teleforge_sync_crypto.h"
+#include "ayu/features/sync/teleforge_sync_mysql.h"
+#include "ayu/features/sync/teleforge_sync_pg.h"
 #include "ayu/features/sync/teleforge_sync_transport.h"
 #include "ayu/features/teleforge/teleforge_core.h"
 #include "ayu/features/teleforge/teleforge_inference.h"
@@ -27,12 +29,66 @@ auto g_mutex = std::mutex();
 	return DeriveSyncKey(MasterMaterial(session), g_exportKey);
 }
 
+enum class Backend {
+	TelegramChat = 0,
+	Postgres = 1,
+	MySql = 2,
+};
+
+[[nodiscard]] Backend SelectedBackend() {
+	const auto core = LoadPersonalityCore();
+	if (!core) {
+		return Backend::TelegramChat;
+	}
+	switch (core->cloudBackend) {
+	case int(Backend::Postgres): return Backend::Postgres;
+	case int(Backend::MySql): return Backend::MySql;
+	default: return Backend::TelegramChat;
+	}
+}
+
+// Dispatches to the configured cloud backend. The local SQLite unified DB is
+// always the source of truth; these are best-effort replication calls.
+void BackendUpload(
+		not_null<Main::Session*> session,
+		const QByteArray &key,
+		Fn<void(bool ok, QString error)> done) {
+	switch (SelectedBackend()) {
+	case Backend::Postgres:
+		RunPgUpload(session, key, std::move(done));
+		return;
+	case Backend::MySql:
+		RunMySqlUpload(session, key, std::move(done));
+		return;
+	case Backend::TelegramChat:
+		RunSyncUpload(session, key, std::move(done));
+		return;
+	}
+}
+
+void BackendDownload(
+		not_null<Main::Session*> session,
+		const QByteArray &key,
+		Fn<void(bool ok, QString error)> done) {
+	switch (SelectedBackend()) {
+	case Backend::Postgres:
+		RunPgDownload(session, key, std::move(done));
+		return;
+	case Backend::MySql:
+		RunMySqlDownload(session, key, std::move(done));
+		return;
+	case Backend::TelegramChat:
+		RunSyncDownload(session, key, std::move(done));
+		return;
+	}
+}
+
 void RunUpload(not_null<Main::Session*> session) {
 	const auto core = LoadPersonalityCore();
 	if (!core || !core->memorySyncEnabled) {
 		return;
 	}
-	RunSyncUpload(session, SyncKey(session), [](bool, QString) {});
+	BackendUpload(session, SyncKey(session), [](bool, QString) {});
 }
 
 } // namespace
@@ -70,7 +126,7 @@ void syncNow(not_null<Main::Session*> session, Fn<void(QString message)> done) {
 		return;
 	}
 	const auto key = SyncKey(session);
-	RunSyncUpload(session, key, [=](bool ok, QString error) {
+	BackendUpload(session, key, [=](bool ok, QString error) {
 		if (!ok) {
 			if (done) {
 				done(error.isEmpty()
@@ -79,7 +135,7 @@ void syncNow(not_null<Main::Session*> session, Fn<void(QString message)> done) {
 			}
 			return;
 		}
-		RunSyncDownload(session, key, [=](bool applied, QString derr) {
+		BackendDownload(session, key, [=](bool applied, QString derr) {
 			AyuSettings::load();
 			ApplyEndpointsFromStorage();
 			if (done) {
@@ -119,7 +175,7 @@ void tryDownloadOnStartup(not_null<Main::Session*> session) {
 	if (!core || !core->memorySyncEnabled) {
 		return;
 	}
-	RunSyncDownload(session, SyncKey(session), [=](bool, QString) {
+	BackendDownload(session, SyncKey(session), [=](bool, QString) {
 		AyuSettings::load();
 		ApplyEndpointsFromStorage();
 	});
