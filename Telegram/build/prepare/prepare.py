@@ -521,7 +521,7 @@ win:
     cd lzma\\C\\Util\\LzmaLib
     SET "ToolsetProp="
 winarm:
-    SET "ToolsetProp=/property:PlatformToolset=v145"
+    SET "ToolsetProp=/property:PlatformToolset=v143"
 win:
     msbuild -m LzmaLib.sln /property:Configuration=Debug /property:Platform="$X8664" %ToolsetProp%
 release:
@@ -1396,7 +1396,7 @@ win64:
     SET "FolderPostfix=_x64"
 winarm:
     SET "FolderPostfix=_ARM64"
-    SET "ToolsetProp=/property:PlatformToolset=v145"
+    SET "ToolsetProp=/property:PlatformToolset=v143"
 win:
 depends:python/Scripts/activate.bat
     %THIRDPARTY_DIR%\\python\\Scripts\\activate.bat

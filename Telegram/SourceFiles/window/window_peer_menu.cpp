@@ -709,8 +709,8 @@ void Filler::addToggleUnreadBadgeExclude() {
 	const auto excluded = AyuSettings::getInstance().isUnreadBadgeExcluded(
 		peer->id.value);
 	const auto label = excluded
-		? u"Учитывать в счётчике непрочитанных"_q
-		: u"Исключить из счётчика непрочитанных"_q;
+		? tr::ayu_UnreadBadgeInclude(tr::now)
+		: tr::ayu_UnreadBadgeExclude(tr::now);
 	_addAction(label, [=] {
 		AyuSettings::getInstance().toggleUnreadBadgeExcluded(peer->id.value);
 	}, &st::menuIconMute);
@@ -1789,6 +1789,7 @@ void Filler::fillHistoryActions() {
 	AyuUi::AddAiModeAction(_peer, _controller, _addAction);
 	AyuUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
 	AyuUi::AddOpenChannelAction(_peer, _controller, _addAction);
+	AyuUi::AddTeleForgePeerSubmenu(_peer, _controller, _addAction);
 	addViewAsTopics();
 	addManageChat();
 	addStoryArchive();

@@ -205,6 +205,8 @@
   "RegexFiltersListEmpty": "Здесь пока нет фильтров.",
   "FiltersQuickShadowBan": "В теневой бан",
   "FiltersQuickUnshadowBan": "Снять теневой бан",
+  "UnreadBadgeExclude": "Исключить из счётчика непрочитанных",
+  "UnreadBadgeInclude": "Учитывать в счётчике непрочитанных",
   "FiltersMenuSelectChat": "Выбрать чат",
   "FiltersMenuImport": "Импорт",
   "FiltersMenuExport": "Экспорт",

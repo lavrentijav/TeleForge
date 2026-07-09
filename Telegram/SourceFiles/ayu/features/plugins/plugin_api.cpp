@@ -19,11 +19,39 @@
 
 #include <Python.h>
 
+#include <crl/crl.h>
+
 #include <QtCore/QString>
 #include <string>
+#include <type_traits>
 
 namespace TeleForge::Plugins {
 namespace {
+
+// Runs `callback` on the main thread and blocks the calling (plugin) thread
+// until it finishes, returning its result. Plugin native functions execute on
+// the dedicated plugin thread, so anything touching the session, settings, or
+// UI must hop to the main thread through this helper.
+template <typename Callback>
+auto RunOnMainSync(Callback &&callback) {
+	using Result = decltype(callback());
+	auto semaphore = crl::semaphore();
+	if constexpr (std::is_void_v<Result>) {
+		crl::on_main([&] {
+			callback();
+			semaphore.release();
+		});
+		semaphore.acquire();
+	} else {
+		auto result = Result();
+		crl::on_main([&] {
+			result = callback();
+			semaphore.release();
+		});
+		semaphore.acquire();
+		return result;
+	}
+}
 
 [[nodiscard]] PyObject *FromQString(const QString &value) {
 	const auto utf8 = value.toUtf8();
@@ -48,6 +76,7 @@ void ConfirmSensitive(
 		const QString &title,
 		const QString &details,
 		Fn<void()> onConfirm) {
+	crl::on_main([title, details, onConfirm = std::move(onConfirm)] {
 	const auto window = Core::App().activeWindow();
 	if (!window) {
 		LOG(("TeleForge plugin: sensitive action '%1' blocked (no window).")
@@ -72,15 +101,18 @@ void ConfirmSensitive(
 		.confirmText = { QString::fromUtf8("\xD0\x94\xD0\xB0, \xD1\x8F "
 			"\xD1\x83\xD0\xB2\xD0\xB5\xD1\x80\xD0\xB5\xD0\xBD") },
 	}));
+	});
 }
 
 // ----- settings (covers every changeable setting via JSON) ------------------
 
 PyObject *tf_settings_all(PyObject *, PyObject *) {
-	auto &settings = AyuSettings::getInstance();
-	nlohmann::json json;
-	to_json(json, settings);
-	const auto dump = json.dump();
+	const auto dump = RunOnMainSync([]() -> std::string {
+		auto &settings = AyuSettings::getInstance();
+		nlohmann::json json;
+		to_json(json, settings);
+		return json.dump();
+	});
 	return PyUnicode_FromStringAndSize(dump.data(), Py_ssize_t(dump.size()));
 }
 
@@ -89,13 +121,17 @@ PyObject *tf_settings_get(PyObject *, PyObject *args) {
 	if (!PyArg_ParseTuple(args, "s", &key)) {
 		return nullptr;
 	}
-	auto &settings = AyuSettings::getInstance();
-	nlohmann::json json;
-	to_json(json, settings);
-	if (!json.contains(key)) {
+	const auto keyStr = std::string(key);
+	const auto dump = RunOnMainSync([keyStr]() -> std::string {
+		auto &settings = AyuSettings::getInstance();
+		nlohmann::json json;
+		to_json(json, settings);
+		const auto it = json.find(keyStr);
+		return (it == json.end()) ? std::string() : it->dump();
+	});
+	if (dump.empty()) {
 		Py_RETURN_NONE;
 	}
-	const auto dump = json[key].dump();
 	return PyUnicode_FromStringAndSize(dump.data(), Py_ssize_t(dump.size()));
 }
 
@@ -106,9 +142,14 @@ PyObject *tf_settings_apply(PyObject *, PyObject *args) {
 	if (!PyArg_ParseTuple(args, "s#", &buffer, &length)) {
 		return nullptr;
 	}
+	auto incoming = nlohmann::json();
 	try {
-		const auto incoming = nlohmann::json::parse(
-			std::string(buffer, buffer + length));
+		incoming = nlohmann::json::parse(std::string(buffer, buffer + length));
+	} catch (const std::exception &e) {
+		PyErr_SetString(PyExc_ValueError, e.what());
+		return nullptr;
+	}
+	RunOnMainSync([incoming = std::move(incoming)] {
 		auto &settings = AyuSettings::getInstance();
 		nlohmann::json merged;
 		to_json(merged, settings);
@@ -117,11 +158,8 @@ PyObject *tf_settings_apply(PyObject *, PyObject *args) {
 		}
 		from_json(merged, settings);
 		AyuSettings::save();
-		Py_RETURN_TRUE;
-	} catch (const std::exception &e) {
-		PyErr_SetString(PyExc_ValueError, e.what());
-		return nullptr;
-	}
+	});
+	Py_RETURN_TRUE;
 }
 
 PyObject *tf_settings_set(PyObject *, PyObject *args) {
@@ -131,24 +169,28 @@ PyObject *tf_settings_set(PyObject *, PyObject *args) {
 	if (!PyArg_ParseTuple(args, "ss#", &key, &valueBuffer, &valueLength)) {
 		return nullptr;
 	}
+	const auto keyStr = std::string(key);
+	auto value = nlohmann::json();
 	try {
-		const auto value = nlohmann::json::parse(
+		value = nlohmann::json::parse(
 			std::string(valueBuffer, valueBuffer + valueLength));
-		auto &settings = AyuSettings::getInstance();
-		nlohmann::json merged;
-		to_json(merged, settings);
-		merged[key] = value;
-		from_json(merged, settings);
-		AyuSettings::save();
-		Py_RETURN_TRUE;
 	} catch (const std::exception &e) {
 		PyErr_SetString(PyExc_ValueError, e.what());
 		return nullptr;
 	}
+	RunOnMainSync([keyStr, value = std::move(value)] {
+		auto &settings = AyuSettings::getInstance();
+		nlohmann::json merged;
+		to_json(merged, settings);
+		merged[keyStr] = value;
+		from_json(merged, settings);
+		AyuSettings::save();
+	});
+	Py_RETURN_TRUE;
 }
 
 PyObject *tf_settings_reset(PyObject *, PyObject *) {
-	AyuSettings::reset();
+	RunOnMainSync([] { AyuSettings::reset(); });
 	Py_RETURN_NONE;
 }
 
@@ -164,7 +206,10 @@ PyObject *tf_app_log(PyObject *, PyObject *args) {
 	if (!PyArg_ParseTuple(args, "s#", &buffer, &length)) {
 		return nullptr;
 	}
-	LOG(("TeleForge plugin: %1").arg(ArgString(buffer, length)));
+	const auto line = ArgString(buffer, length);
+	crl::on_main([line] {
+		LOG(("TeleForge plugin: %1").arg(line));
+	});
 	Py_RETURN_NONE;
 }
 
@@ -177,22 +222,21 @@ PyObject *tf_send_message(PyObject *, PyObject *args) {
 	if (!PyArg_ParseTuple(args, "Ls#", &rawPeerId, &textBuffer, &textLength)) {
 		return nullptr;
 	}
-	const auto session = ActiveSession();
-	if (!session) {
-		PyErr_SetString(PyExc_RuntimeError, "No active session.");
-		return nullptr;
-	}
-	const auto peerId = PeerId(BareId(rawPeerId));
-	const auto peer = session->data().peerLoaded(peerId);
-	if (!peer) {
-		PyErr_SetString(PyExc_ValueError, "Unknown peer id.");
-		return nullptr;
-	}
 	const auto text = ArgString(textBuffer, textLength);
-	auto message = Api::MessageToSend(
-		Api::SendAction(session->data().history(peer)));
-	message.textWithTags = { text };
-	session->api().sendMessage(std::move(message));
+	crl::on_main([rawPeerId, text] {
+		const auto session = ActiveSession();
+		if (!session) {
+			return;
+		}
+		const auto peer = session->data().peerLoaded(PeerId(BareId(rawPeerId)));
+		if (!peer) {
+			return;
+		}
+		auto message = Api::MessageToSend(
+			Api::SendAction(session->data().history(peer)));
+		message.textWithTags = { text };
+		session->api().sendMessage(std::move(message));
+	});
 	Py_RETURN_TRUE;
 }
 

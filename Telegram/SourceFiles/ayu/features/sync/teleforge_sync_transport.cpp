@@ -35,6 +35,10 @@ namespace {
 
 const auto kMetaTag = u"TFMETA"_q;
 const auto kLockTag = u"TFLOCK"_q;
+const auto kSyncChannelTitle = u"TeleForge Sync"_q;
+const auto kSyncChannelAbout
+	= u"Encrypted TeleForge settings & memory. Do not delete."_q;
+constexpr auto kSyncSearchLimit = 50;
 constexpr auto kHistoryScan = 200;
 constexpr auto kElectionWaitMs = 30000;
 constexpr auto kLockTtlSec = 300;
@@ -462,43 +466,52 @@ void UploadShardsSequential(
 	(*uploadNext)();
 }
 
-} // namespace
-
-ChannelData *ResolveSyncChannel(not_null<Main::Session*> session) {
-	const auto stored = ReadStoredChannel(session);
-	if (!stored) {
-		return nullptr;
-	}
-	const auto channel = session->data().channel(ChannelId(stored->id));
-	if (!channel->accessHash()) {
-		channel->setAccessHash(stored->accessHash);
-	}
-	return channel;
+void FindExistingSyncChannel(
+		not_null<Main::Session*> session,
+		Fn<void(ChannelData *found)> done) {
+	session->api().request(MTPcontacts_Search(
+		MTP_string(kSyncChannelTitle),
+		MTP_int(kSyncSearchLimit)
+	)).done([=](const MTPcontacts_Found &result) {
+		const auto &data = result.data();
+		session->data().processUsers(data.vusers());
+		session->data().processChats(data.vchats());
+		auto found = (ChannelData*)nullptr;
+		for (const auto &chat : data.vchats().v) {
+			if (chat.type() != mtpc_channel) {
+				continue;
+			}
+			const auto &fields = chat.c_channel();
+			if (qs(fields.vtitle()) != kSyncChannelTitle) {
+				continue;
+			}
+			const auto channel = session->data().channel(
+				ChannelId(fields.vid().v));
+			if (channel->isBroadcast()
+				&& channel->amCreator()
+				&& channel->accessHash()) {
+				found = channel;
+				break;
+			}
+		}
+		if (done) {
+			done(found);
+		}
+	}).fail([=](const MTP::Error &) {
+		if (done) {
+			done(nullptr);
+		}
+	}).send();
 }
 
-bool IsSyncChannel(not_null<Main::Session*> session, PeerId peerId) {
-	const auto stored = ReadStoredChannel(session);
-	if (!stored) {
-		return false;
-	}
-	return peerToChannel(peerId).bare == stored->id;
-}
-
-void EnsureSyncChannel(
+void CreateSyncChannel(
 		not_null<Main::Session*> session,
 		Fn<void(bool ok, QString error)> done) {
-	if (const auto existing = ResolveSyncChannel(session)) {
-		MuteSyncChannel(session, existing);
-		if (done) {
-			done(true, {});
-		}
-		return;
-	}
 	using Flag = MTPchannels_CreateChannel::Flag;
 	session->api().request(MTPchannels_CreateChannel(
 		MTP_flags(Flag::f_broadcast),
-		MTP_string("TeleForge Sync"),
-		MTP_string("Encrypted TeleForge settings & memory. Do not delete."),
+		MTP_string(kSyncChannelTitle),
+		MTP_string(kSyncChannelAbout),
 		MTPInputGeoPoint(),
 		MTPstring(),
 		MTP_int(0)
@@ -535,6 +548,54 @@ void EnsureSyncChannel(
 			done(false, error.type());
 		}
 	}).send();
+}
+
+} // namespace
+
+ChannelData *ResolveSyncChannel(not_null<Main::Session*> session) {
+	const auto stored = ReadStoredChannel(session);
+	if (!stored) {
+		return nullptr;
+	}
+	const auto channel = session->data().channel(ChannelId(stored->id));
+	if (!channel->accessHash()) {
+		channel->setAccessHash(stored->accessHash);
+	}
+	return channel;
+}
+
+bool IsSyncChannel(not_null<Main::Session*> session, PeerId peerId) {
+	const auto stored = ReadStoredChannel(session);
+	if (!stored) {
+		return false;
+	}
+	return peerToChannel(peerId).bare == stored->id;
+}
+
+void EnsureSyncChannel(
+		not_null<Main::Session*> session,
+		Fn<void(bool ok, QString error)> done) {
+	if (const auto existing = ResolveSyncChannel(session)) {
+		MuteSyncChannel(session, existing);
+		if (done) {
+			done(true, {});
+		}
+		return;
+	}
+	FindExistingSyncChannel(session, [=](ChannelData *found) {
+		if (found) {
+			WriteStoredChannel(
+				session,
+				peerToChannel(found->id).bare,
+				found->accessHash());
+			MuteSyncChannel(session, found);
+			if (done) {
+				done(true, {});
+			}
+			return;
+		}
+		CreateSyncChannel(session, done);
+	});
 }
 
 void RunSyncDownload(

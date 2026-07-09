@@ -66,6 +66,18 @@ public:
 	};
 	void addChooseButton(ChooseButtonArgs &&args);
 
+	struct DropdownArgs {
+		QString id;
+		QStringList altIds;
+		rpl::producer<QString> title;
+		std::vector<QString> options;
+		int current = 0;
+		Fn<void(int)> setter;
+		IconDescriptor icon;
+		QStringList keywords;
+	};
+	void addDropdown(DropdownArgs &&args);
+
 	struct SliderArgs {
 		QString id;
 		QStringList altIds;

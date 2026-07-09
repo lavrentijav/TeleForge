@@ -124,7 +124,9 @@ void getRegistrationDate(not_null<PeerData*> peer, Fn<void(TextWithEntities)> ca
 
 QString getBetterLinkPreview(const QString &url);
 
-[[nodiscard]] bool applyGhostScheduling(
+// Not [[nodiscard]]: many call sites intentionally use it fire-and-forget
+// (it mutates `options` in place); MSVC 14.4x flags discards as C4834 under -WX.
+bool applyGhostScheduling(
 	not_null<Main::Session*> session,
 	Api::SendOptions &options,
 	int delaySeconds = 12);

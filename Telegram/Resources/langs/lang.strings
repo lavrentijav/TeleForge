@@ -8405,6 +8405,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_RegexFiltersListEmpty" = "No filters here yet.";
 "ayu_FiltersQuickShadowBan" = "Shadow Ban";
 "ayu_FiltersQuickUnshadowBan" = "Unshadow Ban";
+"ayu_UnreadBadgeExclude" = "Exclude from unread counter";
+"ayu_UnreadBadgeInclude" = "Count in unread counter";
 "ayu_FiltersMenuSelectChat" = "Select Chat";
 "ayu_FiltersMenuImport" = "Import";
 "ayu_FiltersMenuExport" = "Export";

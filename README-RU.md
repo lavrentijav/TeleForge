@@ -50,25 +50,6 @@ TeleForge использует собственные branding assets, кото�
 
 Эти файлы формируют текущую визуальную идентичность клиента в окне приложения, ресурсах установщика, репозитории и готовых сборках.
 
-## Превью
-
-<h3>
-  <details>
-    <summary>Скриншоты</summary>
-    <table>
-      <tr>
-        <td><img src='.github/demos/demo1.png' width='268' alt='Preferences'></td>
-        <td><img src='.github/demos/demo2.png' width='268' alt='Options'></td>
-        <td><img src='.github/demos/demo3.png' width='268' alt='Filters'></td>
-      </tr>
-      <tr>
-        <td><img src='.github/demos/demo4.png' width='268' alt='Appearance'></td>
-        <td><img src='.github/demos/demo5.png' width='268' alt='Chats'></td>
-      </tr>
-    </table>
-  </details>
-</h3>
-
 ## Загрузка и сборка
 
 Готовые бинарники могут распространяться через GitHub Releases, GitHub Actions artifacts или через официальные ресурсы TeleForge, когда они доступны.

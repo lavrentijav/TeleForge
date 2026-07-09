@@ -8,6 +8,8 @@
 #include "ayu/features/plugins/plugin_developers_store.h"
 #include "ayu/features/plugins/plugin_manager.h"
 #include "ayu/features/plugins/plugin_registry.h"
+#include "ayu/features/plugins/plugin_runner.h"
+#include "ayu/features/subscription/teleforge_subscription.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/ui/settings/settings_main.h"
@@ -31,6 +33,9 @@
 
 #include <QtCore/QDir>
 #include <QtCore/QFile>
+#include <QtCore/QJsonArray>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include <QDesktopServices>
 
 namespace Settings {
@@ -169,8 +174,12 @@ const auto kMeta = BuildHelper({
 	const auto developersHost = std::make_shared<QPointer<Ui::VerticalLayout>>();
 	const auto catalogHost = std::make_shared<QPointer<Ui::VerticalLayout>>();
 
-	// Always suggest subscribing when the section is opened.
-	ShowSubscribePrompt(controller);
+	// Refresh subscription status and suggest subscribing only when the user
+	// is not already subscribed (avoids nagging active subscribers).
+	TeleForge::Subscription::refresh(&controller->session());
+	if (!TeleForge::Subscription::active()) {
+		ShowSubscribePrompt(controller);
+	}
 
 	builder.addSkip();
 	builder.addSubsectionTitle(rpl::single(u"Подписки (рекомендуем)"_q));
@@ -413,6 +422,19 @@ const auto kMeta = BuildHelper({
 					state->finalSwitch->setEnabled(true);
 					return;
 				}
+				if (!TeleForge::Subscription::active()) {
+					state->cooldownReady = false;
+					state->secondsLeft = 0;
+					if (state->timer) {
+						state->timer->cancel();
+					}
+					state->status->setText(
+						u"Доступно по подписке на TeleForge. Оформите подписку "
+						"выше, чтобы разблокировать расширенные функции."_q);
+					state->finalSwitch->setChecked(false);
+					state->finalSwitch->setEnabled(false);
+					return;
+				}
 				state->finalSwitch->setChecked(false);
 				const auto allAck = state->ackRisk
 					&& state->ackNoSupport
@@ -572,8 +594,59 @@ const auto kMeta = BuildHelper({
 					controller->showToast(
 						u"Режим разработчика включён. Будьте осторожны."_q);
 				}, state->finalSwitch->lifetime());
+
+					const auto gateAck = [=](not_null<Ui::Checkbox*> box) {
+						TeleForge::Subscription::activeValue(
+						) | rpl::on_next([=](bool isActive) {
+							box->setEnabled(isActive);
+							if (!isActive && box->checked()) {
+								box->setChecked(false);
+							}
+						}, box->lifetime());
+					};
+					gateAck(ack1);
+					gateAck(ack2);
+					gateAck(ack3);
+					TeleForge::Subscription::activeValue(
+					) | rpl::on_next([=](bool) {
+						updateUi();
+					}, c->lifetime());
 			}
 			updateUi();
+		}, [](const SearchContext &) {});
+	});
+
+	builder.addSkip();
+	builder.addDivider();
+	builder.addSkip();
+	builder.addSubsectionTitle(rpl::single(u"Кнопки плагинов"_q));
+
+	builder.add([&](const BuildContext &ctx) {
+		v::match(ctx, [&](const WidgetContext &wctx) {
+			const auto c = wctx.container;
+			const auto json =
+				TeleForge::Plugins::PluginRunner::menuItemsJson();
+			const auto items = QJsonDocument::fromJson(json.toUtf8()).array();
+			if (items.isEmpty()) {
+				AddHint(c, u"Плагины пока не добавили кнопок. Используйте "
+					"tf.ui.add_menu_item(title, handler) в плагине."_q);
+				return;
+			}
+			for (const auto &value : items) {
+				const auto object = value.toObject();
+				const auto id = object.value(u"id"_q).toString();
+				const auto title = object.value(u"title"_q).toString();
+				if (id.isEmpty()) {
+					continue;
+				}
+				const auto button = c->add(object_ptr<Ui::SettingsButton>(
+					c,
+					rpl::single(title.isEmpty() ? id : title),
+					st::settingsButtonNoIcon));
+				button->setClickedCallback([=] {
+					TeleForge::Plugins::PluginRunner::invokeMenuItem(id);
+				});
+			}
 		}, [](const SearchContext &) {});
 	});
 

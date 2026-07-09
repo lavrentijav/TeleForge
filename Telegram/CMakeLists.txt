@@ -24,6 +24,13 @@ add_subdirectory(codegen)
 # TeleForge extensions
 add_subdirectory(lib_icu)
 
+# The bundled ICU sources use APIs deprecated in newer ICU/compilers
+# (e.g. ucnv_safeClone); GCC 15 turns -Wdeprecated-declarations into an error
+# under the global -Werror. Don't treat warnings as errors for vendored ICU.
+if (TARGET icu_regex_minimal)
+    set_target_properties(icu_regex_minimal PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
+endif()
+
 get_filename_component(src_loc SourceFiles REALPATH)
 get_filename_component(res_loc Resources REALPATH)
 
@@ -99,7 +106,7 @@ PRIVATE
     desktop-app::external_openal
     desktop-app::external_xxhash
 
-    teleforge::lib_icu
+    ayugram::lib_icu
 )
 
 set(teleforge_extension_files
@@ -111,6 +118,8 @@ set(teleforge_extension_files
         ayu/ayu_state.h
         ayu/ayu_settings.cpp
         ayu/ayu_settings.h
+        ayu/ayu_ui_settings.cpp
+        ayu/ayu_ui_settings.h
         ayu/ayu_lang.cpp
         ayu/ayu_lang.h
         ayu/ayu_infra.cpp
@@ -214,6 +223,8 @@ set(teleforge_extension_files
         ayu/ui/components/icon_picker.h
         ayu/ui/components/avatar_corners_preview.cpp
         ayu/ui/components/avatar_corners_preview.h
+        ayu/ui/components/dropdown_row.cpp
+        ayu/ui/components/dropdown_row.h
         ayu/ui/components/message_preview.cpp
         ayu/ui/components/message_preview.h
         ayu/ui/components/saved_music.cpp
@@ -259,6 +270,8 @@ set(teleforge_extension_files
         ayu/features/filters/filters_cache_controller.h
         ayu/features/filters/filters_utils.cpp
         ayu/features/filters/filters_utils.h
+        ayu/features/subscription/teleforge_subscription.cpp
+        ayu/features/subscription/teleforge_subscription.h
         ayu/features/teleforge/teleforge_bootstrap.cpp
         ayu/features/teleforge/teleforge_bootstrap.h
         ayu/features/teleforge/teleforge_core.cpp
