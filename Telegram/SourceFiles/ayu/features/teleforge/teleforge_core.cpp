@@ -85,6 +85,10 @@ namespace {
 		.cloudBackend = core.cloudBackend,
 		.pgConnString = core.pgConnString.toStdString(),
 		.pgVersion = core.pgVersion.toStdString(),
+		.embeddingModelPath = core.embeddingModelPath.toStdString(),
+		.sshTunnelEnabled = core.sshTunnelEnabled,
+		.sshTunnelTarget = core.sshTunnelTarget.toStdString(),
+		.sshTunnelIdentityFile = core.sshTunnelIdentityFile.toStdString(),
 	};
 }
 
@@ -120,6 +124,11 @@ namespace {
 		.pgVersion = record.pgVersion.empty()
 			? u"18"_q
 			: QString::fromStdString(record.pgVersion),
+		.embeddingModelPath = QString::fromStdString(record.embeddingModelPath),
+		.sshTunnelEnabled = record.sshTunnelEnabled,
+		.sshTunnelTarget = QString::fromStdString(record.sshTunnelTarget),
+		.sshTunnelIdentityFile = QString::fromStdString(
+			record.sshTunnelIdentityFile),
 	};
 }
 
@@ -276,6 +285,20 @@ QString SerializePersonalityCore(const PersonalityCore &core) {
 		lines.push_back("rerank_model_path=" + QString::fromUtf8(
 			core.rerankModelPath.toUtf8().toPercentEncoding()));
 	}
+	if (!core.embeddingModelPath.isEmpty()) {
+		lines.push_back("embedding_model_path=" + QString::fromUtf8(
+			core.embeddingModelPath.toUtf8().toPercentEncoding()));
+	}
+	lines.push_back(
+		"ssh_tunnel=" + QString::number(core.sshTunnelEnabled ? 1 : 0));
+	if (!core.sshTunnelTarget.isEmpty()) {
+		lines.push_back("ssh_tunnel_target=" + QString::fromUtf8(
+			core.sshTunnelTarget.toUtf8().toPercentEncoding()));
+	}
+	if (!core.sshTunnelIdentityFile.isEmpty()) {
+		lines.push_back("ssh_tunnel_identity=" + QString::fromUtf8(
+			core.sshTunnelIdentityFile.toUtf8().toPercentEncoding()));
+	}
 	return lines.join('\n');
 }
 
@@ -336,6 +359,14 @@ std::optional<PersonalityCore> ParsePersonalityCore(const QString &serialized) {
 			core.rerankModelId = QUrl::fromPercentEncoding(value.toUtf8());
 		} else if (key == "rerank_model_path") {
 			core.rerankModelPath = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "embedding_model_path") {
+			core.embeddingModelPath = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "ssh_tunnel") {
+			core.sshTunnelEnabled = (value.toInt() != 0);
+		} else if (key == "ssh_tunnel_target") {
+			core.sshTunnelTarget = QUrl::fromPercentEncoding(value.toUtf8());
+		} else if (key == "ssh_tunnel_identity") {
+			core.sshTunnelIdentityFile = QUrl::fromPercentEncoding(value.toUtf8());
 		}
 	}
 

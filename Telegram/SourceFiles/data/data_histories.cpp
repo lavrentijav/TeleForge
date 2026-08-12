@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
+#include "ayu/features/ghost/tf_ghost_audit.h"
 #include "ayu/ayu_worker.h"
 #include "ayu/utils/telegram_helpers.h"
 
@@ -744,6 +745,10 @@ void Histories::sendReadRequest(not_null<History*> history, State &state) {
 			sendReadRequests();
 			finish();
 		};
+		TeleForge::Ghost::noteWakeSignal(
+			&session(),
+			u"readHistory"_q,
+			history->peer->name());
 		if (const auto channel = history->peer->asChannel()) {
 			return session().api().request(MTPchannels_ReadHistory(
 				channel->inputChannel(),

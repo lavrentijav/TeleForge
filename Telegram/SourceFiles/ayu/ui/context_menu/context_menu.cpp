@@ -413,7 +413,15 @@ void AddDeleteOwnMessagesAction(PeerData *peerData,
 }
 
 void AddHistoryAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
-	if (!item || !AyuMessages::hasRevisions(item)) {
+	if (!item) {
+		return;
+	}
+	// An edited message is worth offering the history entry even when no
+	// revision rows exist yet: the edit may have happened while the client was
+	// offline, and the section itself shows the current text as the only
+	// revision instead of an empty list.
+	const auto edited = (item->Get<HistoryMessageEdited>() != nullptr);
+	if (!edited && !AyuMessages::hasRevisions(item)) {
 		return;
 	}
 

@@ -7,7 +7,10 @@
 #include "ayu/features/teleforge/teleforge_core.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/ui/settings/ayu_builder.h"
+#include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/ui/settings/settings_main.h"
+#include "core/application.h"
+#include "core/file_utilities.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
 #include "styles/style_layers.h"
@@ -368,6 +371,99 @@ const auto kMeta = BuildHelper({
 					TeleForge::Sync::PgTestConnection(text, cb);
 				}
 			});
+
+			// --- SSH tunnel (optional; applies to whichever DB backend is
+			// active above, so the DB itself never needs a public port). ---
+			ayu.base().addSkip();
+			AddSettingsHint(inner, rpl::single(u"SSH-туннель к базе данных"_q));
+
+			const auto sshEnabled = inner->lifetime()
+				.make_state<rpl::variable<bool>>(core.sshTunnelEnabled);
+			AddToggle(
+				inner,
+				rpl::single(u"Подключаться через SSH-туннель"_q),
+				[=] { return sshEnabled->current(); },
+				[=](bool v) {
+					*sshEnabled = v;
+					auto p = TeleForge::LoadPersonalityCore().value_or(
+						TeleForge::DefaultPersonalityCore());
+					p.sshTunnelEnabled = v;
+					p.updatedAt = QDateTime::currentDateTimeUtc();
+					TeleForge::PersistPersonalityCore(p);
+				});
+
+			const auto sshWrap = inner->add(
+				object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+					inner,
+					object_ptr<Ui::VerticalLayout>(inner)));
+			const auto sshInner = sshWrap->entity();
+
+			AddSettingsHint(
+				sshInner,
+				rpl::single(u"Адрес входа (user@host[:port])"_q));
+			const auto sshTarget = sshInner->add(
+				object_ptr<Ui::InputField>(
+					sshInner,
+					st::defaultInputField,
+					Ui::InputField::Mode::SingleLine,
+					rpl::single(QString()),
+					TextWithTags{ core.sshTunnelTarget }),
+				st::boxRowPadding);
+
+			AddSettingsHint(
+				sshInner,
+				rpl::single(u"Приватный ключ (необязательно)"_q));
+			const auto sshIdentity = sshInner->add(
+				object_ptr<Ui::InputField>(
+					sshInner,
+					st::defaultInputField,
+					Ui::InputField::Mode::SingleLine,
+					rpl::single(QString()),
+					TextWithTags{ core.sshTunnelIdentityFile }),
+				st::boxRowPadding);
+			const auto browseIdentity = sshInner->add(
+				object_ptr<Ui::SettingsButton>(
+					sshInner,
+					rpl::single(u"Выбрать файл ключа…"_q),
+					st::settingsButtonNoIcon));
+			browseIdentity->setClickedCallback([=] {
+				FileDialog::GetOpenPath(
+					Core::App().getFileDialogParent(),
+					u"Приватный ключ SSH"_q,
+					u"Все файлы (*.*)"_q,
+					[=](const FileDialog::OpenResult &result) {
+						if (!result.paths.isEmpty()) {
+							sshIdentity->setText(result.paths.front());
+						}
+					});
+			});
+
+			const auto persistSsh = [=] {
+				auto p = TeleForge::LoadPersonalityCore().value_or(
+					TeleForge::DefaultPersonalityCore());
+				p.sshTunnelTarget = sshTarget->getLastText().trimmed();
+				p.sshTunnelIdentityFile = sshIdentity->getLastText().trimmed();
+				p.updatedAt = QDateTime::currentDateTimeUtc();
+				TeleForge::PersistPersonalityCore(p);
+			};
+			for (const auto field : { sshTarget, sshIdentity }) {
+				field->focusedChanges(
+				) | rpl::on_next([=](bool focused) {
+					if (!focused) {
+						persistSsh();
+					}
+				}, field->lifetime());
+			}
+
+			sshWrap->toggleOn(sshEnabled->value());
+			sshWrap->finishAnimating();
+
+			ayu.base().addSkip();
+			ayu.base().addDividerText(rpl::single(
+				u"Туннель поднимается системной командой ssh (нужен ssh в "
+				u"PATH и доступ по ключу/агенту) и перенаправляет локальный "
+				u"порт на хост базы данных из полей выше — сама база может "
+				u"оставаться без публичного порта."_q));
 
 			connWrap->toggleOn(provider->value() | rpl::map([](int b) {
 				return b != 0;

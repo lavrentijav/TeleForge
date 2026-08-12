@@ -4,6 +4,7 @@
 #include "ayu/ui/settings/settings_teleforge_ai.h"
 
 #include "ayu/features/teleforge/teleforge_core.h"
+#include "ayu/features/teleforge/teleforge_model_downloader.h"
 #include "ayu/features/teleforge/teleforge_openai_models.h"
 #include "ayu/features/teleforge/teleforge_paths.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
@@ -535,6 +536,71 @@ const auto kMeta = BuildHelper({
 					[=](const QString &p) { rerankPath->setText(p); });
 			});
 
+			AddSettingsHint(c, rpl::single(u"Локальная модель эмбеддингов (GGUF)"_q));
+
+			const auto embGguf = c->add(
+				object_ptr<Ui::InputField>(
+					c,
+					st::defaultInputField,
+					Ui::InputField::Mode::SingleLine,
+					rpl::single(QString()),
+					TextWithTags{
+						core.embeddingModelPath.isEmpty()
+							? TeleForge::DefaultTeleForgeEmbeddingGgufPath()
+							: core.embeddingModelPath,
+					}),
+				st::boxRowPadding);
+
+			const auto browseEmbGguf = c->add(
+				object_ptr<Ui::SettingsButton>(
+					c,
+					rpl::single(u"Выбрать файл эмбеддингов (.gguf)…"_q),
+					st::settingsButtonNoIcon));
+			browseEmbGguf->setClickedCallback([=] {
+				FileDialog::GetOpenPath(
+					Core::App().getFileDialogParent(),
+					u"Модель эмбеддингов (GGUF)"_q,
+					u"GGUF (*.gguf);;All files (*.*)"_q,
+					[=](const FileDialog::OpenResult &result) {
+						if (!result.paths.isEmpty()) {
+							embGguf->setText(result.paths.front());
+						}
+					});
+			});
+
+			const auto downloadEmbGguf = c->add(
+				object_ptr<Ui::SettingsButton>(
+					c,
+					rpl::single(u"Скачать модель с Hugging Face…"_q),
+					st::settingsButtonNoIcon));
+			downloadEmbGguf->setClickedCallback([=] {
+				auto titles = QStringList();
+				for (const auto &entry : TeleForge::ModelCatalog()) {
+					titles.push_back(TeleForge::ModelDownloaded(entry)
+						? (entry.title + u" — уже загружена"_q)
+						: entry.title);
+				}
+				ShowStringPickMenu(
+					c,
+					downloadEmbGguf->mapToGlobal(
+						QPoint(0, downloadEmbGguf->height())),
+					titles,
+					[=](const QString &picked) {
+						for (const auto &entry : TeleForge::ModelCatalog()) {
+							if (!picked.startsWith(entry.title)) {
+								continue;
+							}
+							if (TeleForge::ModelDownloaded(entry)) {
+								embGguf->setText(
+									TeleForge::ModelLocalPath(entry));
+								return;
+							}
+							TeleForge::ShowModelDownloadBox(entry);
+							return;
+						}
+					});
+			});
+
 			const auto save = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
@@ -563,12 +629,14 @@ const auto kMeta = BuildHelper({
 				p.rerankEndpointUrl = rerankParsed.url;
 				p.rerankModelId = rerankParsed.modelId;
 				p.rerankModelPath = rerankPath->getLastText().trimmed();
+				p.embeddingModelPath = embGguf->getLastText().trimmed();
 				p.updatedAt = QDateTime::currentDateTimeUtc();
 				TeleForge::PersistPersonalityCore(p);
 			};
 			for (const auto field : {
 					lm, apiKey, chatModelIdField, chatGguf, ctxMsgs,
-					emb, embModel, rerankUrl, rerankModel, rerankPath }) {
+					emb, embModel, rerankUrl, rerankModel, rerankPath,
+					embGguf }) {
 				field->focusedChanges(
 				) | rpl::on_next([=](bool focused) {
 					if (!focused) {

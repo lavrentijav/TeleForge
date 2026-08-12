@@ -7,7 +7,9 @@
 #include "ayu/features/sync/teleforge_sync_transport.h"
 #include "ayu/features/teleforge/teleforge_core.h"
 #include "ayu/features/teleforge/teleforge_inference.h"
+#include "ayu/features/teleforge/teleforge_vector_db.h"
 #include "base/call_delayed.h"
+#include "logs.h"
 #include "data/data_user.h"
 #include "main/main_session.h"
 
@@ -178,6 +180,61 @@ void tryDownloadOnStartup(not_null<Main::Session*> session) {
 	BackendDownload(session, SyncKey(session), [=](bool, QString) {
 		AyuSettings::load();
 		ApplyEndpointsFromStorage();
+	});
+}
+
+void checkRemoteFreshness(
+		not_null<Main::Session*> session,
+		Fn<void(bool stale, QString error)> done) {
+	const auto core = LoadPersonalityCore();
+	if (!core || !core->memorySyncEnabled) {
+		if (done) {
+			done(false, QString());
+		}
+		return;
+	}
+	if (core->cloudBackend != 1) {
+		// Only the PostgreSQL backend keeps a server-side fingerprint that can
+		// be read without pulling the whole snapshot; the other transports fall
+		// back to the unconditional startup download.
+		tryDownloadOnStartup(session);
+		if (done) {
+			done(false, QString());
+		}
+		return;
+	}
+	PgFetchRemoteStamp(session, [=](
+			bool ok,
+			QString sha256,
+			qint64 revision,
+			QString error) {
+		if (!ok) {
+			if (done) {
+				done(false, error);
+			}
+			return;
+		}
+		if (sha256.isEmpty()) {
+			// Nothing was ever uploaded, so there is nothing to be behind of.
+			if (done) {
+				done(false, QString());
+			}
+			return;
+		}
+		const auto known = VectorDb::KnownRemoteHash();
+		const auto stale = (known != sha256);
+		VectorDb::SetKnownRemoteHash(sha256);
+		LOG(("TeleForge Sync: remote stamp %1 (rev %2), local known %3 -> %4")
+			.arg(sha256)
+			.arg(revision)
+			.arg(known.isEmpty() ? u"<none>"_q : known)
+			.arg(stale ? u"stale"_q : u"fresh"_q));
+		if (stale) {
+			tryDownloadOnStartup(session);
+		}
+		if (done) {
+			done(stale, QString());
+		}
 	});
 }
 

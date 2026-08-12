@@ -1,0 +1,16 @@
+# Target list for deploy.sh. Copy to hosts.toml and edit.
+# Each [[host]] table is one remote machine to install/update the scanner on.
+
+[[host]]
+name = "prod-1"
+ssh = "teleforge@203.0.113.10"       # user@host, passed straight to ssh/scp
+port = 22
+# Path on the remote machine.
+remote_dir = "/opt/teleforge-scanner"
+# Local config.toml to upload for this host. Leave empty to skip (host already
+# has one and should keep it).
+config = "config.toml"
+# Optional: ssh -i identity file.
+identity = ""
+# Enable + start the systemd service after deploying.
+enable_service = true

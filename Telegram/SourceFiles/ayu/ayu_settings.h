@@ -245,6 +245,9 @@ public:
 	void validate();
 
 	[[nodiscard]] bool saveDeletedMessages() const { return _saveDeletedMessages.current(); }
+	[[nodiscard]] bool showDeletedInChat() const { return _showDeletedInChat.current(); }
+	[[nodiscard]] bool ghostPassthroughMentions() const { return _ghostPassthroughMentions.current(); }
+	[[nodiscard]] int deletedRestoreLimit() const { return _deletedRestoreLimit.current(); }
 	[[nodiscard]] bool saveMessagesHistory() const { return _saveMessagesHistory.current(); }
 	[[nodiscard]] bool saveForBots() const { return _saveForBots.current(); }
 	[[nodiscard]] bool filtersEnabled() const { return _filtersEnabled.current(); }
@@ -343,6 +346,30 @@ public:
 	[[nodiscard]] int archivePrivateProfileSeconds() const {
 		return _archivePrivateProfileSeconds.current();
 	}
+	[[nodiscard]] int archiveHistoryScanLimit() const {
+		return _archiveHistoryScanLimit.current();
+	}
+	[[nodiscard]] int archiveCrawlBatchSize() const {
+		return _archiveCrawlBatchSize.current();
+	}
+	[[nodiscard]] int archiveMaxParticipants() const {
+		return _archiveMaxParticipants.current();
+	}
+	[[nodiscard]] bool archiveScanParticipants() const {
+		return _archiveScanParticipants.current();
+	}
+	[[nodiscard]] bool archiveScanBroadcasts() const {
+		return _archiveScanBroadcasts.current();
+	}
+	[[nodiscard]] bool archiveSaveUserpics() const {
+		return _archiveSaveUserpics.current();
+	}
+	[[nodiscard]] bool archiveFollowLinks() const {
+		return _archiveFollowLinks.current();
+	}
+	[[nodiscard]] bool archiveBackgroundCrawl() const {
+		return _archiveBackgroundCrawl.current();
+	}
 	[[nodiscard]] int archiveOtherProfileSeconds() const {
 		return _archiveOtherProfileSeconds.current();
 	}
@@ -438,6 +465,17 @@ public:
 	void setArchivePrivateOnlineSeconds(int val);
 	void setArchivePrivateProfileSeconds(int val);
 	void setArchiveOtherProfileSeconds(int val);
+	void setArchiveHistoryScanLimit(int val);
+	void setArchiveCrawlBatchSize(int val);
+	void setArchiveMaxParticipants(int val);
+	void setArchiveScanParticipants(bool val);
+	void setArchiveScanBroadcasts(bool val);
+	void setArchiveSaveUserpics(bool val);
+	void setArchiveFollowLinks(bool val);
+	void setArchiveBackgroundCrawl(bool val);
+	void setShowDeletedInChat(bool val);
+	void setGhostPassthroughMentions(bool val);
+	void setDeletedRestoreLimit(int val);
 	void setAdaptiveCoverColor(bool val);
 	void setImproveLinkPreviews(bool val);
 	void setCrashReporting(bool val);
@@ -622,6 +660,9 @@ private:
 	[[nodiscard]] uint64 getOverriddenGhostUserId(uint64 userId) const { return _useGlobalGhostMode.current() ? 0 : userId; }
 
 	rpl::variable<bool> _saveDeletedMessages = true;
+	rpl::variable<bool> _showDeletedInChat = true;
+	rpl::variable<bool> _ghostPassthroughMentions = true;
+	rpl::variable<int> _deletedRestoreLimit = 200;
 	rpl::variable<bool> _saveMessagesHistory = true;
 	rpl::variable<bool> _saveForBots = false;
 	std::unordered_set<int64> _shadowBanIds;
@@ -709,6 +750,14 @@ private:
 	rpl::variable<int> _archivePrivateOnlineSeconds = 15;
 	rpl::variable<int> _archivePrivateProfileSeconds = 600;
 	rpl::variable<int> _archiveOtherProfileSeconds = 3600;
+	rpl::variable<int> _archiveHistoryScanLimit = 300;
+	rpl::variable<int> _archiveCrawlBatchSize = 24;
+	rpl::variable<int> _archiveMaxParticipants = 5000;
+	rpl::variable<bool> _archiveScanParticipants = true;
+	rpl::variable<bool> _archiveScanBroadcasts = false;
+	rpl::variable<bool> _archiveSaveUserpics = true;
+	rpl::variable<bool> _archiveFollowLinks = true;
+	rpl::variable<bool> _archiveBackgroundCrawl = true;
 	rpl::variable<bool> _adaptiveCoverColor = true;
 	rpl::variable<bool> _improveLinkPreviews = false;
 	rpl::variable<bool> _crashReporting = true;

@@ -29,6 +29,10 @@ namespace {
 constexpr auto kParticipantsPerPage = 200;
 constexpr auto kParticipantsFirstPage = 50;
 
+[[nodiscard]] int MaxParticipants() {
+	return AyuSettings::getInstance().archiveMaxParticipants();
+}
+
 auto &LastChatScan() {
 	static auto result = base::flat_map<long long, int>();
 	return result;
@@ -38,21 +42,34 @@ void ScanHistoryAuthors(
 		not_null<Main::Session*> session,
 		not_null<History*> history) {
 	const auto chatPeer = history->peer;
-	for (const auto &block : history->blocks) {
-		for (const auto &view : block->messages) {
-			const auto item = view->data();
+	const auto limit = AyuSettings::getInstance().archiveHistoryScanLimit();
+	auto seen = 0;
+	for (auto i = history->blocks.rbegin(); i != history->blocks.rend(); ++i) {
+		const auto &block = *i;
+		for (auto j = block->messages.rbegin();
+				j != block->messages.rend();
+				++j) {
+			if (limit > 0 && seen >= limit) {
+				return;
+			}
+			++seen;
+			const auto item = (*j)->data();
 			if (const auto from = item->from()
 				? item->from()->asUser()
 				: nullptr) {
 				if (!from->isSelf()) {
-					noteMessageAuthor(from, chatPeer, item->id);
+					queueMessageAuthor(session, from, chatPeer, item->id);
 				}
 			}
 			if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
 				if (const auto sender = forwarded->originalSender) {
 					if (const auto from = sender->asUser()) {
 						if (!from->isSelf()) {
-							noteMessageAuthor(from, chatPeer, item->id);
+							queueMessageAuthor(
+								session,
+								from,
+								chatPeer,
+								item->id);
 						}
 					}
 				}
@@ -62,20 +79,23 @@ void ScanHistoryAuthors(
 }
 
 void NoteChatParticipants(
+		not_null<Main::Session*> session,
 		not_null<PeerData*> chatPeer,
 		const std::vector<not_null<UserData*>> &users) {
 	for (const auto user : users) {
-		noteMessageAuthor(user, chatPeer, MsgId(0));
+		queueMessageAuthor(session, user, chatPeer, MsgId(0));
 	}
 }
 
-void ScanBasicChatParticipants(not_null<ChatData*> chat) {
+void ScanBasicChatParticipants(
+		not_null<Main::Session*> session,
+		not_null<ChatData*> chat) {
 	auto users = std::vector<not_null<UserData*>>();
 	users.reserve(chat->participants.size());
 	for (const auto user : chat->participants) {
 		users.push_back(user);
 	}
-	NoteChatParticipants(chat, users);
+	NoteChatParticipants(session, chat, users);
 }
 
 void RequestChannelParticipantsPage(
@@ -116,11 +136,12 @@ void RequestChannelParticipantsPage(
 					users.push_back(user);
 				}
 			}
-			NoteChatParticipants(chatPeer, users);
+			NoteChatParticipants(session, chatPeer, users);
 			const auto loaded = int(list.size());
+			const auto cap = MaxParticipants();
 			if (loaded > 0
 				&& offset + loaded < availableCount
-				&& offset + loaded < 5000) {
+				&& (cap <= 0 || offset + loaded < cap)) {
 				RequestChannelParticipantsPage(
 					session,
 					channel,
@@ -157,7 +178,7 @@ void RequestBasicChatFull(
 		session->data().processChats(data.vchats());
 		data.vfull_chat().match([&](const MTPDchatFull &full) {
 			Data::ApplyChatUpdate(chat, full);
-			ScanBasicChatParticipants(chat);
+			ScanBasicChatParticipants(session, chat);
 		}, [](const MTPDchannelFull &) {
 		});
 	}).send();
@@ -189,14 +210,20 @@ void scanOpenedChat(
 		ScanHistoryAuthors(session, history);
 	}
 
+	if (!AyuSettings::getInstance().archiveScanParticipants()) {
+		return;
+	}
 	if (const auto chat = chatPeer->asChat()) {
 		if (!chat->participants.empty()) {
-			ScanBasicChatParticipants(chat);
+			ScanBasicChatParticipants(session, chat);
 		} else {
 			RequestBasicChatFull(session, chat);
 		}
 	} else if (const auto channel = chatPeer->asChannel()) {
-		if (channel->isMegagroup() || channel->isBroadcast()) {
+		const auto broadcastsAllowed
+			= AyuSettings::getInstance().archiveScanBroadcasts();
+		if (channel->isMegagroup()
+			|| (channel->isBroadcast() && broadcastsAllowed)) {
 			RequestChannelParticipantsPage(session, channel, chatPeer, 0, nullptr);
 		}
 	}

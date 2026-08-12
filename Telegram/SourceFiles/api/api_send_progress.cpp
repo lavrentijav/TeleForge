@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
+#include "ayu/features/ghost/tf_ghost_audit.h"
 
 
 namespace Api {
@@ -146,6 +147,10 @@ void SendProgressManager::send(const Key &key, int progress) {
 		default: return MTP_sendMessageTypingAction();
 		}
 	}();
+	TeleForge::Ghost::noteWakeSignal(
+		_session,
+		u"setTyping"_q,
+		key.history->peer->name());
 	const auto requestId = _session->api().request(MTPmessages_SetTyping(
 		MTP_flags(key.topMsgId
 			? MTPmessages_SetTyping::Flag::f_top_msg_id

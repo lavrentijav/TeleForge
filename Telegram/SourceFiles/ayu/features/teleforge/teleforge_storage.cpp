@@ -321,6 +321,9 @@ void RunMigrations() {
 void initialize() {
 	const auto pathQt = TeleForgeDatabasePathQt();
 	const auto tryInit = [&] {
+		DbImpl().pragma.journal_mode(sqlite_orm::journal_mode::WAL);
+		DbImpl().pragma.busy_timeout(5000);
+		DbImpl().pragma.synchronous(1);
 		LOG(("TeleForge: sync_schema (preserve=true) pass 1 — sqlite_orm creates/updates schema; "
 			"indexes must be listed before tables in make_storage because sync iterates objects in reverse order"));
 		DbImpl().sync_schema(true);

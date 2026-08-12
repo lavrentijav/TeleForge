@@ -70,6 +70,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "ui/boxes/confirm_box.h"
 #include "apiwrap.h"
+#include "ayu/features/ghost/tf_ghost_audit.h"
 #include "ui/text/format_values.h" // Ui::FormatPhone
 
 // AyuGram includes
@@ -1022,8 +1023,19 @@ void Updates::updateOnline(crl::time lastNonIdleTime, bool gotOtherOffline) {
 		|| (isOnline && gotOtherOffline)) {
 		api().request(base::take(_onlineRequest)).cancel();
 
-		_lastWasOnline = isOnlineOrig;
+		// Comparing against the ghost-filtered value is what stops the update
+		// from re-firing forever: storing the raw window state here made
+		// isOnline != _lastWasOnline true on every tick while ghost mode was
+		// on, so the client kept announcing itself to the server instead of
+		// staying quiet.
+		_lastWasOnline = isOnline;
 		_lastSetOnline = ms;
+		if (!isOnline) {
+			TeleForge::Ghost::noteWakeSignal(
+				_session,
+				u"account.updateStatus"_q,
+				u"offline"_q);
+		}
 		if (!Core::Quitting()) {
 			_onlineRequest = api().request(MTPaccount_UpdateStatus(
 				MTP_bool(!isOnline)

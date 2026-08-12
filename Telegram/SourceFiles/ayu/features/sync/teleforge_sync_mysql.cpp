@@ -9,6 +9,7 @@
 
 #ifdef TELEFORGE_WITH_MYSQL
 
+#include "ayu/features/sync/teleforge_ssh_tunnel.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
 #include "ayu/features/sync/teleforge_sync_snapshot.h"
@@ -131,8 +132,17 @@ struct ConnParams {
 }
 
 // Opens a connection; returns nullptr and fills `error` on failure. Caller
-// owns the returned handle and must mysql_close() it.
-[[nodiscard]] MYSQL *Connect(const QString &connString, QString &error) {
+// owns the returned handle and must mysql_close() it. Runs off the main
+// thread (see teleforge_ssh_tunnel.h), so it may block briefly while an
+// `ssh -L` tunnel to the DB host is established.
+[[nodiscard]] MYSQL *Connect(const QString &connStringIn, QString &error) {
+	const auto connString = Ssh::ApplyTunnelIfConfigured(
+		connStringIn,
+		3306,
+		error);
+	if (connString.isEmpty() && !error.isEmpty()) {
+		return nullptr;
+	}
 	const auto params = ParseConn(connString);
 	if (!params.valid) {
 		error = u"Строка подключения MySQL неполная (нужны user и dbname)."_q;

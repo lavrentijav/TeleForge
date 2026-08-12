@@ -30,6 +30,13 @@ void RunPgDownload(
 	const QByteArray &syncKey,
 	Fn<void(bool ok, QString error)> done);
 
+// Cheap freshness probe: reads only the stored fingerprint and revision, not
+// the snapshot itself, so the client can decide whether a download is even
+// worth doing. `sha256` is empty when the tenant has never uploaded.
+void PgFetchRemoteStamp(
+	not_null<Main::Session*> session,
+	Fn<void(bool ok, QString sha256, qint64 revision, QString error)> done);
+
 // Connectivity check for the settings UI. Runs off the main thread.
 void PgTestConnection(
 	const QString &connString,

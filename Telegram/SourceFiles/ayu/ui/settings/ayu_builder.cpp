@@ -300,6 +300,28 @@ void AyuSectionBuilder::addSlider(SliderArgs &&args) {
 	});
 }
 
+Ui::SettingsButton *AyuSectionBuilder::addToggleTo(
+		not_null<Ui::VerticalLayout*> container,
+		ToggleArgs &&args) {
+	auto getter = std::move(args.getter);
+	auto setter = std::move(args.setter);
+	const auto initialValue = getter();
+
+	const auto button = container->add(
+		object_ptr<Button>(
+			container,
+			std::move(args.title),
+			st::settingsButtonNoIcon));
+	button->toggleOn(rpl::single(initialValue));
+	button->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != getter());
+	}) | rpl::on_next([=](bool enabled) {
+		setter(enabled);
+	}, button->lifetime());
+	return button;
+}
+
 void AyuSectionBuilder::addBetaBadge(not_null<Ui::SettingsButton*> button) {
 	AddBetaBadge(button);
 }

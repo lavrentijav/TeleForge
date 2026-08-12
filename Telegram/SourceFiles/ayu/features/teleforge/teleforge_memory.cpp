@@ -5,6 +5,7 @@
 #include "ayu/features/teleforge/teleforge_embeddings.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
+#include "ayu/features/teleforge/teleforge_vector_db.h"
 #include "core/application.h"
 #include "main/main_account.h"
 
@@ -426,6 +427,7 @@ MemoryEntry UpsertMemory(const MemoryUpsertRequest &request) {
 		PersistEmbedding(merged.id, BuildLocalEmbedding(
 			CanonicalText(merged.title, merged.summary, merged.details)));
 		EnqueueSyncEvent("merge", merged);
+		VectorDb::facts().invalidate();
 		return merged;
 	}
 
@@ -435,6 +437,7 @@ MemoryEntry UpsertMemory(const MemoryUpsertRequest &request) {
 		request.sourceMessageId));
 	PersistEmbedding(incoming.id, queryEmbedding);
 	EnqueueSyncEvent("create", incoming);
+	VectorDb::facts().invalidate();
 	return incoming;
 }
 
@@ -454,6 +457,7 @@ bool UpdateMemory(const MemoryEntry &entry) {
 	PersistEmbedding(updated.id, BuildLocalEmbedding(
 		CanonicalText(updated.title, updated.summary, updated.details)));
 	EnqueueSyncEvent("update", updated);
+	VectorDb::facts().invalidate();
 	return true;
 }
 

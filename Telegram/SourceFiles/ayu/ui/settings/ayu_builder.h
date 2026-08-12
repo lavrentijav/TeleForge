@@ -93,6 +93,9 @@ public:
 	void addSliderTo(
 		not_null<Ui::VerticalLayout*> container,
 		SliderArgs &&args);
+	Ui::SettingsButton *addToggleTo(
+		not_null<Ui::VerticalLayout*> container,
+		ToggleArgs &&args);
 
 	void addBetaBadge(not_null<Ui::SettingsButton*> button);
 

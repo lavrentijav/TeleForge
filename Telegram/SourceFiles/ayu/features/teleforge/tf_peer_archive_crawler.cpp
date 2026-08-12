@@ -149,13 +149,15 @@ void ProcessNext(not_null<Main::Session*> session) {
 }
 
 void ScheduleTick(not_null<Main::Session*> session, crl::time delay) {
-	if (CrawlScheduled()) {
+	if (CrawlScheduled()
+		|| !AyuSettings::getInstance().archiveBackgroundCrawl()) {
 		return;
 	}
 	CrawlScheduled() = true;
 	base::call_delayed(delay, session, [=] {
 		CrawlScheduled() = false;
-		if (!archiveEnabled()) {
+		if (!archiveEnabled()
+			|| !AyuSettings::getInstance().archiveBackgroundCrawl()) {
 			return;
 		}
 		ProcessNext(session);
@@ -188,7 +190,8 @@ void enqueueCrawlPeer(
 void enqueueLinksFromText(
 		not_null<Main::Session*> session,
 		const QString &text) {
-	if (!archiveEnabled()) {
+	if (!archiveEnabled()
+		|| !AyuSettings::getInstance().archiveFollowLinks()) {
 		return;
 	}
 	EnqueueLinksFromText(session, text);

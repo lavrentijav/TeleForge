@@ -9,6 +9,7 @@
 
 #ifdef TELEFORGE_WITH_POSTGRES
 
+#include "ayu/features/sync/teleforge_ssh_tunnel.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
 #include "ayu/features/sync/teleforge_sync_snapshot.h"
@@ -71,6 +72,9 @@ constexpr auto kUpsertSql =
 constexpr auto kSelectSql =
 	"SELECT payload FROM teleforge_sync WHERE tenant_id=$1";
 
+constexpr auto kSelectStampSql =
+	"SELECT sha256, revision FROM teleforge_sync WHERE tenant_id=$1";
+
 // Plaintext, queryable embeddings table (kept alongside the encrypted blob).
 // `embedding` is a real[] array — portable and inspectable without pgvector;
 // pgvector can be layered on top later if server-side ANN search is wanted.
@@ -116,10 +120,19 @@ constexpr auto kEmbeddingUpsertSql =
 }
 
 // Opens a libpq connection; returns nullptr and fills `error` on failure.
-// Caller owns the returned connection and must PQfinish() it.
-[[nodiscard]] PGconn *Connect(const QString &connString, QString &error) {
-	if (connString.trimmed().isEmpty()) {
+// Caller owns the returned connection and must PQfinish() it. Runs off the
+// main thread (see teleforge_ssh_tunnel.h), so it may block briefly while an
+// `ssh -L` tunnel to the DB host is established.
+[[nodiscard]] PGconn *Connect(const QString &connStringIn, QString &error) {
+	if (connStringIn.trimmed().isEmpty()) {
 		error = u"Строка подключения PostgreSQL не задана."_q;
+		return nullptr;
+	}
+	const auto connString = Ssh::ApplyTunnelIfConfigured(
+		connStringIn,
+		5432,
+		error);
+	if (connString.isEmpty()) {
 		return nullptr;
 	}
 	auto conn = PQconnectdb(connString.toUtf8().constData());
@@ -336,7 +349,74 @@ void UploadEmbeddings(PGconn *conn, const UploadPayload &up) {
 	return true;
 }
 
+[[nodiscard]] bool DoFetchStamp(
+		const QString &connString,
+		const QString &tenantId,
+		QString &shaOut,
+		qint64 &revisionOut,
+		QString &error) {
+	auto conn = Connect(connString, error);
+	if (!conn) {
+		return false;
+	}
+	auto guard = gsl::finally([&] { PQfinish(conn); });
+	if (!EnsureTable(conn, error)) {
+		return false;
+	}
+
+	const auto tenant = tenantId.toUtf8();
+	const char *values[1] = { tenant.constData() };
+	const int lengths[1] = { 0 };
+	const int formats[1] = { 0 };
+	auto res = PQexecParams(
+		conn,
+		kSelectStampSql,
+		1,
+		nullptr,
+		values,
+		lengths,
+		formats,
+		0);
+	if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
+		error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
+		if (res) {
+			PQclear(res);
+		}
+		return false;
+	}
+	if (PQntuples(res) > 0) {
+		shaOut = QString::fromUtf8(PQgetvalue(res, 0, 0)).trimmed();
+		revisionOut = QString::fromUtf8(PQgetvalue(res, 0, 1)).toLongLong();
+	}
+	PQclear(res);
+	return true;
+}
+
 } // namespace
+
+void PgFetchRemoteStamp(
+		not_null<Main::Session*> session,
+		Fn<void(bool ok, QString sha256, qint64 revision, QString error)> done) {
+	const auto connString = ConnStringFromSettings();
+	const auto tenantId = PgTenantId(session);
+	const auto sessionPtr = session.get();
+	crl::async([=] {
+		auto sha = QString();
+		auto revision = qint64(0);
+		auto error = QString();
+		const auto ok = DoFetchStamp(
+			connString,
+			tenantId,
+			sha,
+			revision,
+			error);
+		crl::on_main(sessionPtr, [=] {
+			if (done) {
+				done(ok, sha, revision, error);
+			}
+		});
+	});
+}
 
 void RunPgUpload(
 		not_null<Main::Session*> session,
@@ -475,6 +555,14 @@ void PgTestConnection(
 		Fn<void(bool ok, QString error)> done) {
 	if (done) {
 		done(false, NotCompiledError());
+	}
+}
+
+void PgFetchRemoteStamp(
+		not_null<Main::Session*> session,
+		Fn<void(bool ok, QString sha256, qint64 revision, QString error)> done) {
+	if (done) {
+		done(false, QString(), 0, NotCompiledError());
 	}
 }
 
