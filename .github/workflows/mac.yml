@@ -25,6 +25,8 @@ on:
       - 'LEGAL'
       - 'LICENSE'
 
+  workflow_dispatch:
+
 concurrency:
   group: macos-${{ github.ref }}
   cancel-in-progress: true

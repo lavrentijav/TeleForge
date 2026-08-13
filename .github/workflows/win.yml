@@ -16,6 +16,8 @@ on:
       - 'LEGAL'
       - 'LICENSE'
 
+  workflow_dispatch:
+
 concurrency:
   group: windows-${{ github.ref }}
   cancel-in-progress: true

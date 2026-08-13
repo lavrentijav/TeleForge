@@ -16,6 +16,8 @@ on:
       - 'LEGAL'
       - 'LICENSE'
 
+  workflow_dispatch:
+
 concurrency:
   group: snap-${{ github.ref }}
   cancel-in-progress: true
