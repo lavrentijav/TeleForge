@@ -77,7 +77,9 @@ API_HASH="${TDESKTOP_API_HASH:-196a54e79899fbf76333ded98ff5027f}"
 IMAGE="${TELEFORGE_LINUX_IMAGE:-ghcr.io/telegramdesktop/tdesktop/centos_env:latest}"
 
 LLAMA_CMAKE=""
-if [[ -d "${MOUNT_ROOT}/Libraries/win64/llama.cpp/CMakeLists.txt" ]]; then
+# -f, not -d: this is a file. With -d the test never passed, so llama.cpp was
+# reported as missing even when it was present.
+if [[ -f "${MOUNT_ROOT}/Libraries/win64/llama.cpp/CMakeLists.txt" ]]; then
 	LLAMA_CMAKE="-D DESKTOP_APP_USE_LLAMA_CPP=ON -D LLAMA_CPP_ROOT=/usr/src/teleforge/Libraries/win64/llama.cpp"
 	echo "[teleforge] llama.cpp: enabled"
 else
