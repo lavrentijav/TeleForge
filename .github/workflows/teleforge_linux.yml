@@ -16,9 +16,7 @@ on:
         default: both
         type: choice
         options:
-          - both
           - x86_64
-          - aarch64
       config:
         description: 'Build configuration'
         required: true
@@ -39,20 +37,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # aarch64 is intentionally absent: ghcr.io/telegramdesktop/tdesktop/
+        # centos_env is published as a single-arch amd64 image, so docker
+        # refuses --platform linux/arm64 and QEMU cannot substitute for a
+        # missing manifest.
         include:
           - arch: x86_64
             platform: linux/amd64
             runner: ubuntu-latest
             out_dir: out-linux-x64
-          - arch: aarch64
-            platform: linux/arm64
-            runner: ubuntu-latest
-            out_dir: out-linux-aarch64
     steps:
       - name: Filter matrix by workflow input
         id: filter
         run: |
-          INPUT="${{ github.event.inputs.arch || 'both' }}"
+          INPUT="${{ github.event.inputs.arch || 'x86_64' }}"
           if [ "$INPUT" != "both" ] && [ "$INPUT" != "${{ matrix.arch }}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
@@ -72,10 +70,6 @@ jobs:
           if [ ! -f ../Libraries/win64/llama.cpp/CMakeLists.txt ]; then
             git clone --depth 1 https://github.com/ggml-org/llama.cpp ../Libraries/win64/llama.cpp
           fi
-
-      - name: Set up QEMU
-        if: steps.filter.outputs.skip != 'true' && matrix.arch == 'aarch64'
-        uses: docker/setup-qemu-action@v3
 
       - name: Pull build image
         if: steps.filter.outputs.skip != 'true'

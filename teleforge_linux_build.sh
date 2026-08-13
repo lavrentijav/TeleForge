@@ -31,6 +31,13 @@ case "$ARCH" in
 		ARCH="aarch64"
 		DOCKER_PLATFORM="linux/arm64"
 		OUT_DIR="out-linux-aarch64"
+		# centos_env is published as a single-arch (amd64) image — there is no
+		# arm64 manifest, so QEMU cannot help: docker refuses with a platform
+		# mismatch. Fail here with the real reason instead of that error.
+		echo "aarch64 is not buildable with ${TELEFORGE_LINUX_IMAGE:-centos_env}:" >&2
+		echo "  the image has no linux/arm64 variant published." >&2
+		echo "  Set TELEFORGE_LINUX_IMAGE to a multi-arch image to enable it." >&2
+		exit 1
 		;;
 	-h|--help|help)
 		usage
@@ -100,6 +107,24 @@ docker run --rm \
 	"$IMAGE" \
 	bash -lc '
 		set -e
+		# Container runs as a bare uid with no passwd entry, so HOME is unset
+		# and anything writing a dotfile (cmake, git) would fail.
+		export HOME=/tmp
+		# The image ships CMake 3.26 but the project requires 3.31+. Fetch a
+		# self-contained CMake only when the bundled one is too old.
+		# Compare numerically — a regex over the version string matches digits
+		# from the patch component too (e.g. the "6." inside 3.26.5).
+		CMAKE_VER=3.31.6
+		CMAKE_HAVE=$(cmake --version 2>/dev/null | head -1 | sed -E "s/[^0-9]*([0-9]+)\.([0-9]+).*/\1 \2/")
+		CMAKE_MAJOR=${CMAKE_HAVE% *}
+		CMAKE_MINOR=${CMAKE_HAVE#* }
+		if [ "${CMAKE_MAJOR:-0}" -lt 3 ] || { [ "${CMAKE_MAJOR:-0}" -eq 3 ] && [ "${CMAKE_MINOR:-0}" -lt 31 ]; }; then
+			curl -sSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-linux-$(uname -m).tar.gz" -o /tmp/cmake.tgz
+			mkdir -p /tmp/cmake-dist
+			tar -xzf /tmp/cmake.tgz -C /tmp/cmake-dist --strip-components=1
+			export PATH="/tmp/cmake-dist/bin:$PATH"
+		fi
+		cmake --version | head -1
 		cd "/usr/src/teleforge/${SRC_REL}/Telegram"
 		rm -rf ../out
 		# shellcheck disable=SC2086

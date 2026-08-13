@@ -99,7 +99,9 @@ PRIVATE
     desktop-app::external_openal
     desktop-app::external_xxhash
 
-    teleforge::lib_icu
+    # The alias is defined by the lib_icu submodule (github.com/AyuGram/lib_icu),
+    # which still exports the ayugram:: namespace — it is not ours to rename.
+    ayugram::lib_icu
 )
 
 set(teleforge_extension_files
