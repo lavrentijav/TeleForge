@@ -66,6 +66,11 @@ jobs:
       # stays Debug so there is always a build with assertions and full symbols
       # to debug against. Keep this in sync with the artifact name below.
       BUILD_CONFIG: ${{ (matrix.arch == 'x64' && matrix.qt == '' && matrix.generator == '') && 'Debug' || 'Release' }}
+      # prepare.py only offers debug-only (skip-release) or both configurations
+      # — there is no release-only mode. The Debug job keeps skip-release; the
+      # Release jobs must build both, otherwise there are no release variants of
+      # Qt and friends to link against.
+      PREPARE_OPTIONS: ${{ (matrix.arch == 'x64' && matrix.qt == '' && matrix.generator == '') && 'skip-release' || '' }}
 
     defaults:
       run:
@@ -135,8 +140,8 @@ jobs:
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-libs-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ env.BUILD_CONFIG }}-libs-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ env.BUILD_CONFIG }}-libs-
 
       - name: Qt cache.
         id: cache-qt
@@ -145,8 +150,8 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ env.BUILD_CONFIG }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ env.BUILD_CONFIG }}-${{ matrix.qt || 'qt' }}-
 
       - name: Resolve Visual Studio path for gyp.
         shell: pwsh
@@ -166,7 +171,7 @@ jobs:
       # env would also silently override the resolved value.
       - name: Libraries.
         run: |
-          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent ${{ matrix.qt }}
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat %PREPARE_OPTIONS% silent ${{ matrix.qt }}
 
       - name: Read configuration matrix.
         shell: bash

@@ -1,5 +1,14 @@
 name: MacOS.
 
+# Two macOS build strategies live in one workflow, selected by matrix.mode:
+#   source   — every dependency (including Qt) is built from source by
+#              Telegram/build/prepare/mac.sh, cached as one big Libraries tree.
+#   packaged — dependencies come from Homebrew; only RNNoise, WebRTC and TDE2E
+#              are built from source, each with its own cache.
+# The two share almost no steps, so each step is gated on matrix.mode. Anything
+# that must not leak between them (CMAKE_GENERATOR and friends) is declared as
+# step-level env rather than job-level.
+
 on:
   push:
     paths-ignore:
@@ -39,18 +48,26 @@ on:
 jobs:
 
   macos:
-    name: MacOS
+    name: MacOS ${{ matrix.mode }}
     runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-macos-latest' || 'macos-latest' }}
 
     strategy:
       fail-fast: false
       matrix:
-        defines:
-          - ""
+        include:
+          - mode: source
+            defines: ""
+          - mode: packaged
+            defines: ""
+
     env:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      GIT: "https://github.com"
+      TDE2E: "51743dfd01dff6179e2d8f7095729caa4e2222e9"
+      MANUAL_CACHING: "1"
+      AUTO_CACHING: "1"
 
     steps:
       - name: Get repository name.
@@ -62,7 +79,12 @@ jobs:
           submodules: recursive
           path: ${{ env.REPO_NAME }}
 
+      # ------------------------------------------------------------------
+      # source: everything built by prepare/mac.sh
+      # ------------------------------------------------------------------
+
       - name: First set up.
+        if: matrix.mode == 'source'
         run: |
           sudo chown -R `whoami`:admin /usr/local/share
 
@@ -77,25 +99,34 @@ jobs:
 
           sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' /opt/homebrew/share/cmake/Modules/Compiler/GNU.cmake
 
+      # Keyed on -both- because the tree now holds debug *and* release variants.
+      # A cache from the old skip-release runs only has debug libraries, and
+      # prepare.py would treat them as already built and never produce the
+      # release ones the build below links against.
       - name: Libraries cache.
+        if: matrix.mode == 'source'
         id: cache-libs
         uses: actions/cache@v5
         with:
           path: |
             Libraries
             ThirdParty
-          key: ${{ runner.OS }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
-          restore-keys: ${{ runner.OS }}-libs-
+          key: ${{ runner.OS }}-libs-both-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
+          restore-keys: ${{ runner.OS }}-libs-both-
 
+      # No skip-release: prepare.py has no release-only mode, so dropping the
+      # flag is what makes release variants of Qt and friends exist at all.
       - name: Libraries.
+        if: matrix.mode == 'source'
         run: |
-          ./$REPO_NAME/Telegram/build/prepare/mac.sh skip-release silent
+          ./$REPO_NAME/Telegram/build/prepare/mac.sh silent
 
       - name: Free up some disk space.
+        if: matrix.mode == 'source'
         run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 ')' -type f ')' -o -empty ')' -delete
 
       - name: Telegram Desktop build.
-        if: env.ONLY_CACHE == 'false'
+        if: matrix.mode == 'source' && env.ONLY_CACHE == 'false'
         run: |
           cd $REPO_NAME/Telegram
 
@@ -103,9 +134,9 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo "ARTIFACT_NAME=Telegram ${{ matrix.defines }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Telegram macOS source ${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=Telegram" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Telegram macOS source" >> $GITHUB_ENV
           fi
 
           ./configure.sh \
@@ -120,15 +151,148 @@ jobs:
           cmake --build ../out --config Release --parallel
 
       - name: Move artifact.
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: matrix.mode == 'source' && env.UPLOAD_ARTIFACT == 'true'
         run: |
           cd $REPO_NAME/out/Release
           mkdir artifact
           mv Telegram.app artifact/
           mv Updater artifact/
       - uses: actions/upload-artifact@v7
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: matrix.mode == 'source' && env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/out/Release/artifact/
+
+      # ------------------------------------------------------------------
+      # packaged: Homebrew dependencies
+      # ------------------------------------------------------------------
+
+      - name: First set up.
+        if: matrix.mode == 'packaged'
+        run: |
+          brew update
+          brew upgrade || true
+          brew install ada-url autoconf automake boost cmake ffmpeg@6 jpeg-xl libavif libheif libtool openal-soft openh264 openssl opus ninja pkg-config python qtbase qtimageformats qtshadertools qtsvg xz || true
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' /opt/homebrew/share/cmake/Modules/Compiler/GNU.cmake
+
+          xcodebuild -version > CACHE_KEY.txt
+          brew list --versions >> CACHE_KEY.txt
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" = "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/mac.yml
+            echo `md5 -q $thisFile` >> CACHE_KEY.txt
+          fi
+          echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
+
+          echo "MACOSX_DEPLOYMENT_TARGET=$(grep 'set(QT_SUPPORTED_MIN_MACOS_VERSION' /opt/homebrew/Cellar/qtbase/*/lib/cmake/Qt6/Qt6ConfigExtras.cmake | sed -E 's/^.*"(.*)"\)$/\1/')" >> $GITHUB_ENV
+          echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
+
+          echo "RNNOISE=`curl -sSL --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/xiph/rnnoise/git/refs/heads/master | jq -r .object.sha`" >> $GITHUB_ENV
+          echo "WEBRTC=`curl -sSL --header 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/desktop-app/tg_owt/git/refs/heads/master | jq -r .object.sha`" >> $GITHUB_ENV
+
+      - name: RNNoise cache.
+        if: matrix.mode == 'packaged'
+        id: cache-rnnoise
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.LibrariesPath }}/local/rnnoise
+          key: ${{ runner.OS }}-rnnoise-${{ env.RNNOISE }}-${{ env.CACHE_KEY }}
+      - name: RNNoise.
+        if: matrix.mode == 'packaged' && steps.cache-rnnoise.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 $GIT/xiph/rnnoise.git
+          cd rnnoise
+          ./autogen.sh
+          ./configure --prefix=$LibrariesPath/local/rnnoise --disable-examples --disable-doc
+          make -j$(sysctl -n hw.logicalcpu)
+          make install
+
+      - name: WebRTC cache.
+        if: matrix.mode == 'packaged'
+        id: cache-webrtc
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.LibrariesPath }}/local/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.WEBRTC }}-${{ env.CACHE_KEY }}
+      - name: WebRTC.
+        if: matrix.mode == 'packaged' && steps.cache-webrtc.outputs.cache-hit != 'true'
+        env:
+          CMAKE_GENERATOR: "Ninja"
+          CMAKE_BUILD_TYPE: "Release"
+          CMAKE_PREFIX_PATH: "/opt/homebrew/opt/ffmpeg@6:/opt/homebrew/opt/openal-soft"
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 --recursive --shallow-submodules $GIT/desktop-app/tg_owt.git
+          cd tg_owt
+
+          cmake -Bbuild . -DCMAKE_INSTALL_PREFIX=$LibrariesPath/local/tg_owt
+          cmake --build build
+          cmake --install build
+
+      - name: TDE2E cache.
+        if: matrix.mode == 'packaged'
+        id: cache-tde2e
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.LibrariesPath }}/local/tde2e
+          key: ${{ runner.OS }}-tde2e-${{ env.TDE2E }}-${{ env.CACHE_KEY }}
+      - name: TDE2E.
+        if: matrix.mode == 'packaged' && steps.cache-tde2e.outputs.cache-hit != 'true'
+        env:
+          CMAKE_GENERATOR: "Ninja"
+          CMAKE_BUILD_TYPE: "Release"
+        run: |
+          cd $LibrariesPath
+
+          git init tde2e
+          cd tde2e
+          git remote add origin $GIT/tdlib/td.git
+          git fetch --depth=1 origin $TDE2E
+          git reset --hard FETCH_HEAD
+
+          cmake -Bbuild . -DCMAKE_INSTALL_PREFIX=$LibrariesPath/local/tde2e -DTD_E2E_ONLY=ON
+          cmake --build build
+          cmake --install build
+
+      - name: Telegram Desktop build.
+        if: matrix.mode == 'packaged' && env.ONLY_CACHE == 'false'
+        env:
+          CMAKE_GENERATOR: "Ninja"
+          CMAKE_BUILD_TYPE: "Release"
+          CMAKE_PREFIX_PATH: "/opt/homebrew/opt/ffmpeg@6:/opt/homebrew/opt/openal-soft"
+        run: |
+          cd $REPO_NAME
+          export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH$(find $LibrariesPath/local -mindepth 1 -maxdepth 1 -type d -exec printf ':%s' {} +)"
+
+          DEFINE=""
+          if [ -n "${{ matrix.defines }}" ]; then
+            DEFINE="-D ${{ matrix.defines }}=ON"
+            echo Define from matrix: $DEFINE
+            echo "ARTIFACT_NAME=Telegram macOS packaged ${{ matrix.defines }}" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=Telegram macOS packaged" >> $GITHUB_ENV
+          fi
+
+          cmake -Bbuild . -DTDESKTOP_API_TEST=ON $DEFINE
+          cmake --build build
+          macdeployqt build/Telegram.app
+          codesign --remove-signature build/Telegram.app
+
+      - name: Move artifact.
+        if: matrix.mode == 'packaged' && env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd $REPO_NAME/build
+          mkdir artifact
+          mv Telegram.app artifact/
+      - uses: actions/upload-artifact@v7
+        if: matrix.mode == 'packaged' && env.UPLOAD_ARTIFACT == 'true'
+        name: Upload artifact.
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.REPO_NAME }}/build/artifact/
