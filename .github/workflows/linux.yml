@@ -200,3 +200,4 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: out/${{ github.event.inputs.config || 'Release' }}/artifact/
+          retention-days: 7

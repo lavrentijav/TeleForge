@@ -151,6 +151,7 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/out/Release/artifact/
+          retention-days: 7
 
       # ------------------------------------------------------------------
       # packaged: Homebrew dependencies
@@ -284,3 +285,4 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/build/artifact/
+          retention-days: 7
