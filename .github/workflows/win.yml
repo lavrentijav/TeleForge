@@ -5,40 +5,20 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-win*.md'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/win.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.sh'
-      - 'Telegram/Telegram.plist'
   pull_request:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-win*.md'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/win.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.sh'
-      - 'Telegram/Telegram.plist'
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
@@ -49,9 +29,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # No generator dimension. It doubled the matrix while the libraries
+        # cache key does not include the generator, so the two legs of a given
+        # arch+qt built byte-identical libraries at the same time, both missing
+        # the cache, and then raced to save the same key. Testing a second CMake
+        # generator is not worth ~30 minutes of duplicated Qt builds per leg.
         arch: [x64_x86, x64, arm64]
         qt: ["", qt6]
-        generator: ["", "Ninja Multi-Config"]
         exclude:
           - arch: arm64
             qt: ""
@@ -62,15 +46,15 @@ jobs:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
-      # Everything ships Release. One combination — Windows x64, Qt5, MSBuild —
+      # Everything ships Release. One combination — Windows x64, Qt5 —
       # stays Debug so there is always a build with assertions and full symbols
       # to debug against. Keep this in sync with the artifact name below.
-      BUILD_CONFIG: ${{ (matrix.arch == 'x64' && matrix.qt == '' && matrix.generator == '') && 'Debug' || 'Release' }}
+      BUILD_CONFIG: ${{ (matrix.arch == 'x64' && matrix.qt == '') && 'Debug' || 'Release' }}
       # prepare.py only offers debug-only (skip-release) or both configurations
       # — there is no release-only mode. The Debug job keeps skip-release; the
       # Release jobs must build both, otherwise there are no release variants of
       # Qt and friends to link against.
-      PREPARE_OPTIONS: ${{ (matrix.arch == 'x64' && matrix.qt == '' && matrix.generator == '') && 'skip-release' || '' }}
+      PREPARE_OPTIONS: ${{ (matrix.arch == 'x64' && matrix.qt == '') && 'skip-release' || '' }}
 
     defaults:
       run:

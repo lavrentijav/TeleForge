@@ -17,16 +17,6 @@ on:
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/mac.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/configure.bat'
   pull_request:
     paths-ignore:
       - 'docs/**'
@@ -34,16 +24,10 @@ on:
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/mac.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/configure.bat'
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
@@ -155,7 +139,9 @@ jobs:
         run: |
           cd $REPO_NAME/out/Release
           mkdir artifact
-          mv Telegram.app artifact/
+          # TeleForge.app, not Telegram.app: CMakeLists sets OUTPUT_NAME and
+          # XCODE_ATTRIBUTE_PRODUCT_NAME to TeleForge for non-macstore builds.
+          mv TeleForge.app artifact/
           mv Updater artifact/
       - uses: actions/upload-artifact@v7
         if: matrix.mode == 'source' && env.UPLOAD_ARTIFACT == 'true'
@@ -281,15 +267,15 @@ jobs:
 
           cmake -Bbuild . -DTDESKTOP_API_TEST=ON $DEFINE
           cmake --build build
-          macdeployqt build/Telegram.app
-          codesign --remove-signature build/Telegram.app
+          macdeployqt build/TeleForge.app
+          codesign --remove-signature build/TeleForge.app
 
       - name: Move artifact.
         if: matrix.mode == 'packaged' && env.UPLOAD_ARTIFACT == 'true'
         run: |
           cd $REPO_NAME/build
           mkdir artifact
-          mv Telegram.app artifact/
+          mv TeleForge.app artifact/
       - uses: actions/upload-artifact@v7
         if: matrix.mode == 'packaged' && env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
