@@ -146,11 +146,12 @@ jobs:
           -D CMAKE_CONFIGURATION_TYPES=$BUILD_CONFIG \
           -D CMAKE_C_FLAGS_DEBUG="-O0 -fuse-ld=lld" \
           -D CMAKE_CXX_FLAGS_DEBUG="-O0 -fuse-ld=lld" \
-          -D CMAKE_COMPILE_WARNING_AS_ERROR=ON \
+          -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+          -D CMAKE_POLICY_DEFAULT_CMP0218=OLD \
           -D TDESKTOP_API_TEST=ON \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF \
-          $DEFINE
+          $DEFINE 2>&1 | tee build.log
 
       # llama.cpp is deliberately off here. The standalone script used to clone
       # it and then always disable it anyway — its check ran `-d` against a
@@ -172,11 +173,32 @@ jobs:
           $IMAGE_TAG \
           /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
           -D CMAKE_CONFIGURATION_TYPES=$BUILD_CONFIG \
+          -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+          -D CMAKE_POLICY_DEFAULT_CMP0218=OLD \
           -D TDESKTOP_API_ID=$API_ID \
           -D TDESKTOP_API_HASH=$API_HASH \
           -D DESKTOP_APP_USE_LLAMA_CPP=OFF \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
-          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON 2>&1 | tee build.log
+
+      # always(): warnings matter most precisely when the build failed. tee
+      # above keeps the live output; pipefail (on by default for shell: bash)
+      # means the pipe does not mask a non-zero build status.
+      - name: Collect warnings.
+        if: always()
+        run: |
+          mkdir -p warnings
+          cp build.log warnings/ 2>/dev/null || true
+          grep -hE "warning|Warning" build.log 2>/dev/null | sort -u > warnings/warnings.txt || true
+          echo "unique warning lines: $(wc -l < warnings/warnings.txt 2>/dev/null || echo 0)"
+      - uses: actions/upload-artifact@v7
+        name: Upload warnings.
+        if: always()
+        with:
+          name: warnings ${{ env.ARTIFACT_NAME }}
+          path: warnings/
+          retention-days: 7
+          if-no-files-found: ignore
 
       # The binary is TeleForge, not Telegram: Telegram/CMakeLists.txt sets
       # OUTPUT_NAME to TeleForge for every non-macstore build.

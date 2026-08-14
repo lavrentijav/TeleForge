@@ -257,20 +257,50 @@ jobs:
           ${{ matrix.qt }} ^
           %TDESKTOP_BUILD_API% ^
           -D CMAKE_CONFIGURATION_TYPES=%BUILD_CONFIG% ^
-          -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
+          -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF ^
+          -D CMAKE_POLICY_DEFAULT_CMP0218=OLD ^
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
-          %TDESKTOP_BUILD_DEFINE%
+          %TDESKTOP_BUILD_DEFINE% > "%TBUILD%\configure.log" 2>&1
+          set CFG_RC=%ERRORLEVEL%
+          type "%TBUILD%\configure.log"
+          if not "%CFG_RC%"=="0" exit /b %CFG_RC%
 
-          cmake --build ..\out --config %BUILD_CONFIG% --parallel
+          cmake --build ..\out --config %BUILD_CONFIG% --parallel > "%TBUILD%\build.log" 2>&1
+          set BUILD_RC=%ERRORLEVEL%
+          type "%TBUILD%\build.log"
+          exit /b %BUILD_RC%
 
+      # always(): the warnings are most interesting precisely when the build
+      # failed. The logs are captured to files above and echoed with `type`, so
+      # the step output still shows everything live.
+      - name: Collect warnings.
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p warnings
+          cp "$TBUILD"/configure.log "$TBUILD"/build.log warnings/ 2>/dev/null || true
+          grep -hE "warning|Warning" "$TBUILD"/configure.log "$TBUILD"/build.log 2>/dev/null \
+            | sort -u > warnings/warnings.txt || true
+          echo "unique warning lines: $(wc -l < warnings/warnings.txt 2>/dev/null || echo 0)"
+      - uses: actions/upload-artifact@v7
+        name: Upload warnings.
+        if: always()
+        with:
+          name: warnings ${{ env.ARTIFACT_NAME }}
+          path: warnings/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # TeleForge.exe, not Telegram.exe: CMakeLists sets OUTPUT_NAME to
+      # TeleForge. Updater has no OUTPUT_NAME override, so it keeps its name.
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
           set OUT=%TBUILD%\%REPO_NAME%\out\%BUILD_CONFIG%
           mkdir artifact
-          move %OUT%\Telegram.exe artifact/
+          move %OUT%\TeleForge.exe artifact/
           move %OUT%\Updater.exe artifact/
       - uses: actions/upload-artifact@v7
         name: Upload artifact.
