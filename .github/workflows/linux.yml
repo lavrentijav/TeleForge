@@ -94,7 +94,8 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Libraries cache.
-        uses: actions/cache@v5
+        id: cache-libs
+        uses: actions/cache/restore@v5
         with:
           path: ${{ runner.temp }}/.buildx-cache
           key: ${{ runner.OS }}-libs-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
@@ -113,6 +114,16 @@ jobs:
         run: |
           rm -rf ${{ runner.temp }}/.buildx-cache
           mv ${{ runner.temp }}/.buildx-cache{-new,}
+
+      # Same reason as the other platforms: actions/cache does not save on a
+      # failed job, so a compile failure used to throw away the built image
+      # layers and the next run rebuilt the whole centos_env from scratch.
+      - name: Save libraries cache.
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ runner.temp }}/.buildx-cache
+          key: ${{ steps.cache-libs.outputs.cache-primary-key }}
 
       - name: Telegram Desktop build.
         if: matrix.mode == 'ci' && env.ONLY_CACHE == 'false'
