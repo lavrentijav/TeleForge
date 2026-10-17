@@ -317,6 +317,12 @@ bool ApplyEncryptedDatabaseShard(
 		QFile::remove(*tempPath);
 		return false;
 	}
+	sqlite3_exec(
+		live,
+		TeleForge::Storage::kSqliteTuning,
+		nullptr,
+		nullptr,
+		nullptr);
 	const auto ok = MergeDataDb(live, *tempPath);
 	sqlite3_close(live);
 	QFile::remove(*tempPath);

@@ -52,6 +52,10 @@ struct PersonalityCoreRecord {
 /// Template row for chats without their own row in PerChatSettings.
 inline constexpr long long kTeleForgeGlobalDefaultsPeerId = 0;
 
+inline constexpr auto kSqliteTuning =
+	"PRAGMA cache_size = -8192;"
+	"PRAGMA mmap_size = 268435456;";
+
 struct PerChatSettingsRecord {
 	long long peerId = 0;
 	// AI auto-answer is a strictly per-chat, opt-in toggle: off by default.

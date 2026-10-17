@@ -19,6 +19,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QClipboard>
 
 namespace Data {
+namespace {
+
+constexpr auto kDecodedImagesBudget = 64 * 1024 * 1024;
+
+} // namespace
 
 PhotoMedia::PhotoMedia(not_null<PhotoData*> owner)
 : _owner(owner) {
@@ -27,7 +32,9 @@ PhotoMedia::PhotoMedia(not_null<PhotoData*> owner)
 // NB! Right now DocumentMedia can outlive Main::Session!
 // In DocumentData::collectLocalData a shared_ptr is sent on_main.
 // In case this is a problem the ~Gif code should be rewritten.
-PhotoMedia::~PhotoMedia() = default;
+PhotoMedia::~PhotoMedia() {
+	unregisterDecoded();
+}
 
 not_null<PhotoData*> PhotoMedia::owner() const {
 	return _owner;
@@ -49,39 +56,97 @@ Image *PhotoMedia::thumbnailInline() const {
 }
 
 Image *PhotoMedia::image(PhotoSize size) const {
-	if (const auto resolved = resolveLoadedImage(size)) {
-		return resolved->data.get();
+	const auto index = resolveLoadedIndex(size);
+	if (index < 0) {
+		return nullptr;
 	}
-	return nullptr;
+	restoreDecoded(index);
+	return _images[index].data.get();
 }
 
 QByteArray PhotoMedia::imageBytes(PhotoSize size) const {
-	if (const auto resolved = resolveLoadedImage(size)) {
-		return resolved->bytes;
-	}
-	return QByteArray();
+	const auto index = resolveLoadedIndex(size);
+	return (index < 0) ? QByteArray() : _images[index].bytes;
 }
 
-auto PhotoMedia::resolveLoadedImage(PhotoSize size) const
--> const PhotoImage * {
-	const auto &original = _images[PhotoSizeIndex(size)];
-	if (original.data) {
-		if (original.goodFor >= size) {
-			return &original;
-		}
+int PhotoMedia::resolveLoadedIndex(PhotoSize size) const {
+	const auto index = PhotoSizeIndex(size);
+	const auto &original = _images[index];
+	if ((original.data || !original.bytes.isEmpty())
+		&& (original.goodFor >= size)) {
+		return index;
 	}
-	const auto &valid = _images[_owner->validSizeIndex(size)];
-	if (valid.data.get()) {
-		if (valid.goodFor >= size) {
-			return &valid;
-		}
+	const auto valid = _owner->validSizeIndex(size);
+	const auto &other = _images[valid];
+	return ((other.data || !other.bytes.isEmpty())
+		&& (other.goodFor >= size))
+		? valid
+		: -1;
+}
+
+std::vector<PhotoMedia::DecodedEntry> &PhotoMedia::DecodedEntries() {
+	static const auto result = new std::vector<DecodedEntry>();
+	return *result;
+}
+
+int &PhotoMedia::DecodedBytes() {
+	static const auto result = new int(0);
+	return *result;
+}
+
+void PhotoMedia::registerDecoded(int index) const {
+	const auto &image = _images[index];
+	if (!image.data) {
+		return;
 	}
-	return nullptr;
+	auto &entries = DecodedEntries();
+	const auto size = image.data->width() * image.data->height() * 4;
+	const auto i = ranges::find_if(entries, [&](const DecodedEntry &entry) {
+		return (entry.media == this) && (entry.index == index);
+	});
+	if (i != entries.end()) {
+		DecodedBytes() -= i->size;
+		entries.erase(i);
+	}
+	entries.push_back({ this, index, size });
+	DecodedBytes() += size;
+	while (DecodedBytes() > kDecodedImagesBudget && entries.size() > 1) {
+		const auto &front = entries.front();
+		DecodedBytes() -= front.size;
+		front.media->releaseDecoded(front.index);
+		entries.erase(entries.begin());
+	}
+}
+
+void PhotoMedia::restoreDecoded(int index) const {
+	auto &image = _images[index];
+	if (!image.data && !image.bytes.isEmpty()) {
+		image.data = std::make_unique<Image>(image.bytes);
+	}
+	registerDecoded(index);
+}
+
+void PhotoMedia::releaseDecoded(int index) const {
+	auto &image = _images[index];
+	if (!image.bytes.isEmpty()) {
+		image.data = nullptr;
+	}
+}
+
+void PhotoMedia::unregisterDecoded() const {
+	auto &entries = DecodedEntries();
+	const auto removed = std::remove_if(
+		entries.begin(),
+		entries.end(),
+		[&](const DecodedEntry &entry) { return (entry.media == this); });
+	for (auto i = removed; i != entries.end(); ++i) {
+		DecodedBytes() -= i->size;
+	}
+	entries.erase(removed, entries.end());
 }
 
 void PhotoMedia::wanted(PhotoSize size, Data::FileOrigin origin) {
-	const auto index = _owner->validSizeIndex(size);
-	if (!_images[index].data || _images[index].goodFor < size) {
+	if (resolveLoadedIndex(size) < 0) {
 		_owner->load(size, origin);
 	}
 }
@@ -114,6 +179,7 @@ void PhotoMedia::set(
 		.bytes = std::move(bytes),
 		.goodFor = goodFor,
 	};
+	registerDecoded(index);
 	_owner->session().notifyDownloaderTaskFinished();
 }
 
@@ -139,9 +205,7 @@ void PhotoMedia::setVideo(PhotoSize size, QByteArray content) {
 }
 
 bool PhotoMedia::loaded() const {
-	const auto index = PhotoSizeIndex(PhotoSize::Large);
-	return (_images[index].data != nullptr)
-		&& (_images[index].goodFor >= PhotoSize::Large);
+	return (resolveLoadedIndex(PhotoSize::Large) >= 0);
 }
 
 float64 PhotoMedia::progress() const {
@@ -196,6 +260,7 @@ void PhotoMedia::collectLocalData(not_null<PhotoMedia*> local) {
 				.data = std::make_unique<Image>(image->original()),
 				.goodFor = local->_images[i].goodFor
 			};
+			registerDecoded(i);
 		}
 	}
 }

@@ -13,7 +13,7 @@ using namespace sqlite_orm;
 [[nodiscard]] inline auto MakeUnifiedStorage(std::string dbPath) {
 	// sqlite_orm::sync_schema iterates db_objects in reverse order;
 	// indexes must appear before their tables in this list.
-	return make_storage(
+	auto result = make_storage(
 		std::move(dbPath),
 		make_index(
 			"idx_sync_artifact_type_updated",
@@ -335,6 +335,10 @@ using namespace sqlite_orm;
 			make_column("lastSeenAt", &PeerArchive::ChatMembershipRecord::lastSeenAt),
 			make_column("selfInChat", &PeerArchive::ChatMembershipRecord::selfInChat),
 			make_column("peerStillInChat", &PeerArchive::ChatMembershipRecord::peerStillInChat)));
+	result.on_open = [](sqlite3 *db) {
+		sqlite3_exec(db, kSqliteTuning, nullptr, nullptr, nullptr);
+	};
+	return result;
 }
 
 using UnifiedStorage = decltype(MakeUnifiedStorage(std::string{}));

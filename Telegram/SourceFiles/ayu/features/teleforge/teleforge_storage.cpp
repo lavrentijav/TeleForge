@@ -136,6 +136,7 @@ void MigrateToV8() {
 		|| !live) {
 		return;
 	}
+	sqlite3_exec(live, kSqliteTuning, nullptr, nullptr, nullptr);
 	const auto attach = u"ATTACH DATABASE '%1' AS legacy;"_q.arg(
 		QString(legacyPath).replace('\'', "''"));
 	if (!ExecSqlite(live, attach.toUtf8().constData())) {

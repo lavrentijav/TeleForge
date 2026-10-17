@@ -34,6 +34,12 @@ namespace {
 		|| !db) {
 		return false;
 	}
+	sqlite3_exec(
+		db,
+		TeleForge::Storage::kSqliteTuning,
+		nullptr,
+		nullptr,
+		nullptr);
 	char *err = nullptr;
 	const auto rc = sqlite3_exec(db, sql, nullptr, nullptr, &err);
 	if (rc != SQLITE_OK) {
