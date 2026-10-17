@@ -94,6 +94,16 @@ void noteMessageAuthor(
 	not_null<PeerData*> chatPeer,
 	MsgId messageId);
 
+/// Coalescing entry point: the observation lands in the batched queue that is
+/// drained in bounded, transactional slices instead of writing to sqlite from
+/// the caller's stack. Use this from bulk scans (history sweeps, participant
+/// pages) so a large chat cannot stall the UI thread.
+void queueMessageAuthor(
+	not_null<Main::Session*> session,
+	not_null<UserData*> user,
+	not_null<PeerData*> chatPeer,
+	MsgId messageId);
+
 [[nodiscard]] ProfileSnapshot loadProfile(long long peerStorageId);
 [[nodiscard]] std::vector<ArchivedUserRow> searchArchivedUsers(
 	not_null<Main::Session*> session,

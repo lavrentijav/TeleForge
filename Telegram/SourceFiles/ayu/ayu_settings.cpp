@@ -1054,6 +1054,76 @@ void AyuSettings::setArchiveOtherProfileSeconds(int val) {
 	save();
 }
 
+void AyuSettings::setArchiveHistoryScanLimit(int val) {
+	const auto clamped = std::clamp(val, 0, 20000);
+	if (_archiveHistoryScanLimit.current() == clamped) return;
+	_archiveHistoryScanLimit = clamped;
+	save();
+}
+
+void AyuSettings::setArchiveCrawlBatchSize(int val) {
+	const auto clamped = std::clamp(val, 1, 200);
+	if (_archiveCrawlBatchSize.current() == clamped) return;
+	_archiveCrawlBatchSize = clamped;
+	save();
+}
+
+void AyuSettings::setArchiveMaxParticipants(int val) {
+	const auto clamped = std::clamp(val, 0, 200000);
+	if (_archiveMaxParticipants.current() == clamped) return;
+	_archiveMaxParticipants = clamped;
+	save();
+}
+
+void AyuSettings::setArchiveScanParticipants(bool val) {
+	if (_archiveScanParticipants.current() == val) return;
+	_archiveScanParticipants = val;
+	save();
+}
+
+void AyuSettings::setArchiveScanBroadcasts(bool val) {
+	if (_archiveScanBroadcasts.current() == val) return;
+	_archiveScanBroadcasts = val;
+	save();
+}
+
+void AyuSettings::setArchiveSaveUserpics(bool val) {
+	if (_archiveSaveUserpics.current() == val) return;
+	_archiveSaveUserpics = val;
+	save();
+}
+
+void AyuSettings::setArchiveFollowLinks(bool val) {
+	if (_archiveFollowLinks.current() == val) return;
+	_archiveFollowLinks = val;
+	save();
+}
+
+void AyuSettings::setArchiveBackgroundCrawl(bool val) {
+	if (_archiveBackgroundCrawl.current() == val) return;
+	_archiveBackgroundCrawl = val;
+	save();
+}
+
+void AyuSettings::setGhostPassthroughMentions(bool val) {
+	if (_ghostPassthroughMentions.current() == val) return;
+	_ghostPassthroughMentions = val;
+	save();
+}
+
+void AyuSettings::setShowDeletedInChat(bool val) {
+	if (_showDeletedInChat.current() == val) return;
+	_showDeletedInChat = val;
+	save();
+}
+
+void AyuSettings::setDeletedRestoreLimit(int val) {
+	const auto clamped = std::clamp(val, 0, 5000);
+	if (_deletedRestoreLimit.current() == clamped) return;
+	_deletedRestoreLimit = clamped;
+	save();
+}
+
 void AyuSettings::setAdaptiveCoverColor(bool val) {
 	if (_adaptiveCoverColor.current() == val) return;
 	_adaptiveCoverColor = val;
@@ -1096,6 +1166,9 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"ghostModeSettings", ghostAccounts},
 		{"useGlobalGhostMode", s._useGlobalGhostMode.current()},
 		{"saveDeletedMessages", s._saveDeletedMessages.current()},
+		{"showDeletedInChat", s._showDeletedInChat.current()},
+		{"ghostPassthroughMentions", s._ghostPassthroughMentions.current()},
+		{"deletedRestoreLimit", s._deletedRestoreLimit.current()},
 		{"saveMessagesHistory", s._saveMessagesHistory.current()},
 		{"saveForBots", s._saveForBots.current()},
 		{"shadowBanIds", s._shadowBanIds},
@@ -1182,6 +1255,14 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 		{"archivePrivateOnlineSeconds", s._archivePrivateOnlineSeconds.current()},
 		{"archivePrivateProfileSeconds", s._archivePrivateProfileSeconds.current()},
 		{"archiveOtherProfileSeconds", s._archiveOtherProfileSeconds.current()},
+		{"archiveHistoryScanLimit", s._archiveHistoryScanLimit.current()},
+		{"archiveCrawlBatchSize", s._archiveCrawlBatchSize.current()},
+		{"archiveMaxParticipants", s._archiveMaxParticipants.current()},
+		{"archiveScanParticipants", s._archiveScanParticipants.current()},
+		{"archiveScanBroadcasts", s._archiveScanBroadcasts.current()},
+		{"archiveSaveUserpics", s._archiveSaveUserpics.current()},
+		{"archiveFollowLinks", s._archiveFollowLinks.current()},
+		{"archiveBackgroundCrawl", s._archiveBackgroundCrawl.current()},
 		{"adaptiveCoverColor", s._adaptiveCoverColor.current()},
 		{"improveLinkPreviews", s._improveLinkPreviews.current()},
 		{"crashReporting", s._crashReporting.current()},
@@ -1205,6 +1286,9 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 
 	s._useGlobalGhostMode = j.value("useGlobalGhostMode", defaults._useGlobalGhostMode.current());
 	s._saveDeletedMessages = j.value("saveDeletedMessages", defaults._saveDeletedMessages.current());
+	s._showDeletedInChat = j.value("showDeletedInChat", defaults._showDeletedInChat.current());
+	s._ghostPassthroughMentions = j.value("ghostPassthroughMentions", defaults._ghostPassthroughMentions.current());
+	s._deletedRestoreLimit = j.value("deletedRestoreLimit", defaults._deletedRestoreLimit.current());
 	s._saveMessagesHistory = j.value("saveMessagesHistory", defaults._saveMessagesHistory.current());
 	s._saveForBots = j.value("saveForBots", defaults._saveForBots.current());
 	s._shadowBanIds = j.value("shadowBanIds", defaults._shadowBanIds);
@@ -1303,6 +1387,30 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 	s._archiveOtherProfileSeconds = j.value(
 		"archiveOtherProfileSeconds",
 		defaults._archiveOtherProfileSeconds.current());
+	s._archiveHistoryScanLimit = j.value(
+		"archiveHistoryScanLimit",
+		defaults._archiveHistoryScanLimit.current());
+	s._archiveCrawlBatchSize = j.value(
+		"archiveCrawlBatchSize",
+		defaults._archiveCrawlBatchSize.current());
+	s._archiveMaxParticipants = j.value(
+		"archiveMaxParticipants",
+		defaults._archiveMaxParticipants.current());
+	s._archiveScanParticipants = j.value(
+		"archiveScanParticipants",
+		defaults._archiveScanParticipants.current());
+	s._archiveScanBroadcasts = j.value(
+		"archiveScanBroadcasts",
+		defaults._archiveScanBroadcasts.current());
+	s._archiveSaveUserpics = j.value(
+		"archiveSaveUserpics",
+		defaults._archiveSaveUserpics.current());
+	s._archiveFollowLinks = j.value(
+		"archiveFollowLinks",
+		defaults._archiveFollowLinks.current());
+	s._archiveBackgroundCrawl = j.value(
+		"archiveBackgroundCrawl",
+		defaults._archiveBackgroundCrawl.current());
 	s._adaptiveCoverColor = j.value("adaptiveCoverColor", defaults._adaptiveCoverColor.current());
 	s._improveLinkPreviews = j.value("improveLinkPreviews", defaults._improveLinkPreviews.current());
 	s._crashReporting = j.value("crashReporting", defaults._crashReporting.current());

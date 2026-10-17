@@ -9,6 +9,7 @@
 
 #ifdef TELEFORGE_WITH_POSTGRES
 
+#include "ayu/features/sync/teleforge_ssh_tunnel.h"
 #include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_rows.h"
@@ -85,7 +86,38 @@ constexpr auto kSchemaSql =
 	"CREATE INDEX IF NOT EXISTS idx_tf_evt_type ON teleforge_events(tenant_id, event_type);"
 	"CREATE INDEX IF NOT EXISTS idx_tf_evt_chat ON teleforge_events(tenant_id, chat_id_h);"
 	"CREATE INDEX IF NOT EXISTS idx_tf_evt_msgid ON teleforge_events(tenant_id, message_id_h);"
-	"CREATE INDEX IF NOT EXISTS idx_tf_evt_created ON teleforge_events(tenant_id, created_at);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_evt_created ON teleforge_events(tenant_id, created_at);";
+
+// Freshness fingerprint: one tiny row per tenant so a peer can tell whether it
+// is behind without pulling the whole dataset. Refreshed by every upload.
+constexpr auto kCreateStampTableSql =
+	"CREATE TABLE IF NOT EXISTS teleforge_sync_state ("
+	"tenant_id TEXT PRIMARY KEY,"
+	"revision BIGINT NOT NULL,"
+	"updated_at BIGINT NOT NULL,"
+	"sha256 TEXT NOT NULL,"
+	"date_from BIGINT,"
+	"date_to BIGINT)";
+
+constexpr auto kUpsertStampSql =
+	"INSERT INTO teleforge_sync_state"
+	" (tenant_id,revision,updated_at,sha256,date_from,date_to)"
+	" VALUES ($1,$2,$3,$4,$5,$6)"
+	" ON CONFLICT (tenant_id) DO UPDATE SET"
+	" revision=EXCLUDED.revision,"
+	" updated_at=EXCLUDED.updated_at,"
+	" sha256=EXCLUDED.sha256,"
+	" date_from=EXCLUDED.date_from,"
+	" date_to=EXCLUDED.date_to"
+	" WHERE teleforge_sync_state.revision <= EXCLUDED.revision";
+
+constexpr auto kSelectStampSql =
+	"SELECT sha256, revision FROM teleforge_sync_state WHERE tenant_id=$1";
+
+// Plaintext, queryable embeddings table (kept alongside the encrypted blob).
+// `embedding` is a real[] array — portable and inspectable without pgvector;
+// pgvector can be layered on top later if server-side ANN search is wanted.
+constexpr auto kCreateEmbeddingsTableSql =
 	"CREATE TABLE IF NOT EXISTS teleforge_embeddings ("
 	"tenant_id TEXT NOT NULL,"
 	"memory_id_h TEXT NOT NULL,"
@@ -143,9 +175,19 @@ constexpr auto kEmbeddingUpsertSql =
 }
 
 // Opens a libpq connection; returns nullptr and fills `error` on failure.
-[[nodiscard]] PGconn *Connect(const QString &connString, QString &error) {
-	if (connString.trimmed().isEmpty()) {
+// Caller owns the returned connection and must PQfinish() it. Runs off the
+// main thread (see teleforge_ssh_tunnel.h), so it may block briefly while an
+// `ssh -L` tunnel to the DB host is established.
+[[nodiscard]] PGconn *Connect(const QString &connStringIn, QString &error) {
+	if (connStringIn.trimmed().isEmpty()) {
 		error = u"Строка подключения PostgreSQL не задана."_q;
+		return nullptr;
+	}
+	const auto connString = Ssh::ApplyTunnelIfConfigured(
+		connStringIn,
+		5432,
+		error);
+	if (connString.isEmpty()) {
 		return nullptr;
 	}
 	auto conn = PQconnectdb(connString.toUtf8().constData());
@@ -162,11 +204,78 @@ constexpr auto kEmbeddingUpsertSql =
 }
 
 [[nodiscard]] bool EnsureSchema(PGconn *conn, QString &error) {
-	auto res = PQexec(conn, kSchemaSql);
-	const auto ok = res && (PQresultStatus(res) == PGRES_COMMAND_OK);
-	if (!ok) {
-		error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
+	for (const auto *ddl : {
+			kSchemaSql,
+			kCreateStampTableSql,
+			kCreateEmbeddingsTableSql }) {
+		auto res = PQexec(conn, ddl);
+		const auto ok = res && (PQresultStatus(res) == PGRES_COMMAND_OK);
+		if (!ok) {
+			error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
+		}
+		if (res) {
+			PQclear(res);
+		}
+		if (!ok) {
+			return false;
+		}
 	}
+	return true;
+}
+
+// Refreshes the tenant fingerprint inside the open transaction: a sorted hash of
+// the replicated rows changes exactly when this account's dataset changes.
+[[nodiscard]] bool DoUpdateStamp(
+		PGconn *conn,
+		const QString &tenantId,
+		const std::vector<SyncMessageRow> &rows,
+		const QByteArray &now) {
+	auto hashes = std::vector<QByteArray>();
+	hashes.reserve(rows.size());
+	auto dateFrom = rows.front().date;
+	auto dateTo = rows.front().date;
+	for (const auto &row : rows) {
+		hashes.push_back(row.contentHash.toUtf8()
+			+ (row.deleted ? 'D' : 'c')
+			+ (row.edited ? 'E' : 'e'));
+		if (row.date < dateFrom) {
+			dateFrom = row.date;
+		}
+		if (row.date > dateTo) {
+			dateTo = row.date;
+		}
+	}
+	std::sort(hashes.begin(), hashes.end());
+	auto material = QByteArray();
+	for (const auto &hash : hashes) {
+		material += hash;
+		material += '\n';
+	}
+	const auto sha = QCryptographicHash::hash(
+		material,
+		QCryptographicHash::Sha256).toHex();
+	const auto revision = QByteArray::number(QDateTime::currentSecsSinceEpoch());
+	const auto from = QByteArray::number(dateFrom);
+	const auto to = QByteArray::number(dateTo);
+	const auto tenant = tenantId.toUtf8();
+	const char *values[6] = {
+		tenant.constData(),
+		revision.constData(),
+		now.constData(),
+		sha.constData(),
+		from.constData(),
+		to.constData(),
+	};
+	auto res = PQexecParams(
+		conn,
+		kUpsertStampSql,
+		6,
+		nullptr,
+		values,
+		nullptr,
+		nullptr,
+		0);
+	const auto ok = res && (PQresultStatus(res) == PGRES_COMMAND_OK);
 	if (res) {
 		PQclear(res);
 	}
@@ -264,6 +373,9 @@ constexpr auto kEmbeddingUpsertSql =
 		if (onRow) {
 			onRow(int(stop));
 		}
+	}
+	if (!DoUpdateStamp(conn, tenantId, rows, now)) {
+		return fail();
 	}
 	PQclear(PQexec(conn, "COMMIT"));
 	return true;
@@ -363,7 +475,74 @@ void UploadEmbeddings(
 	return true;
 }
 
+[[nodiscard]] bool DoFetchStamp(
+		const QString &connString,
+		const QString &tenantId,
+		QString &shaOut,
+		qint64 &revisionOut,
+		QString &error) {
+	auto conn = Connect(connString, error);
+	if (!conn) {
+		return false;
+	}
+	auto guard = gsl::finally([&] { PQfinish(conn); });
+	if (!EnsureSchema(conn, error)) {
+		return false;
+	}
+
+	const auto tenant = tenantId.toUtf8();
+	const char *values[1] = { tenant.constData() };
+	const int lengths[1] = { 0 };
+	const int formats[1] = { 0 };
+	auto res = PQexecParams(
+		conn,
+		kSelectStampSql,
+		1,
+		nullptr,
+		values,
+		lengths,
+		formats,
+		0);
+	if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
+		error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
+		if (res) {
+			PQclear(res);
+		}
+		return false;
+	}
+	if (PQntuples(res) > 0) {
+		shaOut = QString::fromUtf8(PQgetvalue(res, 0, 0)).trimmed();
+		revisionOut = QString::fromUtf8(PQgetvalue(res, 0, 1)).toLongLong();
+	}
+	PQclear(res);
+	return true;
+}
+
 } // namespace
+
+void PgFetchRemoteStamp(
+		not_null<Main::Session*> session,
+		Fn<void(bool ok, QString sha256, qint64 revision, QString error)> done) {
+	const auto connString = ConnStringFromSettings();
+	const auto tenantId = PgTenantId(session);
+	const auto sessionPtr = session.get();
+	crl::async([=] {
+		auto sha = QString();
+		auto revision = qint64(0);
+		auto error = QString();
+		const auto ok = DoFetchStamp(
+			connString,
+			tenantId,
+			sha,
+			revision,
+			error);
+		crl::on_main(sessionPtr, [=] {
+			if (done) {
+				done(ok, sha, revision, error);
+			}
+		});
+	});
+}
 
 void RunPgUpload(
 		not_null<Main::Session*> session,
@@ -494,6 +673,14 @@ void PgTestConnection(
 		Fn<void(bool ok, QString error)> done) {
 	if (done) {
 		done(false, NotCompiledError());
+	}
+}
+
+void PgFetchRemoteStamp(
+		not_null<Main::Session*> session,
+		Fn<void(bool ok, QString sha256, qint64 revision, QString error)> done) {
+	if (done) {
+		done(false, QString(), 0, NotCompiledError());
 	}
 }
 

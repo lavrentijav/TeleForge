@@ -4,12 +4,15 @@
 #include "ayu/features/plugins/plugin_runner.h"
 #include "ayu/features/spy/online_history_storage.h"
 #include "ayu/features/subscription/teleforge_subscription.h"
+#include "ayu/features/sync/teleforge_ssh_tunnel.h"
 #include "ayu/features/sync/teleforge_sync.h"
 #include "ayu/features/teleforge/teleforge_core.h"
 #include "ayu/features/teleforge/teleforge_inference.h"
 #include "ayu/features/teleforge/teleforge_llama_runtime.h"
+#include "ayu/features/teleforge/teleforge_model_downloader.h"
 #include "ayu/features/teleforge/teleforge_paths.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
+#include "ayu/features/teleforge/tf_deleted_restore.h"
 #include "ayu/features/teleforge/tf_peer_archive.h"
 #include "core/application.h"
 #include "data/data_peer.h"
@@ -52,6 +55,7 @@ void initialize() {
 		if (attached.emplace(session).second) {
 			TeleForge::PeerArchive::attachSession(session);
 			TeleForge::Subscription::attachSession(session);
+			TeleForge::DeletedRestore::attachSession(session);
 			session->data().newItemAdded(
 			) | rpl::on_next([](not_null<HistoryItem*> item) {
 				if (!item->isRegular()) {
@@ -76,8 +80,11 @@ void initialize() {
 		attachPeerArchive(session);
 		// Create the dedicated sync chat right away (no-op when sync is off or
 		// the chat already exists), then pull the latest bundle from it.
+		// checkRemoteFreshness() owns the download decision: it pulls when the
+		// server fingerprint differs, and falls back to an unconditional pull
+		// for the backends that cannot report one.
 		TeleForge::Sync::ensureSyncChat(session, [=](bool ok, QString) {
-			TeleForge::Sync::tryDownloadOnStartup(session);
+			TeleForge::Sync::checkRemoteFreshness(session);
 		});
 	}
 	static auto sessionChangesLifetime = rpl::lifetime();
@@ -85,8 +92,12 @@ void initialize() {
 	) | rpl::on_next([=](Main::Session *session) {
 		if (session) {
 			attachPeerArchive(session);
+			EnsureLocalEmbeddingModelReady();
 		}
 	}, sessionChangesLifetime);
+	if (Core::App().maybePrimarySession()) {
+		EnsureLocalEmbeddingModelReady();
+	}
 	LOG(("TeleForge::initialize finished — inference endpoints applied from storage"));
 
 	if (const auto app = QCoreApplication::instance()) {
@@ -94,6 +105,7 @@ void initialize() {
 			Plugins::PluginRunner::shutdown();
 			ShutdownNativeChatLlama();
 			ShutdownNativeEmbedLlama();
+			Ssh::ShutdownAllTunnels();
 		});
 	}
 }

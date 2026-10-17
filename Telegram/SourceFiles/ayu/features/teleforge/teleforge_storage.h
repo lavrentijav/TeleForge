@@ -42,6 +42,11 @@ struct PersonalityCoreRecord {
 	std::string pgConnString;
 	// Informational PostgreSQL server version selected in the UI (e.g. "18").
 	std::string pgVersion = "18";
+	// Local *.gguf used for in-process embeddings; empty = auto-detect in models/.
+	std::string embeddingModelPath;
+	bool sshTunnelEnabled = false;
+	std::string sshTunnelTarget;
+	std::string sshTunnelIdentityFile;
 };
 
 /// Template row for chats without their own row in PerChatSettings.

@@ -31,6 +31,13 @@ case "$ARCH" in
 		ARCH="aarch64"
 		DOCKER_PLATFORM="linux/arm64"
 		OUT_DIR="out-linux-aarch64"
+		# centos_env is published as a single-arch (amd64) image — there is no
+		# arm64 manifest, so QEMU cannot help: docker refuses with a platform
+		# mismatch. Fail here with the real reason instead of that error.
+		echo "aarch64 is not buildable with ${TELEFORGE_LINUX_IMAGE:-centos_env}:" >&2
+		echo "  the image has no linux/arm64 variant published." >&2
+		echo "  Set TELEFORGE_LINUX_IMAGE to a multi-arch image to enable it." >&2
+		exit 1
 		;;
 	-h|--help|help)
 		usage
@@ -70,7 +77,9 @@ API_HASH="${TDESKTOP_API_HASH:-196a54e79899fbf76333ded98ff5027f}"
 IMAGE="${TELEFORGE_LINUX_IMAGE:-ghcr.io/telegramdesktop/tdesktop/centos_env:latest}"
 
 LLAMA_CMAKE=""
-if [[ -d "${MOUNT_ROOT}/Libraries/win64/llama.cpp/CMakeLists.txt" ]]; then
+# -f, not -d: this is a file. With -d the test never passed, so llama.cpp was
+# reported as missing even when it was present.
+if [[ -f "${MOUNT_ROOT}/Libraries/win64/llama.cpp/CMakeLists.txt" ]]; then
 	LLAMA_CMAKE="-D DESKTOP_APP_USE_LLAMA_CPP=ON -D LLAMA_CPP_ROOT=/usr/src/teleforge/Libraries/win64/llama.cpp"
 	echo "[teleforge] llama.cpp: enabled"
 else

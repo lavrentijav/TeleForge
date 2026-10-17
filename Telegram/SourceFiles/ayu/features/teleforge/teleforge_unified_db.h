@@ -96,7 +96,11 @@ using namespace sqlite_orm;
 			make_column("visionEnabled", &PersonalityCoreRecord::visionEnabled),
 			make_column("cloudBackend", &PersonalityCoreRecord::cloudBackend),
 			make_column("pgConnString", &PersonalityCoreRecord::pgConnString),
-			make_column("pgVersion", &PersonalityCoreRecord::pgVersion)),
+			make_column("pgVersion", &PersonalityCoreRecord::pgVersion),
+			make_column("embeddingModelPath", &PersonalityCoreRecord::embeddingModelPath),
+			make_column("sshTunnelEnabled", &PersonalityCoreRecord::sshTunnelEnabled),
+			make_column("sshTunnelTarget", &PersonalityCoreRecord::sshTunnelTarget),
+			make_column("sshTunnelIdentityFile", &PersonalityCoreRecord::sshTunnelIdentityFile)),
 		make_table<PerChatSettingsRecord>(
 			"PerChatSettings",
 			make_column("peerId", &PerChatSettingsRecord::peerId, primary_key()),

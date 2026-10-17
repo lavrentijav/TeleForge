@@ -1,0 +1,62 @@
+# TeleForge Scanner configuration.
+# Copy to config.toml and fill in. Linux is the primary target.
+
+[telegram]
+# From https://my.telegram.org/apps
+api_id = 0
+api_hash = ""
+# Session string (preferred) or a path where a file session is stored.
+# Generate a string session once with:  python -m teleforge_scanner.login
+session_string = ""
+session_file = "teleforge_scanner"
+# Optional: only watch these chats (peer ids or @usernames). Empty = all.
+watch_chats = []
+# Never watch these.
+ignore_chats = []
+
+[capture]
+# Catch deleted messages.
+deletions = true
+# Catch edited messages (stores each revision).
+edits = true
+# Download attached files up to this size (bytes). 0 disables downloads.
+max_file_bytes = 5242880          # 5 MiB
+# Where downloaded small files are stored before/after upload.
+media_dir = "media"
+# Also mirror media bytes into the cloud DB (bytea). Off = keep only on disk.
+store_media_in_db = false
+
+[cloud]
+# Cloud database backend: "postgres" or "sqlite" (local fallback).
+backend = "postgres"
+# libpq connection string. Matches the desktop TeleForge Postgres backend.
+postgres_dsn = "host=127.0.0.1 port=5432 dbname=teleforge user=teleforge password=change-me"
+# Opaque tenant id; use the same value the desktop client derives to share data.
+# Leave empty to derive it from the logged-in account automatically.
+tenant_id = ""
+# Local sqlite path when backend = "sqlite".
+sqlite_path = "teleforge_scanner.db"
+
+[ssh_tunnel]
+# When true, the Postgres connection above goes through a local SSH tunnel
+# instead of connecting directly — useful when the DB has no public port.
+enabled = false
+# Bastion machine to log into: "user@host" or "user@host:port".
+ssh_target = "deploy@bastion.example.com"
+# Optional private key path; empty = ssh-agent / default ~/.ssh keys.
+identity_file = ""
+# DB host/port as seen *from the bastion*. Leave both empty to derive them
+# automatically from cloud.postgres_dsn's host=/port= tokens.
+remote_host = ""
+remote_port = 0
+# 0 = pick a free local port automatically.
+local_port = 0
+connect_timeout = 15.0
+
+[runtime]
+# Flush queued rows to the DB at most this often (seconds).
+flush_interval = 5
+# Max rows per DB transaction.
+batch_size = 200
+# Log level: debug|info|warning|error
+log_level = "info"

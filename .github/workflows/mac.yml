@@ -1,7 +1,11 @@
 name: MacOS.
 
+# macOS builds the dependencies from source (Telegram/build/prepare/mac.sh) and
+# caches the resulting Libraries tree as one big cache entry. The Homebrew-based
+# "packaged" strategy is a separate workflow, see mac_packaged.yml, so the two
+# toolchains never share a matrix and cannot cancel each other's legs.
+
 on:
-  workflow_dispatch:
   push:
     # Pushes to the canary branches run only canary.yml, see there.
     branches-ignore:
@@ -13,16 +17,6 @@ on:
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/mac.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/configure.bat'
   pull_request:
     paths-ignore:
       - 'docs/**'
@@ -30,31 +24,33 @@ on:
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/mac.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/Resources/winrc/**'
-      - 'Telegram/SourceFiles/platform/win/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/configure.bat'
+  workflow_dispatch:
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
   macos:
-    name: MacOS
+    name: MacOS source
     runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-macos-latest' || 'macos-latest' }}
 
     strategy:
+      fail-fast: false
       matrix:
-        defines:
-          - ""
+        include:
+          - mode: source
+            defines: ""
+
     env:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      GIT: "https://github.com"
+      TDE2E: "51743dfd01dff6179e2d8f7095729caa4e2222e9"
+      MANUAL_CACHING: "1"
+      AUTO_CACHING: "1"
 
     steps:
       - name: Get repository name.
@@ -81,6 +77,10 @@ jobs:
 
           sudo sed -i '' '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/ -g//' /opt/homebrew/share/cmake/Modules/Compiler/GNU.cmake
 
+      # Keyed on -both- because the tree now holds debug *and* release variants.
+      # A cache from the old skip-release runs only has debug libraries, and
+      # prepare.py would treat them as already built and never produce the
+      # release ones the build below links against.
       - name: Libraries cache.
         id: cache-libs
         uses: actions/cache@v6
@@ -88,15 +88,29 @@ jobs:
           path: |
             Libraries
             ThirdParty
-          key: ${{ runner.OS }}-libs-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
-          restore-keys: ${{ runner.OS }}-libs-
+          key: ${{ runner.OS }}-libs-both-${{ hashFiles(format('{0}/{1}', env.REPO_NAME, env.PREPARE_PATH)) }}
+          restore-keys: ${{ runner.OS }}-libs-both-
 
+      # No skip-release: prepare.py has no release-only mode, so dropping the
+      # flag is what makes release variants of Qt and friends exist at all.
       - name: Libraries.
         run: |
-          ./$REPO_NAME/Telegram/build/prepare/mac.sh skip-release silent
+          ./$REPO_NAME/Telegram/build/prepare/mac.sh silent
 
       - name: Free up some disk space.
         run: find Libraries '(' '(' ! '(' -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 ')' -type f ')' -o -empty ')' -delete
+
+      # Saved after the pruning above and before the build below, so a compile
+      # failure no longer discards a good Libraries tree. actions/cache does not
+      # save when the job fails, which is why this is a separate save step.
+      - name: Save libraries cache.
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ steps.cache-libs.outputs.cache-primary-key }}
 
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
@@ -107,33 +121,55 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo "ARTIFACT_NAME=Telegram ${{ matrix.defines }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Telegram macOS source ${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=Telegram" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Telegram macOS source" >> $GITHUB_ENV
           fi
 
           ./configure.sh \
-          -D CMAKE_CONFIGURATION_TYPES=Debug \
-          -D CMAKE_COMPILE_WARNING_AS_ERROR=ON \
+          -D CMAKE_CONFIGURATION_TYPES=Release \
+          -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF \
+          -D CMAKE_POLICY_DEFAULT_CMP0218=OLD \
           -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
           -D TDESKTOP_API_TEST=ON \
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF \
           $DEFINE
 
-          cmake --build ../out --config Debug --parallel
+          cmake --build ../out --config Release --parallel 2>&1 | tee $GITHUB_WORKSPACE/build.log
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd $REPO_NAME/out/Debug
+          cd $REPO_NAME/out/Release
           mkdir artifact
-          mv Telegram.app artifact/
+          # TeleForge.app, not Telegram.app: CMakeLists sets OUTPUT_NAME and
+          # XCODE_ATTRIBUTE_PRODUCT_NAME to TeleForge for non-macstore builds.
+          mv TeleForge.app artifact/
           mv Updater artifact/
       - uses: actions/upload-artifact@v7
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.REPO_NAME }}/out/Debug/artifact/
-          retention-days: 1
+          path: ${{ env.REPO_NAME }}/out/Release/artifact/
+          retention-days: 7
+
+      # always(): warnings matter most precisely when the build failed. tee
+      # above keeps the live output; pipefail (on by default for shell: bash)
+      # means the pipe does not mask a non-zero build status.
+      - name: Collect warnings.
+        if: always()
+        run: |
+          mkdir -p warnings
+          cp $GITHUB_WORKSPACE/build.log warnings/ 2>/dev/null || true
+          grep -hE "warning|Warning" $GITHUB_WORKSPACE/build.log 2>/dev/null | sort -u > warnings/warnings.txt || true
+          echo "unique warning lines: $(wc -l < warnings/warnings.txt 2>/dev/null || echo 0)"
+      - uses: actions/upload-artifact@v7
+        name: Upload warnings.
+        if: always()
+        with:
+          name: warnings ${{ env.ARTIFACT_NAME }}
+          path: warnings/
+          retention-days: 7
+          if-no-files-found: ignore

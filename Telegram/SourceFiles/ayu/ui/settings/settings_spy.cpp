@@ -2,6 +2,7 @@
 #include "ayu/ui/settings/settings_spy.h"
 
 #include "ayu/ayu_settings.h"
+#include "ayu/features/ghost/tf_ghost_audit.h"
 #include "ayu/features/spy/online_history_storage.h"
 #include "ayu/features/teleforge/tf_archive_users_box.h"
 #include "ayu/features/teleforge/tf_peer_archive.h"
@@ -14,9 +15,12 @@
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
+
+#include <algorithm>
 
 namespace Settings {
 
@@ -132,6 +136,118 @@ void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
 		u"раз в минуту — до минуты, раз в 15 секунд — до 15 секунд и т.д."_q));
 }
 
+void BuildArchiveScanSettings(AyuSectionBuilder &ayu) {
+	const auto &settings = AyuSettings::getInstance();
+
+	ayu.addCollapsibleSection({
+		.id = u"teleforge/archiveScan"_q,
+		.title = rpl::single(u"Сканирование архива"_q),
+		.fill = [&](not_null<Ui::VerticalLayout*> inner) {
+			ayu.addToggleTo(inner, {
+				.id = u"teleforge/archiveBackgroundCrawl"_q,
+				.title = rpl::single(u"Фоновый обход чатов"_q),
+				.getter = [] {
+					return AyuSettings::getInstance().archiveBackgroundCrawl();
+				},
+				.setter = [](bool v) {
+					AyuSettings::getInstance().setArchiveBackgroundCrawl(v);
+				},
+			});
+			ayu.addToggleTo(inner, {
+				.id = u"teleforge/archiveScanParticipants"_q,
+				.title = rpl::single(u"Собирать участников чатов"_q),
+				.getter = [] {
+					return AyuSettings::getInstance().archiveScanParticipants();
+				},
+				.setter = [](bool v) {
+					AyuSettings::getInstance().setArchiveScanParticipants(v);
+				},
+			});
+			ayu.addToggleTo(inner, {
+				.id = u"teleforge/archiveScanBroadcasts"_q,
+				.title = rpl::single(u"Сканировать каналы (не только группы)"_q),
+				.getter = [] {
+					return AyuSettings::getInstance().archiveScanBroadcasts();
+				},
+				.setter = [](bool v) {
+					AyuSettings::getInstance().setArchiveScanBroadcasts(v);
+				},
+			});
+			ayu.addToggleTo(inner, {
+				.id = u"teleforge/archiveSaveUserpics"_q,
+				.title = rpl::single(u"Сохранять аватары на диск"_q),
+				.getter = [] {
+					return AyuSettings::getInstance().archiveSaveUserpics();
+				},
+				.setter = [](bool v) {
+					AyuSettings::getInstance().setArchiveSaveUserpics(v);
+				},
+			});
+			ayu.addToggleTo(inner, {
+				.id = u"teleforge/archiveFollowLinks"_q,
+				.title = rpl::single(u"Ловить @упоминания и t.me ссылки"_q),
+				.getter = [] {
+					return AyuSettings::getInstance().archiveFollowLinks();
+				},
+				.setter = [](bool v) {
+					AyuSettings::getInstance().setArchiveFollowLinks(v);
+				},
+			});
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archiveHistoryScanLimit"_q,
+				.title = rpl::single(u"Сообщений на чат за проход"_q),
+				.steps = 40,
+				.current = IndexForValue(
+					settings.archiveHistoryScanLimit(),
+					0,
+					100),
+				.indexToValue = [](int index) { return index * 100; },
+				.onFinalChanged = [](int value) {
+					AyuSettings::getInstance().setArchiveHistoryScanLimit(value);
+				},
+				.formatLabel = [](int x) {
+					return x ? QString::number(x) : u"без лимита"_q;
+				},
+			});
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archiveCrawlBatchSize"_q,
+				.title = rpl::single(u"Записей в БД за один проход"_q),
+				.steps = 39,
+				.current = IndexForValue(
+					settings.archiveCrawlBatchSize(),
+					4,
+					4),
+				.indexToValue = [](int index) { return 4 + index * 4; },
+				.onFinalChanged = [](int value) {
+					AyuSettings::getInstance().setArchiveCrawlBatchSize(value);
+				},
+				.formatLabel = [](int x) { return QString::number(x); },
+			});
+			ayu.addSliderTo(inner, {
+				.id = u"teleforge/archiveMaxParticipants"_q,
+				.title = rpl::single(u"Максимум участников на чат"_q),
+				.steps = 40,
+				.current = IndexForValue(
+					settings.archiveMaxParticipants(),
+					0,
+					500),
+				.indexToValue = [](int index) { return index * 500; },
+				.onFinalChanged = [](int value) {
+					AyuSettings::getInstance().setArchiveMaxParticipants(value);
+				},
+				.formatLabel = [](int x) {
+					return x ? QString::number(x) : u"без лимита"_q;
+				},
+			});
+		},
+	});
+
+	ayu.base().addSkip();
+	ayu.base().addDividerText(rpl::single(
+		u"Чем меньше «сообщений на чат» и «записей в БД за проход», тем меньше "
+		u"архив нагружает интерфейс. Аватары кодируются в отдельном потоке."_q));
+}
+
 void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 
@@ -194,6 +310,7 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		u"Удалённые аватары помечаются значком корзины. По умолчанию выключено."_q));
 
 	BuildPollIntervalSettings(ayu);
+	BuildArchiveScanSettings(ayu);
 
 	ayu.addSectionDivider();
 	builder.addSubsectionTitle(rpl::single(u"Сохранение сообщений"_q));
@@ -210,6 +327,67 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.getter = &AyuSettings::saveMessagesHistory,
 		.setter = &AyuSettings::setSaveMessagesHistory,
 	});
+	ayu.addSettingToggle({
+		.id = u"teleforge/showDeletedInChat"_q,
+		.title = rpl::single(u"Показывать удалённые прямо в чате"_q),
+		.getter = &AyuSettings::showDeletedInChat,
+		.setter = &AyuSettings::setShowDeletedInChat,
+	});
+	ayu.addSlider({
+		.id = u"teleforge/deletedRestoreLimit"_q,
+		.title = rpl::single(u"Восстанавливать удалённых на чат"_q),
+		.steps = 40,
+		.current = AyuSettings::getInstance().deletedRestoreLimit() / 50,
+		.indexToValue = [](int index) { return index * 50; },
+		.onFinalChanged = [](int value) {
+			AyuSettings::getInstance().setDeletedRestoreLimit(value);
+		},
+		.formatLabel = [](int x) {
+			return x ? QString::number(x) : u"выкл"_q;
+		},
+	});
+
+	builder.addSkip();
+	builder.addDividerText(rpl::single(
+		u"Сохранённые удалённые сообщения подставляются обратно в историю чата "
+		u"при его открытии, на своё место по дате и с пометкой удаления. "
+		u"Восстанавливается только текст; медиа остаётся в отдельном разделе."_q));
+
+	ayu.addSectionDivider();
+	builder.addSubsectionTitle(rpl::single(u"Диагностика призрака"_q));
+
+	ayu.addSettingToggle({
+		.id = u"teleforge/ghostPassthroughMentions"_q,
+		.title = rpl::single(
+			u"Отмечать упоминания и реакции прочитанными в призраке"_q),
+		.getter = &AyuSettings::ghostPassthroughMentions,
+		.setter = &AyuSettings::setGhostPassthroughMentions,
+	});
+
+	builder.addButton({
+		.id = u"teleforge/ghostWakeSignals"_q,
+		.title = rpl::single(u"Журнал сигналов пробуждения"_q),
+		.onClick = [=] {
+			auto lines = TeleForge::Ghost::recentWakeSignals();
+			if (lines.isEmpty()) {
+				controller->showToast(
+					u"Пока ни один сигнал не уходил на сервер."_q);
+				return;
+			}
+			std::reverse(lines.begin(), lines.end());
+			controller->show(Ui::MakeInformBox({
+				.text = lines.mid(0, 40).join('\n'),
+				.title = rpl::single(u"Сигналы пробуждения"_q),
+			}));
+		},
+	});
+
+	builder.addSkip();
+	builder.addDividerText(rpl::single(
+		u"Каждый запрос, который сервер может засчитать за активность аккаунта, "
+		u"записывается сюда, пока призрак включён. Отключение сквозного чтения "
+		u"упоминаний убирает последний путь, по которому сообщение может "
+		u"«проскочить» призрака."_q));
 
 	ayu.addSectionDivider();
 

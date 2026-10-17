@@ -3,6 +3,7 @@
 #include "ayu/features/teleforge/teleforge_embeddings.h"
 #include "ayu/features/teleforge/teleforge_llama_runtime.h"
 #include "ayu/features/teleforge/teleforge_memory.h"
+#include "ayu/features/teleforge/teleforge_model_downloader.h"
 #include "ayu/features/teleforge/teleforge_prompt_builder.h"
 #include "ayu/features/teleforge/teleforge_openai_models.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
@@ -104,7 +105,13 @@ void ApplyPersonalityEndpoints(const PersonalityCore &core) {
 		LmStudioBridge::instance().setApiKey(core.openAiApiKey.trimmed());
 	}
 
-	auto rerankPath = core.rerankModelPath.trimmed();
+	auto rerankPath = core.embeddingModelPath.trimmed();
+	if (rerankPath.isEmpty() || !QFileInfo::exists(rerankPath)) {
+		rerankPath = core.rerankModelPath.trimmed();
+	}
+	if (rerankPath.isEmpty()) {
+		rerankPath = DownloadedEmbeddingGgufPath();
+	}
 	if (rerankPath.isEmpty()) {
 		rerankPath = DefaultTeleForgeRerankGgufPath();
 	}

@@ -16,6 +16,12 @@ void uploadNow(
 	Fn<void(QString message)> done,
 	Fn<void(int done, int total)> onProgress = nullptr);
 void tryDownloadOnStartup(not_null<Main::Session*> session);
+// Compares the fingerprint the cloud backend stored for the last uploaded
+// snapshot with the local fact set. `done` receives whether the local copy is
+// behind; when it is, a download is started automatically.
+void checkRemoteFreshness(
+	not_null<Main::Session*> session,
+	Fn<void(bool stale, QString error)> done = nullptr);
 // Creates the dedicated sync chat right away (no-op if sync is disabled or the
 // chat already exists). Safe to call repeatedly.
 void ensureSyncChat(

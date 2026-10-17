@@ -1,0 +1,21 @@
+[Unit]
+Description=TeleForge Scanner (background chat scanner)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/opt/teleforge-scanner
+ExecStart=/opt/teleforge-scanner/.venv/bin/python -m teleforge_scanner --config /opt/teleforge-scanner/config.toml
+Restart=on-failure
+RestartSec=10
+# Hardening. Loosen ProtectSystem if media_dir/sqlite_path live outside WorkingDirectory.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/teleforge-scanner
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

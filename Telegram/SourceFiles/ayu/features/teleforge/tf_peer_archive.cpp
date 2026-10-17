@@ -70,8 +70,22 @@ auto &ArchiveEnabledCache() {
 	return dir;
 }
 
+// JPEG compression of a 256-512px userpic costs several milliseconds each and
+// the archive encodes them in bursts, so only the parts that must touch peer
+// data and Qt paint state stay on the main thread. The encoded bytes are
+// written from a worker, and the resulting DB row is inserted back on main so
+// the single sqlite connection is never used from two threads.
+void SaveImageAsync(QImage image, QString path, Fn<void(bool)> done) {
+	crl::async([image = std::move(image), path = std::move(path), done] {
+		const auto ok = !image.isNull() && image.save(path, "JPG", 92);
+		if (done) {
+			crl::on_main([=] { done(ok); });
+		}
+	});
+}
+
 void saveChatUserpicToDisk(not_null<PeerData*> peer) {
-	if (peer->isUser()) {
+	if (peer->isUser() || !AyuSettings::getInstance().archiveSaveUserpics()) {
 		return;
 	}
 	peer->loadUserpic();
@@ -86,11 +100,11 @@ void saveChatUserpicToDisk(not_null<PeerData*> peer) {
 		return;
 	}
 	auto view = peer->createUserpicView();
-	const auto image = PeerData::GenerateUserpicImage(peer, view, 256);
+	auto image = PeerData::GenerateUserpicImage(peer, view, 256);
 	if (image.isNull()) {
 		return;
 	}
-	image.save(path, "JPG", 90);
+	SaveImageAsync(std::move(image), path, nullptr);
 }
 
 [[nodiscard]] bool SelfInChat(not_null<PeerData*> chatPeer) {
@@ -256,6 +270,9 @@ void saveUserpicToDisk(
 		not_null<UserData*> user,
 		int now,
 		long long peerId) {
+	if (!AyuSettings::getInstance().archiveSaveUserpics()) {
+		return;
+	}
 	user->loadUserpic();
 	const auto photoId = static_cast<long long>(user->userpicPhotoId());
 	if (HasStoredUserpic(peerId, photoId)) {
@@ -271,14 +288,15 @@ void saveUserpicToDisk(
 
 	const auto persist = [=] {
 		auto view = user->createUserpicView();
-		const auto image = PeerData::GenerateUserpicImage(user, view, 512);
+		auto image = PeerData::GenerateUserpicImage(user, view, 512);
 		if (image.isNull()) {
 			return false;
 		}
-		if (!image.save(path, "JPG", 92)) {
-			return false;
-		}
-		insertUserpicRecord(peerId, path, now, photoId);
+		SaveImageAsync(std::move(image), path, [=](bool ok) {
+			if (ok && !HasStoredUserpic(peerId, photoId)) {
+				insertUserpicRecord(peerId, path, now, photoId);
+			}
+		});
 		return true;
 	};
 
@@ -327,7 +345,13 @@ void bindSessionWindow(not_null<Main::Session*> session) {
 // guard, so keying by (user, chat) preserves memberships without extra cost.
 
 constexpr auto kObservationFlushDelayMs = crl::time(250);
-constexpr auto kMaxObservationsPerFlush = 24;
+
+[[nodiscard]] int MaxObservationsPerFlush() {
+	return std::clamp(
+		AyuSettings::getInstance().archiveCrawlBatchSize(),
+		1,
+		200);
+}
 
 struct PendingObservation {
 	MsgId messageId = 0;
@@ -388,13 +412,11 @@ void FlushObservations(not_null<Main::Session*> session) {
 	}
 	// Drain a bounded slice so one event-loop turn stays short; the rest is
 	// picked up by the next scheduled flush.
+	const auto perFlush = MaxObservationsPerFlush();
 	auto batch = std::vector<std::pair<ObservationKey, PendingObservation>>();
-	batch.reserve(std::min<std::size_t>(
-		pending.size(),
-		kMaxObservationsPerFlush));
+	batch.reserve(std::min<std::size_t>(pending.size(), perFlush));
 	for (auto it = pending.begin();
-			it != pending.end()
-				&& int(batch.size()) < kMaxObservationsPerFlush;) {
+			it != pending.end() && int(batch.size()) < perFlush;) {
 		batch.push_back(*it);
 		it = pending.erase(it);
 	}
@@ -601,6 +623,24 @@ void noteMessageAuthor(
 		chatPeer->name(),
 		SelfInChat(chatPeer),
 		now);
+}
+
+void queueMessageAuthor(
+		not_null<Main::Session*> session,
+		not_null<UserData*> user,
+		not_null<PeerData*> chatPeer,
+		MsgId messageId) {
+	if (!archiveEnabled() || user->isSelf()) {
+		return;
+	}
+	EnqueueObservation(
+		session,
+		user->id,
+		chatPeer->id,
+		messageId,
+		messageId
+			? ObservationSource::Kind::Message
+			: ObservationSource::Kind::Participant);
 }
 
 ProfileSnapshot loadProfile(long long peerStorageId) {

@@ -39,6 +39,7 @@ on:
       - 'Telegram/SourceFiles/platform/win/**'
       - 'Telegram/SourceFiles/platform/linux/**'
       - 'Telegram/configure.bat'
+  workflow_dispatch:
 
 jobs:
 
@@ -47,6 +48,7 @@ jobs:
     runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-macos-latest' || 'macos-latest' }}
 
     strategy:
+      fail-fast: false
       matrix:
         defines:
           - ""
@@ -234,8 +236,8 @@ jobs:
             echo "ARTIFACT_NAME=Telegram" >> $GITHUB_ENV
           fi
 
-          cmake -Bbuild . -DTDESKTOP_API_TEST=ON $DEFINE
-          cmake --build build
+          cmake -Bbuild . -DTDESKTOP_API_TEST=ON $DEFINE 2>&1 | tee $GITHUB_WORKSPACE/build.log
+          cmake --build build 2>&1 | tee -a $GITHUB_WORKSPACE/build.log
           macdeployqt build/Telegram.app
           codesign --remove-signature build/Telegram.app
 
@@ -251,4 +253,23 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPO_NAME }}/build/artifact/
-          retention-days: 1
+          retention-days: 7
+
+      # always(): warnings matter most precisely when the build failed. tee
+      # above keeps the live output; pipefail (on by default for shell: bash)
+      # means the pipe does not mask a non-zero build status.
+      - name: Collect warnings.
+        if: always()
+        run: |
+          mkdir -p warnings
+          cp $GITHUB_WORKSPACE/build.log warnings/ 2>/dev/null || true
+          grep -hE "warning|Warning" $GITHUB_WORKSPACE/build.log 2>/dev/null | sort -u > warnings/warnings.txt || true
+          echo "unique warning lines: $(wc -l < warnings/warnings.txt 2>/dev/null || echo 0)"
+      - uses: actions/upload-artifact@v7
+        name: Upload warnings.
+        if: always()
+        with:
+          name: warnings ${{ env.ARTIFACT_NAME }}
+          path: warnings/
+          retention-days: 7
+          if-no-files-found: ignore

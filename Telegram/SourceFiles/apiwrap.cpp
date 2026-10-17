@@ -111,6 +111,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/ayu_settings.h"
+#include "ayu/features/ghost/tf_ghost_audit.h"
 #include "ayu/ayu_worker.h"
 #include "ayu/ui/ghost_online_warn.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -1464,8 +1465,12 @@ void ApiWrap::markContentsRead(
 		not_null<ChannelData*>,
 		QVector<MTPint>>();
 	markedIds.reserve(items.size());
+	const auto passthroughAllowed
+		= AyuSettings::getInstance().ghostPassthroughMentions();
 	for (const auto &item : items) {
-		const auto passthrough = (item->isUnreadMention() || item->hasUnreadReaction()) && !item->isUnreadMedia();
+		const auto passthrough = passthroughAllowed
+			&& (item->isUnreadMention() || item->hasUnreadReaction())
+			&& !item->isUnreadMedia();
 
 		if (!item->markContentsRead(true) || !item->isRegular()) {
 			continue;
@@ -1473,6 +1478,12 @@ void ApiWrap::markContentsRead(
 
 		if (!ghost.sendReadMessages() && !passthrough) {
 			continue;
+		}
+		if (!ghost.sendReadMessages()) {
+			TeleForge::Ghost::noteWakeSignal(
+				&session(),
+				u"readMessageContents"_q,
+				u"mention/reaction passthrough"_q);
 		}
 
 		if (const auto channel = item->history()->peer->asChannel()) {
@@ -1497,7 +1508,10 @@ void ApiWrap::markContentsRead(
 }
 
 void ApiWrap::markContentsRead(not_null<HistoryItem*> item) {
-	const auto passthrough = (item->isUnreadMention() || item->hasUnreadReaction()) && !item->isUnreadMedia();
+	const auto passthrough
+		= AyuSettings::getInstance().ghostPassthroughMentions()
+		&& (item->isUnreadMention() || item->hasUnreadReaction())
+		&& !item->isUnreadMedia();
 
 	if (!item->markContentsRead(true) || !item->isRegular()) {
 		return;
@@ -1506,6 +1520,12 @@ void ApiWrap::markContentsRead(not_null<HistoryItem*> item) {
 	const auto &ghost = AyuSettings::ghost(&session());
 	if (!ghost.sendReadMessages() && !passthrough) {
 		return;
+	}
+	if (!ghost.sendReadMessages()) {
+		TeleForge::Ghost::noteWakeSignal(
+			&session(),
+			u"readMessageContents"_q,
+			u"mention/reaction passthrough"_q);
 	}
 
 	const auto ids = MTP_vector<MTPint>(1, MTP_int(item->id));

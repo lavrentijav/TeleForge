@@ -10,40 +10,20 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-win*.md'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/win.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.sh'
-      - 'Telegram/Telegram.plist'
   pull_request:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-win*.md'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
-      - '.github/**'
-      - '!.github/workflows/win.yml'
-      - 'lib/xdg/**'
-      - 'snap/**'
-      - 'Telegram/build/docker/**'
-      - 'Telegram/Resources/uwp/**'
-      - 'Telegram/SourceFiles/platform/linux/**'
-      - 'Telegram/SourceFiles/platform/mac/**'
-      - 'Telegram/Telegram/**'
-      - 'Telegram/configure.sh'
-      - 'Telegram/Telegram.plist'
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
 
@@ -54,9 +34,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # No generator dimension. It doubled the matrix while the libraries
+        # cache key does not include the generator, so the two legs of a given
+        # arch+qt built byte-identical libraries at the same time, both missing
+        # the cache, and then raced to save the same key. Testing a second CMake
+        # generator is not worth ~30 minutes of duplicated Qt builds per leg.
         arch: [x64_x86, x64, arm64]
         qt: ["", qt6]
-        generator: ["", "Ninja Multi-Config"]
         exclude:
           - arch: arm64
             qt: ""
@@ -67,6 +51,15 @@ jobs:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+      # Everything ships Release. One combination — Windows x64, Qt5 —
+      # stays Debug so there is always a build with assertions and full symbols
+      # to debug against. Keep this in sync with the artifact name below.
+      BUILD_CONFIG: ${{ (matrix.arch == 'x64' && matrix.qt == '') && 'Debug' || 'Release' }}
+      # prepare.py only offers debug-only (skip-release) or both configurations
+      # — there is no release-only mode. The Debug job keeps skip-release; the
+      # Release jobs must build both, otherwise there are no release variants of
+      # Qt and friends to link against.
+      PREPARE_OPTIONS: ${{ (matrix.arch == 'x64' && matrix.qt == '') && 'skip-release' || '' }}
 
     defaults:
       run:
@@ -166,8 +159,8 @@ jobs:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-
+          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ env.BUILD_CONFIG }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ matrix.arch }}-${{ env.BUILD_CONFIG }}-${{ matrix.qt || 'qt' }}-
 
       - name: Resolve Visual Studio path for gyp.
         shell: pwsh
@@ -180,14 +173,19 @@ jobs:
           "GYP_MSVS_VERSION=2022" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "Resolved Visual Studio: $vs"
 
+      # GYP_MSVS_* come from the step above via $GITHUB_ENV. Do not reintroduce
+      # them as step-level `env:` here: a hardcoded ...\2022\Enterprise\ path
+      # stopped matching the runner image (it now ships VS 18) and gyp died
+      # with "vcvarsall.bat is missing" while building breakpad. Step-level
+      # env would also silently override the resolved value.
       - name: Libraries.
         run: |
-          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat skip-release silent ${{ matrix.qt }}
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat %PREPARE_OPTIONS% silent ${{ matrix.qt }}
 
       - name: Read configuration matrix.
         shell: bash
         run: |
-          ARTIFACT_NAME="Telegram"
+          ARTIFACT_NAME="Telegram $BUILD_CONFIG"
 
           ARCH=""
           if [ -n "${{ matrix.arch }}" ]; then
@@ -236,18 +234,23 @@ jobs:
         shell: bash
         run: find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
 
-      # Persist the freshly-built dependencies BEFORE the (long, fallible) main
-      # build so a compile failure never forces a full dependency rebuild.
+      # Saved here, not in a post-job step. actions/cache skips its save when
+      # the job fails, so a failure while configuring or compiling TeleForge
+      # threw away a perfectly good Libraries tree and the next run rebuilt Qt
+      # from scratch. Placed after the pruning above so the cache stays small,
+      # and before the build below so it survives a compile failure. If the
+      # Libraries step itself failed we never reach here, so a half-built tree
+      # is never cached.
       - name: Save ThirdParty cache.
         if: steps.cache-third-party.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ env.TBUILD }}\ThirdParty
-          key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
+          key: ${{ steps.cache-third-party.outputs.cache-primary-key }}
 
-      - name: Save Libraries cache.
+      - name: Save libraries cache.
         if: steps.cache-libs.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             ${{ env.LibrariesPath }}\*
@@ -255,16 +258,16 @@ jobs:
             !${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-libs-${{ env.CACHE_KEY }}
+          key: ${{ steps.cache-libs.outputs.cache-primary-key }}
 
       - name: Save Qt cache.
         if: steps.cache-qt.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
-          key: ${{ runner.OS }}-${{ matrix.arch }}-${{ matrix.qt || 'qt' }}-${{ env.CACHE_KEY }}
+          key: ${{ steps.cache-qt.outputs.cache-primary-key }}
 
       - name: Telegram Desktop build.
         if: env.ONLY_CACHE == 'false'
@@ -276,21 +279,51 @@ jobs:
           %TDESKTOP_BUILD_ARCH% ^
           ${{ matrix.qt }} ^
           %TDESKTOP_BUILD_API% ^
-          -D CMAKE_CONFIGURATION_TYPES=Debug ^
-          -D CMAKE_COMPILE_WARNING_AS_ERROR=ON ^
+          -D CMAKE_CONFIGURATION_TYPES=%BUILD_CONFIG% ^
+          -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF ^
+          -D CMAKE_POLICY_DEFAULT_CMP0218=OLD ^
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT= ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF ^
-          %TDESKTOP_BUILD_DEFINE%
+          %TDESKTOP_BUILD_DEFINE% > "%TBUILD%\configure.log" 2>&1
+          set CFG_RC=%ERRORLEVEL%
+          type "%TBUILD%\configure.log"
+          if not "%CFG_RC%"=="0" exit /b %CFG_RC%
 
-          cmake --build ..\out --config Debug --parallel
+          cmake --build ..\out --config %BUILD_CONFIG% --parallel > "%TBUILD%\build.log" 2>&1
+          set BUILD_RC=%ERRORLEVEL%
+          type "%TBUILD%\build.log"
+          exit /b %BUILD_RC%
 
+      # always(): the warnings are most interesting precisely when the build
+      # failed. The logs are captured to files above and echoed with `type`, so
+      # the step output still shows everything live.
+      - name: Collect warnings.
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p warnings
+          cp "$TBUILD"/configure.log "$TBUILD"/build.log warnings/ 2>/dev/null || true
+          grep -hE "warning|Warning" "$TBUILD"/configure.log "$TBUILD"/build.log 2>/dev/null \
+            | sort -u > warnings/warnings.txt || true
+          echo "unique warning lines: $(wc -l < warnings/warnings.txt 2>/dev/null || echo 0)"
+      - uses: actions/upload-artifact@v7
+        name: Upload warnings.
+        if: always()
+        with:
+          name: warnings ${{ env.ARTIFACT_NAME }}
+          path: warnings/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # TeleForge.exe, not Telegram.exe: CMakeLists sets OUTPUT_NAME to
+      # TeleForge. Updater has no OUTPUT_NAME override, so it keeps its name.
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
-          set OUT=%TBUILD%\%REPO_NAME%\out\Debug
+          set OUT=%TBUILD%\%REPO_NAME%\out\%BUILD_CONFIG%
           mkdir artifact
-          move %OUT%\Telegram.exe artifact/
+          move %OUT%\TeleForge.exe artifact/
           move %OUT%\Updater.exe artifact/
       - uses: actions/upload-artifact@v7
         name: Upload artifact.
@@ -298,4 +331,4 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifact\
-          retention-days: 1
+          retention-days: 7

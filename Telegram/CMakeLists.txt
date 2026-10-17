@@ -120,7 +120,9 @@ PRIVATE
     desktop-app::external_wallet_engine
     desktop-app::external_xxhash
 
-    teleforge::lib_icu
+    # The alias is defined by the lib_icu submodule (github.com/AyuGram/lib_icu),
+    # which still exports the ayugram:: namespace — it is not ours to rename.
+    ayugram::lib_icu
 )
 
 set(teleforge_extension_files
@@ -209,6 +211,8 @@ set(teleforge_extension_files
         ayu/ui/ghost_online_warn.h
         ayu/ui/teleforge_upload_bar.cpp
         ayu/ui/teleforge_upload_bar.h
+        ayu/features/ghost/tf_ghost_audit.cpp
+        ayu/features/ghost/tf_ghost_audit.h
         ayu/features/ghost/tf_ghost_scheduled.cpp
         ayu/features/ghost/tf_ghost_scheduled.h
         ayu/ui/message_history/history_inner.cpp
@@ -302,10 +306,14 @@ set(teleforge_extension_files
         ayu/features/teleforge/teleforge_lm_studio.h
         ayu/features/teleforge/teleforge_memory.cpp
         ayu/features/teleforge/teleforge_memory.h
+        ayu/features/teleforge/teleforge_model_downloader.cpp
+        ayu/features/teleforge/teleforge_model_downloader.h
         ayu/features/teleforge/teleforge_prompt_builder.cpp
         ayu/features/teleforge/teleforge_prompt_builder.h
         ayu/features/teleforge/teleforge_rerank.cpp
         ayu/features/teleforge/teleforge_rerank.h
+        ayu/features/teleforge/teleforge_vector_db.cpp
+        ayu/features/teleforge/teleforge_vector_db.h
         ayu/features/teleforge/teleforge_tools.cpp
         ayu/features/teleforge/teleforge_tools.h
         ayu/features/teleforge/teleforge_paths.cpp
@@ -316,6 +324,8 @@ set(teleforge_extension_files
         ayu/features/teleforge/teleforge_openai_models.h
         ayu/features/teleforge/teleforge_storage.cpp
         ayu/features/teleforge/teleforge_storage.h
+        ayu/features/teleforge/tf_deleted_restore.cpp
+        ayu/features/teleforge/tf_deleted_restore.h
         ayu/features/teleforge/tf_peer_archive.cpp
         ayu/features/teleforge/tf_peer_archive.h
         ayu/features/teleforge/tf_peer_archive_entities.h
@@ -349,6 +359,8 @@ set(teleforge_extension_files
         ayu/features/sync/teleforge_sync_mysql.h
         ayu/features/sync/teleforge_sync_pg.cpp
         ayu/features/sync/teleforge_sync_pg.h
+        ayu/features/sync/teleforge_ssh_tunnel.cpp
+        ayu/features/sync/teleforge_ssh_tunnel.h
         ayu/features/sync/teleforge_sync_snapshot.cpp
         ayu/features/sync/teleforge_sync_snapshot.h
         ayu/features/sync/teleforge_sync_rows.cpp

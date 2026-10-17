@@ -56,6 +56,15 @@ struct PersonalityCore {
 	QString pgConnString;
 	/// Informational PostgreSQL server version selected in the UI (e.g. "18").
 	QString pgVersion = u"18"_q;
+	/// Local embeddings *.gguf; empty = auto-detect the downloaded model in models/.
+	QString embeddingModelPath;
+	/// When true, PostgreSQL/MySQL connections go through a local `ssh -L`
+	/// tunnel instead of connecting directly.
+	bool sshTunnelEnabled = false;
+	/// ssh login target for the tunnel, "user@host" or "user@host:port".
+	QString sshTunnelTarget;
+	/// Optional private key path for the tunnel; empty = ssh's own default.
+	QString sshTunnelIdentityFile;
 };
 
 PersonalityCore DefaultPersonalityCore();
