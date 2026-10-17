@@ -10,3 +10,6 @@ Telegram/Resources/zxcvbn/*.txt text eol=lf
 
 # Ensure lottie animations are treated as binary files
 *.lottie binary
+
+# zxcvbn dictionaries must stay LF: the generator embeds every byte into a C string
+Telegram/ThirdParty/zxcvbn/*.txt text eol=lf
