@@ -67,7 +67,8 @@ void ScheduleFlush() {
 	if (const auto existing = manualLastSeenForUser(user->id.value)) {
 		return *existing;
 	}
-	return now;
+	// Nothing is known about this user, so "just now" would be a lie.
+	return 0;
 }
 
 } // namespace

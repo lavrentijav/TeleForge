@@ -215,6 +215,8 @@ set(teleforge_extension_files
         ayu/features/ghost/tf_ghost_audit.h
         ayu/features/ghost/tf_ghost_scheduled.cpp
         ayu/features/ghost/tf_ghost_scheduled.h
+        ayu/features/presence/tf_presence_filter.cpp
+        ayu/features/presence/tf_presence_filter.h
         ayu/ui/message_history/history_inner.cpp
         ayu/ui/message_history/history_inner.h
         ayu/ui/message_history/history_item.cpp
@@ -2905,7 +2907,6 @@ elseif (LINUX)
         target_link_libraries(Telegram PRIVATE Python3::Python)
     endif()
     target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-s>)
-    target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-Wl,-z,pack-relative-relocs>)
 
     include(${cmake_helpers_loc}/external/glib/generate_dbus.cmake)
     generate_dbus(Telegram org.freedesktop.portal. XdpBackground ${third_party_loc}/xdg-desktop-portal/data/org.freedesktop.portal.Background.xml)
@@ -3007,7 +3008,6 @@ else()
     )
 
     target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-s>)
-    target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-Wl,-z,pack-relative-relocs>)
 
     include(${cmake_helpers_loc}/external/glib/generate_dbus.cmake)
     generate_dbus(Telegram org.freedesktop.portal. XdpBackground ${third_party_loc}/xdg-desktop-portal/data/org.freedesktop.portal.Background.xml)

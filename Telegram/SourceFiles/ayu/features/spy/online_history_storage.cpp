@@ -5,6 +5,8 @@
 #include "ayu/data/ayu_database.h"
 #include "base/unixtime.h"
 
+#include <QtCore/QTime>
+
 #include <algorithm>
 #include <map>
 #include <mutex>
@@ -41,12 +43,13 @@ void NoteManualLastSeen(long long userId, int timestamp) {
 	const auto nowFull = base::unixtime::parse(now);
 	const auto locale = QLocale();
 	if (precisionSeconds >= 3600) {
-		const auto time = locale.toString(onlineFull.time(), QLocale::ShortFormat);
+		const auto hour = QTime(onlineFull.time().hour(), 0);
+		const auto time = locale.toString(hour, QLocale::ShortFormat);
 		if (onlineFull.date() == nowFull.date()) {
-			return u"~"_q + time.left(2) + u":00"_q;
+			return u"~"_q + time;
 		}
 		const auto date = locale.toString(onlineFull.date(), QLocale::ShortFormat);
-		return u"~%1 %2:00"_q.arg(date, time.left(2));
+		return u"~%1 %2"_q.arg(date, time);
 	}
 	if (precisionSeconds >= 60) {
 		const auto time = locale.toString(onlineFull.time(), QLocale::ShortFormat);

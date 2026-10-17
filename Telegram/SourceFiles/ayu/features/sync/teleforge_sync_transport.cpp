@@ -1,5 +1,6 @@
 #include "ayu/features/sync/teleforge_sync_transport.h"
 
+#include "ayu/features/presence/tf_presence_filter.h"
 #include "ayu/features/sync/teleforge_sync_files.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
 #include "ayu/utils/telegram_helpers.h"
@@ -106,7 +107,9 @@ void WriteStoredChannel(
 }
 
 void ForceGhostOffline(not_null<Main::Session*> session) {
-	session->updates().updateOnline(crl::now());
+	// WHY: going through updateOnline(crl::now()) reported "user active now"
+	// to checkAutoLock and reset the auto-lock timer on a service packet.
+	TeleForge::Presence::sendStatus(session, true);
 }
 
 [[nodiscard]] crl::time SyncGhostExtraWaitMs(
