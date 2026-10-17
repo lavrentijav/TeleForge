@@ -2,6 +2,7 @@
 #include "ayu/ui/settings/settings_teleforge_sync.h"
 
 #include "ayu/features/sync/teleforge_sync.h"
+#include "ayu/ui/teleforge_upload_bar.h"
 #include "ayu/features/sync/teleforge_sync_mysql.h"
 #include "ayu/features/sync/teleforge_sync_pg.h"
 #include "ayu/features/teleforge/teleforge_core.h"
@@ -29,6 +30,8 @@
 #include <rpl/variable.h>
 
 #include <algorithm>
+
+#include <QtGui/QPainter>
 
 #include <QtCore/QDateTime>
 #include <QtCore/QRegularExpression>
@@ -237,7 +240,7 @@ const auto kMeta = BuildHelper({
 				ShowPickMenu(
 					versionBtn,
 					versionBtn->mapToGlobal(QPoint(0, versionBtn->height())),
-					{ u"18"_q, u"17"_q, u"16"_q },
+					{ u"18"_q, u"17"_q, u"16"_q, u"15"_q, u"14"_q, u"13"_q },
 					[=](const QString &choice) {
 						*pgVersion = choice;
 						auto p = TeleForge::LoadPersonalityCore().value_or(
@@ -367,6 +370,25 @@ const auto kMeta = BuildHelper({
 				} else {
 					TeleForge::Sync::PgTestConnection(text, cb);
 				}
+			});
+
+			const auto exportAll = inner->add(
+				object_ptr<Ui::SettingsButton>(
+					inner,
+					rpl::single(
+						u"Выгрузить всю локальную БД в облако"_q),
+					st::settingsButtonNoIcon));
+			exportAll->setClickedCallback([=] {
+				TeleForge::UI::ShowUploadProgress(0, 1);
+				TeleForge::Sync::uploadNow(
+					&controller->session(),
+					[=](QString msg) {
+						controller->showToast(msg);
+						TeleForge::UI::HideUploadProgress();
+					},
+					[=](int done, int total) {
+						TeleForge::UI::ShowUploadProgress(done, total);
+					});
 			});
 
 			connWrap->toggleOn(provider->value() | rpl::map([](int b) {

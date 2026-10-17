@@ -101,6 +101,14 @@ void scheduleUploadDebounced(not_null<Main::Session*> session) {
 	if (!core || !core->memorySyncEnabled) {
 		return;
 	}
+	// Remote databases are built for concurrent writes: the server resolves
+	// ordering itself, so we replicate immediately with no debounce and no
+	// local locking. Only the Telegram-chat backend needs heavy debouncing
+	// (10 minutes) to avoid flooding the sync chat and hitting rate limits.
+	if (SelectedBackend() != Backend::TelegramChat) {
+		RunUpload(session);
+		return;
+	}
 	{
 		const auto lock = std::unique_lock(g_mutex);
 		if (g_uploadScheduled) {
@@ -108,7 +116,7 @@ void scheduleUploadDebounced(not_null<Main::Session*> session) {
 		}
 		g_uploadScheduled = true;
 	}
-	base::call_delayed(300000, [=] {
+	base::call_delayed(600000, [=] {
 		{
 			const auto lock = std::unique_lock(g_mutex);
 			g_uploadScheduled = false;
@@ -147,6 +155,40 @@ void syncNow(not_null<Main::Session*> session, Fn<void(QString message)> done) {
 			}
 		});
 	});
+}
+
+void uploadNow(
+		not_null<Main::Session*> session,
+		Fn<void(QString message)> done,
+		Fn<void(int done, int total)> onProgress) {
+	const auto core = LoadPersonalityCore();
+	if (!core || !core->memorySyncEnabled) {
+		if (done) {
+			done(u"Синхронизация отключена в настройках."_q);
+		}
+		return;
+	}
+	const auto key = SyncKey(session);
+	const auto wrap = [=](bool ok, QString error) {
+		if (done) {
+			done(ok
+				? u"Локальная база выгружена в реляционное хранилище."_q
+				: (error.isEmpty()
+					? u"Не удалось выгрузить базу."_q
+					: error));
+		}
+	};
+	switch (SelectedBackend()) {
+	case Backend::Postgres:
+		RunPgUpload(session, key, wrap, onProgress);
+		return;
+	case Backend::MySql:
+		RunMySqlUpload(session, key, wrap, onProgress);
+		return;
+	case Backend::TelegramChat:
+		RunSyncUpload(session, key, wrap);
+		return;
+	}
 }
 
 void ensureSyncChat(

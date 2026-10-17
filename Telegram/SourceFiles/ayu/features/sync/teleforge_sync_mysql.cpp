@@ -9,20 +9,23 @@
 
 #ifdef TELEFORGE_WITH_MYSQL
 
+#include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
-#include "ayu/features/sync/teleforge_sync_merger.h"
-#include "ayu/features/sync/teleforge_sync_snapshot.h"
+#include "ayu/features/sync/teleforge_sync_rows.h"
 
 #include "logs.h"
 
 #include <crl/crl.h>
 
+#include <algorithm>
+#include <string>
+#include <unordered_set>
+
 #include <QtCore/QDateTime>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QString>
+#include <QtCore/QByteArrayList>
 #include <QtCore/QStringList>
-
-#include <cstring>
 
 #include <mysql.h>
 
@@ -48,47 +51,61 @@ namespace {
 
 namespace {
 
-constexpr auto kCreateTableSql =
-	"CREATE TABLE IF NOT EXISTS teleforge_sync ("
-	"tenant_id VARCHAR(128) PRIMARY KEY,"
-	"revision BIGINT NOT NULL,"
-	"updated_at BIGINT NOT NULL,"
-	"payload LONGBLOB NOT NULL,"
-	"sha256 VARCHAR(128),"
-	"date_from BIGINT,"
-	"date_to BIGINT)";
+// Relational schema mirroring the PostgreSQL backend: one row per captured
+// message with an encrypted, text-sized payload; ids are blinded with HMAC and
+// indexed; teleforge_events is an idempotent audit log.
+constexpr auto kCreateMessagesSql =
+	"CREATE TABLE IF NOT EXISTS teleforge_messages ("
+	"tenant_id VARCHAR(128) NOT NULL,"
+	"content_hash VARCHAR(128) NOT NULL,"
+	"chat_id_h VARCHAR(64),"
+	"account_id_h VARCHAR(64),"
+	"message_id_h VARCHAR(64),"
+	"deleted TINYINT(1),"
+	"edited TINYINT(1),"
+	"`date` BIGINT,"
+	"edit_date BIGINT,"
+	"payload LONGTEXT NOT NULL,"
+	"updated_at BIGINT,"
+	"PRIMARY KEY (tenant_id, content_hash),"
+	"INDEX idx_tf_msg_chat (tenant_id, chat_id_h),"
+	"INDEX idx_tf_msg_account (tenant_id, account_id_h),"
+	"INDEX idx_tf_msg_msgid (tenant_id, message_id_h),"
+	"INDEX idx_tf_msg_deleted (tenant_id, deleted),"
+	"INDEX idx_tf_msg_date (tenant_id, `date`))";
 
-// Last-writer-wins by revision. VALUES(col) refers to the would-be-inserted
-// row; the plain column name refers to the existing row until reassigned, and
-// revision is assigned last so the earlier IFs still see the old revision.
-constexpr auto kUpsertSql =
-	"INSERT INTO teleforge_sync"
-	" (tenant_id,revision,updated_at,payload,sha256,date_from,date_to)"
-	" VALUES (?,?,?,?,?,?,?)"
-	" ON DUPLICATE KEY UPDATE"
-	" payload=IF(VALUES(revision)>=revision,VALUES(payload),payload),"
-	" updated_at=IF(VALUES(revision)>=revision,VALUES(updated_at),updated_at),"
-	" sha256=IF(VALUES(revision)>=revision,VALUES(sha256),sha256),"
-	" date_from=IF(VALUES(revision)>=revision,VALUES(date_from),date_from),"
-	" date_to=IF(VALUES(revision)>=revision,VALUES(date_to),date_to),"
-	" revision=IF(VALUES(revision)>=revision,VALUES(revision),revision)";
+constexpr auto kCreateEventsSql =
+	"CREATE TABLE IF NOT EXISTS teleforge_events ("
+	"tenant_id VARCHAR(128) NOT NULL,"
+	"content_hash VARCHAR(128) NOT NULL,"
+	"event_type VARCHAR(32) NOT NULL,"
+	"chat_id_h VARCHAR(64),"
+	"account_id_h VARCHAR(64),"
+	"message_id_h VARCHAR(64),"
+	"payload LONGTEXT,"
+	"created_at BIGINT,"
+	"PRIMARY KEY (tenant_id, content_hash, event_type),"
+	"INDEX idx_tf_evt_type (tenant_id, event_type),"
+	"INDEX idx_tf_evt_chat (tenant_id, chat_id_h),"
+	"INDEX idx_tf_evt_msgid (tenant_id, message_id_h),"
+	"INDEX idx_tf_evt_created (tenant_id, created_at))";
 
-// Plaintext, queryable embeddings table (kept alongside the encrypted blob).
-// The vector is stored as a JSON array for inspection with MySQL JSON funcs.
-constexpr auto kCreateEmbeddingsTableSql =
+constexpr auto kCreateEmbeddingsSql =
 	"CREATE TABLE IF NOT EXISTS teleforge_embeddings ("
 	"tenant_id VARCHAR(128) NOT NULL,"
-	"memory_id BIGINT NOT NULL,"
+	"memory_id_h VARCHAR(64) NOT NULL,"
 	"model_id VARCHAR(255),"
 	"dims INT,"
 	"embedding JSON,"
 	"scope_type VARCHAR(64),"
-	"chat_id BIGINT NULL,"
-	"user_id BIGINT NULL,"
-	"title TEXT,"
-	"summary TEXT,"
+	"chat_id_h VARCHAR(64) NULL,"
+	"user_id_h VARCHAR(64) NULL,"
+	"title_enc LONGTEXT,"
+	"summary_enc LONGTEXT,"
 	"updated_at BIGINT,"
-	"PRIMARY KEY (tenant_id, memory_id))";
+	"PRIMARY KEY (tenant_id, memory_id_h),"
+	"INDEX idx_tf_emb_scope (tenant_id, scope_type),"
+	"INDEX idx_tf_emb_chat (tenant_id, chat_id_h))";
 
 struct ConnParams {
 	QByteArray host = QByteArray("127.0.0.1");
@@ -159,24 +176,18 @@ struct ConnParams {
 	return conn;
 }
 
-[[nodiscard]] bool EnsureTable(MYSQL *conn, QString &error) {
-	if (mysql_query(conn, kCreateTableSql) != 0) {
-		error = QString::fromUtf8(mysql_error(conn)).trimmed();
-		return false;
+[[nodiscard]] bool EnsureSchema(MYSQL *conn, QString &error) {
+	for (const auto *sql : {
+			kCreateMessagesSql,
+			kCreateEventsSql,
+			kCreateEmbeddingsSql }) {
+		if (mysql_query(conn, sql) != 0) {
+			error = QString::fromUtf8(mysql_error(conn)).trimmed();
+			return false;
+		}
 	}
 	return true;
 }
-
-struct UploadPayload {
-	QString connString;
-	QByteArray tenantId;
-	QByteArray encrypted;
-	QByteArray sha256Hex;
-	long long revision = 0;
-	long long dateFrom = 0;
-	long long dateTo = 0;
-	std::vector<EmbeddingRow> embeddings;
-};
 
 // JSON array literal, e.g. [0.12,-0.34,...]
 [[nodiscard]] QByteArray VectorToJson(const std::vector<float> &v) {
@@ -199,45 +210,140 @@ struct UploadPayload {
 	return "'" + out + "'";
 }
 
-// Best-effort plaintext embeddings mirror; logs but never fails the snapshot.
-void UploadEmbeddings(MYSQL *conn, const UploadPayload &up) {
-	if (up.embeddings.empty()) {
-		return;
+[[nodiscard]] bool Exec(MYSQL *conn, const QByteArray &query) {
+	return mysql_real_query(
+		conn,
+		query.constData(),
+		(unsigned long)query.size()) == 0;
+}
+
+// Rows per multi-row INSERT batch: one round-trip per batch, not per row.
+constexpr auto kUploadBatch = 100;
+
+// Blocking; runs on a worker thread. Upserts messages and appends audit events
+// in multi-row batches (kUploadBatch rows per statement) inside one transaction.
+[[nodiscard]] bool DoUploadMessages(
+		MYSQL *conn,
+		const QByteArray &tenant,
+		const std::vector<SyncMessageRow> &rows,
+		QString &error,
+		const Fn<void(int)> &onRow) {
+	if (rows.empty()) {
+		return true;
 	}
-	if (mysql_query(conn, kCreateEmbeddingsTableSql) != 0) {
-		LOG(("TeleForge Sync MySQL: embeddings table create failed: %1")
-			.arg(QString::fromUtf8(mysql_error(conn)).trimmed()));
+	mysql_query(conn, "START TRANSACTION");
+	const auto tenantQ = MySqlQuote(conn, tenant);
+	const auto now = QByteArray::number(
+		(long long)QDateTime::currentSecsSinceEpoch());
+	const auto fail = [&] {
+		error = QString::fromUtf8(mysql_error(conn)).trimmed();
+		mysql_query(conn, "ROLLBACK");
+		return false;
+	};
+	auto seen = std::unordered_set<std::string>();
+	for (auto start = std::size_t(0); start < rows.size(); start += kUploadBatch) {
+		const auto stop = std::min(start + std::size_t(kUploadBatch), rows.size());
+		auto msgValues = QByteArrayList();
+		auto evtValues = QByteArrayList();
+		for (auto i = start; i != stop; ++i) {
+			const auto &row = rows[i];
+			if (!seen.insert(row.contentHash.toStdString()).second) {
+				continue;
+			}
+			const auto ch = MySqlQuote(conn, row.contentHash.toUtf8());
+			const auto chat = MySqlQuote(conn, row.chatIdH.toUtf8());
+			const auto acc = MySqlQuote(conn, row.accountIdH.toUtf8());
+			const auto mid = MySqlQuote(conn, row.messageIdH.toUtf8());
+			const auto payload = MySqlQuote(conn, row.payload.toBase64());
+			msgValues.push_back("(" + tenantQ + "," + ch + "," + chat + ","
+				+ acc + "," + mid + "," + (row.deleted ? "1" : "0") + ","
+				+ (row.edited ? "1" : "0") + "," + QByteArray::number(row.date)
+				+ "," + QByteArray::number(row.editDate) + "," + payload + ","
+				+ now + ")");
+			const auto addEvt = [&](const char *type) {
+				evtValues.push_back("(" + tenantQ + "," + ch + ","
+					+ MySqlQuote(conn, QByteArray(type)) + "," + chat + ","
+					+ acc + "," + mid + "," + payload + "," + now + ")");
+			};
+			addEvt("created");
+			if (row.deleted) {
+				addEvt("deleted");
+			}
+			if (row.edited) {
+				addEvt("edited");
+			}
+		}
+		if (!msgValues.isEmpty()) {
+			const auto sql = QByteArray(
+				"INSERT INTO teleforge_messages (tenant_id,content_hash,"
+				"chat_id_h,account_id_h,message_id_h,deleted,edited,`date`,"
+				"edit_date,payload,updated_at) VALUES ")
+				+ msgValues.join(',')
+				+ " ON DUPLICATE KEY UPDATE"
+				" deleted=deleted|VALUES(deleted), edited=edited|VALUES(edited),"
+				" edit_date=VALUES(edit_date), payload=VALUES(payload),"
+				" updated_at=VALUES(updated_at)";
+			if (!Exec(conn, sql)) {
+				return fail();
+			}
+		}
+		if (!evtValues.isEmpty()) {
+			const auto sql = QByteArray(
+				"INSERT IGNORE INTO teleforge_events (tenant_id,content_hash,"
+				"event_type,chat_id_h,account_id_h,message_id_h,payload,"
+				"created_at) VALUES ") + evtValues.join(',');
+			if (!Exec(conn, sql)) {
+				return fail();
+			}
+		}
+		if (onRow) {
+			onRow(int(stop));
+		}
+	}
+	mysql_query(conn, "COMMIT");
+	return true;
+}
+
+// Blocking; runs on a worker thread. Encrypted / id-blinded / projected mirror.
+void UploadEmbeddings(
+		MYSQL *conn,
+		const QByteArray &tenant,
+		const std::vector<EmbeddingRow> &embeddings,
+		const QByteArray &key) {
+	if (embeddings.empty()) {
 		return;
 	}
 	mysql_query(conn, "START TRANSACTION");
-	const auto tenant = MySqlQuote(conn, up.tenantId);
+	const auto tenantQ = MySqlQuote(conn, tenant);
 	auto err = QString();
-	for (const auto &row : up.embeddings) {
-		const auto nullable = [](const std::optional<long long> &v) {
-			return v ? QByteArray::number(*v) : QByteArray("NULL");
+	for (const auto &row : embeddings) {
+		const auto nullableH = [&](const std::optional<long long> &v) {
+			return v
+				? MySqlQuote(conn, HmacId(*v, key).toUtf8())
+				: QByteArray("NULL");
 		};
-		const auto query = QByteArray(
-			"INSERT INTO teleforge_embeddings (tenant_id,memory_id,model_id,"
-			"dims,embedding,scope_type,chat_id,user_id,title,summary,"
-			"updated_at) VALUES (")
-			+ tenant + ","
-			+ QByteArray::number(row.memoryId) + ","
+		const auto q = QByteArray(
+			"INSERT INTO teleforge_embeddings (tenant_id,memory_id_h,model_id,"
+			"dims,embedding,scope_type,chat_id_h,user_id_h,title_enc,"
+			"summary_enc,updated_at) VALUES (")
+			+ tenantQ + ","
+			+ MySqlQuote(conn, HmacId(row.memoryId, key).toUtf8()) + ","
 			+ MySqlQuote(conn, row.modelId.toUtf8()) + ","
 			+ QByteArray::number(row.dims) + ","
-			+ MySqlQuote(conn, VectorToJson(row.vector)) + ","
+			+ MySqlQuote(conn, VectorToJson(ProjectEmbedding(row.vector, key))) + ","
 			+ MySqlQuote(conn, row.scopeType.toUtf8()) + ","
-			+ nullable(row.chatId) + ","
-			+ nullable(row.userId) + ","
-			+ MySqlQuote(conn, row.title.toUtf8()) + ","
-			+ MySqlQuote(conn, row.summary.toUtf8()) + ","
+			+ nullableH(row.chatId) + ","
+			+ nullableH(row.userId) + ","
+			+ MySqlQuote(conn, EncryptBundle(row.title.toUtf8(), key).toBase64()) + ","
+			+ MySqlQuote(conn, EncryptBundle(row.summary.toUtf8(), key).toBase64()) + ","
 			+ QByteArray::number(row.updatedAt)
 			+ ") ON DUPLICATE KEY UPDATE"
 			" model_id=VALUES(model_id), dims=VALUES(dims),"
 			" embedding=VALUES(embedding), scope_type=VALUES(scope_type),"
-			" chat_id=VALUES(chat_id), user_id=VALUES(user_id),"
-			" title=VALUES(title), summary=VALUES(summary),"
+			" chat_id_h=VALUES(chat_id_h), user_id_h=VALUES(user_id_h),"
+			" title_enc=VALUES(title_enc), summary_enc=VALUES(summary_enc),"
 			" updated_at=VALUES(updated_at)";
-		if (mysql_real_query(conn, query.constData(), query.size()) != 0) {
+		if (!Exec(conn, q)) {
 			err = QString::fromUtf8(mysql_error(conn)).trimmed();
 			break;
 		}
@@ -251,105 +357,15 @@ void UploadEmbeddings(MYSQL *conn, const UploadPayload &up) {
 }
 
 // Blocking; runs on a worker thread.
-[[nodiscard]] bool DoUpload(const UploadPayload &up, QString &error) {
-	auto conn = Connect(up.connString, error);
-	if (!conn) {
-		return false;
-	}
-	auto connGuard = gsl::finally([&] { mysql_close(conn); });
-	if (!EnsureTable(conn, error)) {
-		return false;
-	}
-
-	auto stmt = mysql_stmt_init(conn);
-	if (!stmt) {
-		error = QString::fromUtf8(mysql_error(conn)).trimmed();
-		return false;
-	}
-	auto stmtGuard = gsl::finally([&] { mysql_stmt_close(stmt); });
-	if (mysql_stmt_prepare(stmt, kUpsertSql, (unsigned long)strlen(kUpsertSql))
-			!= 0) {
-		error = QString::fromUtf8(mysql_stmt_error(stmt)).trimmed();
-		return false;
-	}
-
-	auto revision = up.revision;
-	auto updatedAt = (long long)QDateTime::currentSecsSinceEpoch();
-	auto dateFrom = up.dateFrom;
-	auto dateTo = up.dateTo;
-	auto payloadLen = (unsigned long)up.encrypted.size();
-	auto tenantLen = (unsigned long)up.tenantId.size();
-	auto shaLen = (unsigned long)up.sha256Hex.size();
-
-	MYSQL_BIND bind[7];
-	memset(bind, 0, sizeof(bind));
-
-	bind[0].buffer_type = MYSQL_TYPE_STRING;
-	bind[0].buffer = const_cast<char*>(up.tenantId.constData());
-	bind[0].buffer_length = tenantLen;
-	bind[0].length = &tenantLen;
-
-	bind[1].buffer_type = MYSQL_TYPE_LONGLONG;
-	bind[1].buffer = &revision;
-
-	bind[2].buffer_type = MYSQL_TYPE_LONGLONG;
-	bind[2].buffer = &updatedAt;
-
-	bind[3].buffer_type = MYSQL_TYPE_LONG_BLOB;
-	bind[3].buffer = const_cast<char*>(up.encrypted.constData());
-	bind[3].buffer_length = payloadLen;
-	bind[3].length = &payloadLen;
-
-	bind[4].buffer_type = MYSQL_TYPE_STRING;
-	bind[4].buffer = const_cast<char*>(up.sha256Hex.constData());
-	bind[4].buffer_length = shaLen;
-	bind[4].length = &shaLen;
-
-	bind[5].buffer_type = MYSQL_TYPE_LONGLONG;
-	bind[5].buffer = &dateFrom;
-
-	bind[6].buffer_type = MYSQL_TYPE_LONGLONG;
-	bind[6].buffer = &dateTo;
-
-	if (mysql_stmt_bind_param(stmt, bind) != 0
-		|| mysql_stmt_execute(stmt) != 0) {
-		error = QString::fromUtf8(mysql_stmt_error(stmt)).trimmed();
-		return false;
-	}
-	// Best-effort plaintext embeddings mirror; never fails the snapshot.
-	UploadEmbeddings(conn, up);
-	return true;
-}
-
-// Blocking; runs on a worker thread. Returns the encrypted payload (may be
-// empty when the tenant has no stored snapshot yet).
-[[nodiscard]] bool DoDownload(
-		const QString &connString,
-		const QByteArray &tenantId,
-		QByteArray &payloadOut,
+[[nodiscard]] bool DoDownloadMessages(
+		MYSQL *conn,
+		const QByteArray &tenant,
+		std::vector<SyncMessageRow> &out,
 		QString &error) {
-	auto conn = Connect(connString, error);
-	if (!conn) {
-		return false;
-	}
-	auto connGuard = gsl::finally([&] { mysql_close(conn); });
-	if (!EnsureTable(conn, error)) {
-		return false;
-	}
-
-	// tenant_id is a SHA-256 hex string, so escaping is belt-and-braces.
-	auto escaped = QByteArray(tenantId.size() * 2 + 1, Qt::Uninitialized);
-	const auto escLen = mysql_real_escape_string(
-		conn,
-		escaped.data(),
-		tenantId.constData(),
-		(unsigned long)tenantId.size());
-	escaped.resize(int(escLen));
-	const auto query = QByteArray("SELECT payload FROM teleforge_sync"
-		" WHERE tenant_id='") + escaped + "'";
-
-	if (mysql_real_query(conn, query.constData(), (unsigned long)query.size())
-			!= 0) {
+	const auto query = QByteArray(
+		"SELECT content_hash,deleted,edited,payload FROM teleforge_messages"
+		" WHERE tenant_id=") + MySqlQuote(conn, tenant);
+	if (!Exec(conn, query)) {
 		error = QString::fromUtf8(mysql_error(conn)).trimmed();
 		return false;
 	}
@@ -358,14 +374,25 @@ void UploadEmbeddings(MYSQL *conn, const UploadPayload &up) {
 		error = QString::fromUtf8(mysql_error(conn)).trimmed();
 		return false;
 	}
-	auto resGuard = gsl::finally([&] { mysql_free_result(res); });
-	if (auto row = mysql_fetch_row(res)) {
+	auto guard = gsl::finally([&] { mysql_free_result(res); });
+	while (auto r = mysql_fetch_row(res)) {
 		const auto lengths = mysql_fetch_lengths(res);
-		if (row[0] && lengths) {
-			payloadOut = QByteArray(row[0], int(lengths[0]));
+		if (!lengths) {
+			continue;
 		}
+		auto row = SyncMessageRow{};
+		row.contentHash = QString::fromUtf8(QByteArray(r[0], int(lengths[0])));
+		row.deleted = (r[1] && r[1][0] == '1');
+		row.edited = (r[2] && r[2][0] == '1');
+		row.payload = QByteArray::fromBase64(QByteArray(r[3], int(lengths[3])));
+		out.push_back(std::move(row));
 	}
 	return true;
+}
+
+[[nodiscard]] QString ConnStringFromSettings() {
+	const auto core = LoadPersonalityCore();
+	return core ? core->pgConnString : QString();
 }
 
 } // namespace
@@ -373,38 +400,34 @@ void UploadEmbeddings(MYSQL *conn, const UploadPayload &up) {
 void RunMySqlUpload(
 		not_null<Main::Session*> session,
 		const QByteArray &syncKey,
-		Fn<void(bool ok, QString error)> done) {
-	// Build the encrypted snapshot on the main thread (touches SQLite).
-	const auto shards = BuildEncryptedDatabaseShards(syncKey);
-	const EncryptedDbShard *dataShard = nullptr;
-	for (const auto &shard : shards) {
-		if (shard.kind == SyncDatabaseKind::Data) {
-			dataShard = &shard;
-			break;
-		}
-	}
-	if (!dataShard || dataShard->encrypted.isEmpty()) {
-		if (done) {
-			done(false, u"Не удалось подготовить снапшот базы."_q);
-		}
-		return;
-	}
-
-	const auto core = LoadPersonalityCore();
-	auto up = UploadPayload{
-		.connString = core ? core->pgConnString : QString(),
-		.tenantId = MySqlTenantId(session).toUtf8(),
-		.encrypted = dataShard->encrypted,
-		.sha256Hex = dataShard->sha256Hex.toUtf8(),
-		.revision = QDateTime::currentMSecsSinceEpoch(),
-		.dateFrom = dataShard->dateFrom,
-		.dateTo = dataShard->dateTo,
-		.embeddings = CollectEmbeddingRows(),
-	};
+		Fn<void(bool ok, QString error)> done,
+		Fn<void(int done, int total)> onProgress) {
+	// Build encrypted, id-blinded rows on the main thread (touches SQLite).
+	const auto rows = CollectMessageRows(syncKey);
+	const auto embeddings = CollectEmbeddingRows();
+	const auto connString = ConnStringFromSettings();
+	const auto tenant = MySqlTenantId(session).toUtf8();
 	const auto sessionPtr = session.get();
-	crl::async([up = std::move(up), done, sessionPtr] {
+	const auto total = int(rows.size());
+	crl::async([=] {
 		auto error = QString();
-		const auto ok = DoUpload(up, error);
+		auto conn = Connect(connString, error);
+		auto ok = false;
+		if (conn) {
+			const auto onRow = [=](int doneCount) {
+				crl::on_main(sessionPtr, [=] {
+					if (onProgress) {
+						onProgress(doneCount, total);
+					}
+				});
+			};
+			ok = EnsureSchema(conn, error)
+				&& DoUploadMessages(conn, tenant, rows, error, onRow);
+			if (ok) {
+				UploadEmbeddings(conn, tenant, embeddings, syncKey);
+			}
+			mysql_close(conn);
+		}
 		crl::on_main(sessionPtr, [=] {
 			if (!ok) {
 				LOG(("TeleForge Sync MySQL: upload failed: %1").arg(error));
@@ -420,15 +443,20 @@ void RunMySqlDownload(
 		not_null<Main::Session*> session,
 		const QByteArray &syncKey,
 		Fn<void(bool ok, QString error)> done) {
-	const auto core = LoadPersonalityCore();
-	const auto connString = core ? core->pgConnString : QString();
-	const auto tenantId = MySqlTenantId(session).toUtf8();
+	const auto connString = ConnStringFromSettings();
+	const auto tenant = MySqlTenantId(session).toUtf8();
 	const auto sessionPtr = session.get();
 	const auto key = syncKey;
 	crl::async([=] {
-		auto payload = QByteArray();
 		auto error = QString();
-		const auto ok = DoDownload(connString, tenantId, payload, error);
+		auto rows = std::vector<SyncMessageRow>();
+		auto conn = Connect(connString, error);
+		auto ok = false;
+		if (conn) {
+			ok = EnsureSchema(conn, error)
+				&& DoDownloadMessages(conn, tenant, rows, error);
+			mysql_close(conn);
+		}
 		crl::on_main(sessionPtr, [=] {
 			if (!ok) {
 				LOG(("TeleForge Sync MySQL: download failed: %1").arg(error));
@@ -437,20 +465,10 @@ void RunMySqlDownload(
 				}
 				return;
 			}
-			if (payload.isEmpty()) {
-				if (done) {
-					done(true, QString());
-				}
-				return;
-			}
-			const auto applied = ApplyEncryptedDatabaseShard(
-				SyncDatabaseKind::Data,
-				payload,
-				key);
+			// Merge into the local DB (main thread). Remote is only a replica.
+			ApplyMessageRows(rows, key);
 			if (done) {
-				done(applied, applied
-					? QString()
-					: u"Не удалось применить снапшот из MySQL."_q);
+				done(true, QString());
 			}
 		});
 	});
@@ -462,7 +480,7 @@ void MySqlTestConnection(
 	crl::async([connString, done] {
 		auto error = QString();
 		auto conn = Connect(connString, error);
-		const auto ok = (conn != nullptr) && EnsureTable(conn, error);
+		const auto ok = (conn != nullptr) && EnsureSchema(conn, error);
 		if (conn) {
 			mysql_close(conn);
 		}

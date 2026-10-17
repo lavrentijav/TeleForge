@@ -6,6 +6,11 @@
 #include <openssl/rand.h>
 
 #include <QtCore/QCryptographicHash>
+#include <QtCore/QMessageAuthenticationCode>
+
+#include <algorithm>
+#include <cstdint>
+#include <utility>
 
 namespace TeleForge::Sync {
 namespace {
@@ -172,6 +177,64 @@ std::optional<QByteArray> ImportKeyBase64(const QString &encoded) {
 		return std::nullopt;
 	}
 	return bytes;
+}
+
+QString HmacTag(const QByteArray &data, const QByteArray &key) {
+	auto mac = QMessageAuthenticationCode(QCryptographicHash::Sha256, key);
+	mac.addData(data);
+	return QString::fromLatin1(mac.result().toHex().left(32));
+}
+
+QString HmacId(long long id, const QByteArray &key) {
+	return HmacTag(QByteArray::number(qlonglong(id)), key);
+}
+
+std::vector<float> ProjectEmbedding(
+		const std::vector<float> &vector,
+		const QByteArray &key) {
+	const auto n = int(vector.size());
+	if (n <= 0) {
+		return {};
+	}
+
+	// Deterministic keyed byte stream (HMAC-SHA256 in counter mode).
+	auto stream = QByteArray();
+	const auto need = n * 8 + 64;
+	auto counter = 0;
+	while (stream.size() < need) {
+		auto mac = QMessageAuthenticationCode(QCryptographicHash::Sha256, key);
+		mac.addData(QByteArrayLiteral("tf-emb-proj-v1"));
+		mac.addData(QByteArray::number(counter++));
+		stream.append(mac.result());
+	}
+	const auto bytes = reinterpret_cast<const std::uint8_t*>(stream.constData());
+	auto pos = 0;
+	const auto nextU32 = [&]() -> std::uint32_t {
+		const auto b0 = std::uint32_t(bytes[pos++]);
+		const auto b1 = std::uint32_t(bytes[pos++]);
+		const auto b2 = std::uint32_t(bytes[pos++]);
+		const auto b3 = std::uint32_t(bytes[pos++]);
+		return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
+	};
+
+	// Fisher-Yates permutation of component indices.
+	auto perm = std::vector<int>(n);
+	for (auto i = 0; i != n; ++i) {
+		perm[i] = i;
+	}
+	for (auto i = n - 1; i > 0; --i) {
+		const auto j = int(nextU32() % std::uint32_t(i + 1));
+		std::swap(perm[i], perm[j]);
+	}
+
+	// Apply the permutation plus a keyed sign flip per output position. The
+	// result is an orthogonal transform of the input, so cosine/L2 are kept.
+	auto result = std::vector<float>(n, 0.f);
+	for (auto i = 0; i != n; ++i) {
+		const auto sign = (bytes[pos++] & 1u) ? -1.f : 1.f;
+		result[i] = sign * vector[perm[i]];
+	}
+	return result;
 }
 
 } // namespace TeleForge::Sync

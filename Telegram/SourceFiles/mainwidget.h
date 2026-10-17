@@ -114,6 +114,10 @@ public:
 	[[nodiscard]] not_null<Window::SessionController*> controller() const;
 	[[nodiscard]] Window::SeparateId windowId() const;
 	[[nodiscard]] bool isPrimary() const;
+	// Current width of the dialogs (left) column, for pinning overlays to it.
+	[[nodiscard]] int dialogsWidth() const {
+		return _dialogsWidth;
+	}
 	[[nodiscard]] bool isMainSectionShown() const;
 	[[nodiscard]] bool isThirdSectionShown() const;
 

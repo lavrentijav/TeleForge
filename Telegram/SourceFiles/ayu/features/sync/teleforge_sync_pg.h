@@ -7,16 +7,15 @@
 
 namespace TeleForge::Sync {
 
-// PostgreSQL cloud backend for TeleForge sync. Stores the same encrypted,
-// compressed snapshot bundle the Telegram-chat transport uses, but in a
-// shared Postgres table keyed by an opaque per-account tenant id. Because the
-// payload is encrypted with the account-bound sync key, tenants sharing one
-// database cannot read each other's data (crypto isolation), which satisfies
-// the multi-tenant "разные пользаки не ломятся друг к другу" requirement.
+// PostgreSQL cloud backend for TeleForge sync. Uses a proper relational schema
+// (teleforge_messages + teleforge_events + teleforge_embeddings): one row per
+// captured message with an encrypted, text-sized payload; ids are blinded with
+// HMAC so they can be indexed without leaking real values, and tenants are
+// isolated both by the opaque tenant id and by per-account encryption.
 //
 // The local SQLite unified DB always remains the source of truth; Postgres is
-// a best-effort replication target. Uploads that fail (offline / unreachable)
-// leave the local state untouched and are retried by the debounced scheduler.
+// a best-effort replication target. Uploads/downloads that fail (offline /
+// unreachable) leave the local state untouched and are retried by the scheduler.
 
 // Opaque, stable tenant id for the account (SHA-256 hex of account identity).
 [[nodiscard]] QString PgTenantId(not_null<Main::Session*> session);
@@ -24,7 +23,8 @@ namespace TeleForge::Sync {
 void RunPgUpload(
 	not_null<Main::Session*> session,
 	const QByteArray &syncKey,
-	Fn<void(bool ok, QString error)> done);
+	Fn<void(bool ok, QString error)> done,
+	Fn<void(int done, int total)> onProgress = nullptr);
 void RunPgDownload(
 	not_null<Main::Session*> session,
 	const QByteArray &syncKey,

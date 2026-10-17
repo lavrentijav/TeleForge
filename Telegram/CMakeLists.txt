@@ -106,7 +106,7 @@ PRIVATE
     desktop-app::external_openal
     desktop-app::external_xxhash
 
-    ayugram::lib_icu
+    teleforge::lib_icu
 )
 
 set(teleforge_extension_files
@@ -193,6 +193,8 @@ set(teleforge_extension_files
         ayu/ui/ghost_online_bar.h
         ayu/ui/ghost_online_warn.cpp
         ayu/ui/ghost_online_warn.h
+        ayu/ui/teleforge_upload_bar.cpp
+        ayu/ui/teleforge_upload_bar.h
         ayu/features/ghost/tf_ghost_scheduled.cpp
         ayu/features/ghost/tf_ghost_scheduled.h
         ayu/ui/message_history/history_inner.cpp
@@ -335,6 +337,8 @@ set(teleforge_extension_files
         ayu/features/sync/teleforge_sync_pg.h
         ayu/features/sync/teleforge_sync_snapshot.cpp
         ayu/features/sync/teleforge_sync_snapshot.h
+        ayu/features/sync/teleforge_sync_rows.cpp
+        ayu/features/sync/teleforge_sync_rows.h
         ayu/features/sync/teleforge_sync_transport.cpp
         ayu/features/sync/teleforge_sync_transport.h
         ayu/features/spy/online_tracker.cpp
@@ -2379,7 +2383,7 @@ if (WIN32)
     # Prefer a standard-install directory (newest version first) so we know the
     # sibling bin/ dir for DLL bundling; fall back to find_package otherwise.
     set(_tf_pg_root "")
-    foreach(_pgver 18 17 16)
+    foreach(_pgver 15 18 17 16 14 13)
         if (EXISTS "C:/Program Files/PostgreSQL/${_pgver}/include/libpq-fe.h")
             set(_tf_pg_root "C:/Program Files/PostgreSQL/${_pgver}")
             break()

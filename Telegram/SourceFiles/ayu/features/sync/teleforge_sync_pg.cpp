@@ -9,16 +9,21 @@
 
 #ifdef TELEFORGE_WITH_POSTGRES
 
+#include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
-#include "ayu/features/sync/teleforge_sync_merger.h"
-#include "ayu/features/sync/teleforge_sync_snapshot.h"
+#include "ayu/features/sync/teleforge_sync_rows.h"
 
 #include "logs.h"
 
 #include <crl/crl.h>
 
+#include <algorithm>
+#include <string>
+#include <unordered_set>
+
 #include <QtCore/QDateTime>
 #include <QtCore/QString>
+#include <QtCore/QByteArrayList>
 #include <QtCore/QStringList>
 
 #include <libpq-fe.h>
@@ -30,7 +35,7 @@ namespace TeleForge::Sync {
 QString PgTenantId(not_null<Main::Session*> session) {
 	// Opaque, stable per-account identity. Any device logged into the same
 	// account derives the same tenant id; other accounts derive a different
-	// one, and the encrypted payload keeps them cryptographically isolated.
+	// one, and the blinded ids + encrypted payloads keep them isolated.
 	const auto material = QByteArray::number(session->user()->id.value)
 		+ ':'
 		+ session->user()->phone().toUtf8();
@@ -43,61 +48,83 @@ QString PgTenantId(not_null<Main::Session*> session) {
 
 namespace {
 
-// Single latest-state row per tenant. The payload column holds the encrypted +
-// compressed snapshot bundle produced by BuildEncryptedDatabaseShards().
-constexpr auto kCreateTableSql =
-	"CREATE TABLE IF NOT EXISTS teleforge_sync ("
-	"tenant_id TEXT PRIMARY KEY,"
-	"revision BIGINT NOT NULL,"
-	"updated_at BIGINT NOT NULL,"
-	"payload BYTEA NOT NULL,"
-	"sha256 TEXT,"
-	"date_from BIGINT,"
-	"date_to BIGINT)";
-
-constexpr auto kUpsertSql =
-	"INSERT INTO teleforge_sync"
-	" (tenant_id,revision,updated_at,payload,sha256,date_from,date_to)"
-	" VALUES ($1,$2,$3,$4,$5,$6,$7)"
-	" ON CONFLICT (tenant_id) DO UPDATE SET"
-	" revision=EXCLUDED.revision,"
-	" updated_at=EXCLUDED.updated_at,"
-	" payload=EXCLUDED.payload,"
-	" sha256=EXCLUDED.sha256,"
-	" date_from=EXCLUDED.date_from,"
-	" date_to=EXCLUDED.date_to"
-	" WHERE teleforge_sync.revision <= EXCLUDED.revision";
-
-constexpr auto kSelectSql =
-	"SELECT payload FROM teleforge_sync WHERE tenant_id=$1";
-
-// Plaintext, queryable embeddings table (kept alongside the encrypted blob).
-// `embedding` is a real[] array — portable and inspectable without pgvector;
-// pgvector can be layered on top later if server-side ANN search is wanted.
-constexpr auto kCreateEmbeddingsTableSql =
+// Relational schema. Every captured message is its own row with an encrypted,
+// text-sized payload; ids are blinded (HMAC) so they can be indexed without
+// leaking real values. `teleforge_events` is an append-only, idempotent audit
+// log (created / deleted / edited). The plaintext-projected embeddings table is
+// kept alongside for server-side similarity search.
+constexpr auto kSchemaSql =
+	"CREATE TABLE IF NOT EXISTS teleforge_messages ("
+	"tenant_id TEXT NOT NULL,"
+	"content_hash TEXT NOT NULL,"
+	"chat_id_h TEXT,"
+	"account_id_h TEXT,"
+	"message_id_h TEXT,"
+	"deleted BOOLEAN,"
+	"edited BOOLEAN,"
+	"date BIGINT,"
+	"edit_date BIGINT,"
+	"payload TEXT NOT NULL,"
+	"updated_at BIGINT,"
+	"PRIMARY KEY (tenant_id, content_hash));"
+	"CREATE INDEX IF NOT EXISTS idx_tf_msg_chat ON teleforge_messages(tenant_id, chat_id_h);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_msg_account ON teleforge_messages(tenant_id, account_id_h);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_msg_msgid ON teleforge_messages(tenant_id, message_id_h);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_msg_deleted ON teleforge_messages(tenant_id, deleted);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_msg_date ON teleforge_messages(tenant_id, date);"
+	"CREATE TABLE IF NOT EXISTS teleforge_events ("
+	"tenant_id TEXT NOT NULL,"
+	"content_hash TEXT NOT NULL,"
+	"event_type TEXT NOT NULL,"
+	"chat_id_h TEXT,"
+	"account_id_h TEXT,"
+	"message_id_h TEXT,"
+	"payload TEXT,"
+	"created_at BIGINT,"
+	"PRIMARY KEY (tenant_id, content_hash, event_type));"
+	"CREATE INDEX IF NOT EXISTS idx_tf_evt_type ON teleforge_events(tenant_id, event_type);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_evt_chat ON teleforge_events(tenant_id, chat_id_h);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_evt_msgid ON teleforge_events(tenant_id, message_id_h);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_evt_created ON teleforge_events(tenant_id, created_at);"
 	"CREATE TABLE IF NOT EXISTS teleforge_embeddings ("
 	"tenant_id TEXT NOT NULL,"
-	"memory_id BIGINT NOT NULL,"
+	"memory_id_h TEXT NOT NULL,"
 	"model_id TEXT,"
 	"dims INT,"
 	"embedding REAL[],"
 	"scope_type TEXT,"
-	"chat_id BIGINT,"
-	"user_id BIGINT,"
-	"title TEXT,"
-	"summary TEXT,"
+	"chat_id_h TEXT,"
+	"user_id_h TEXT,"
+	"title_enc TEXT,"
+	"summary_enc TEXT,"
 	"updated_at BIGINT,"
-	"PRIMARY KEY (tenant_id, memory_id))";
+	"PRIMARY KEY (tenant_id, memory_id_h));"
+	"CREATE INDEX IF NOT EXISTS idx_tf_emb_scope ON teleforge_embeddings(tenant_id, scope_type);"
+	"CREATE INDEX IF NOT EXISTS idx_tf_emb_chat ON teleforge_embeddings(tenant_id, chat_id_h);";
+
+// Rows per multi-row INSERT batch: one round-trip per batch, not per row.
+constexpr auto kUploadBatch = 100;
+
+// Single-quoted SQL literal (values are HMAC hex / base64 / numbers; escape
+// defensively anyway).
+[[nodiscard]] QByteArray PgQuote(QByteArray in) {
+	in.replace('\'', "''");
+	return "'" + in + "'";
+}
+
+constexpr auto kSelectMessagesSql =
+	"SELECT content_hash,deleted,edited,payload"
+	" FROM teleforge_messages WHERE tenant_id=$1";
 
 constexpr auto kEmbeddingUpsertSql =
-	"INSERT INTO teleforge_embeddings (tenant_id,memory_id,model_id,dims,"
-	"embedding,scope_type,chat_id,user_id,title,summary,updated_at)"
+	"INSERT INTO teleforge_embeddings (tenant_id,memory_id_h,model_id,dims,"
+	"embedding,scope_type,chat_id_h,user_id_h,title_enc,summary_enc,updated_at)"
 	" VALUES ($1,$2,$3,$4,$5::real[],$6,$7,$8,$9,$10,$11)"
-	" ON CONFLICT (tenant_id,memory_id) DO UPDATE SET"
+	" ON CONFLICT (tenant_id,memory_id_h) DO UPDATE SET"
 	" model_id=EXCLUDED.model_id, dims=EXCLUDED.dims,"
 	" embedding=EXCLUDED.embedding, scope_type=EXCLUDED.scope_type,"
-	" chat_id=EXCLUDED.chat_id, user_id=EXCLUDED.user_id,"
-	" title=EXCLUDED.title, summary=EXCLUDED.summary,"
+	" chat_id_h=EXCLUDED.chat_id_h, user_id_h=EXCLUDED.user_id_h,"
+	" title_enc=EXCLUDED.title_enc, summary_enc=EXCLUDED.summary_enc,"
 	" updated_at=EXCLUDED.updated_at";
 
 // PostgreSQL array literal, e.g. {0.12,-0.34,...}
@@ -116,7 +143,6 @@ constexpr auto kEmbeddingUpsertSql =
 }
 
 // Opens a libpq connection; returns nullptr and fills `error` on failure.
-// Caller owns the returned connection and must PQfinish() it.
 [[nodiscard]] PGconn *Connect(const QString &connString, QString &error) {
 	if (connString.trimmed().isEmpty()) {
 		error = u"Строка подключения PostgreSQL не задана."_q;
@@ -135,8 +161,8 @@ constexpr auto kEmbeddingUpsertSql =
 	return conn;
 }
 
-[[nodiscard]] bool EnsureTable(PGconn *conn, QString &error) {
-	auto res = PQexec(conn, kCreateTableSql);
+[[nodiscard]] bool EnsureSchema(PGconn *conn, QString &error) {
+	auto res = PQexec(conn, kSchemaSql);
 	const auto ok = res && (PQresultStatus(res) == PGRES_COMMAND_OK);
 	if (!ok) {
 		error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
@@ -147,76 +173,148 @@ constexpr auto kEmbeddingUpsertSql =
 	return ok;
 }
 
-struct UploadPayload {
-	QString connString;
-	QString tenantId;
-	QByteArray encrypted;
-	QString sha256Hex;
-	qint64 revision = 0;
-	int dateFrom = 0;
-	int dateTo = 0;
-	std::vector<EmbeddingRow> embeddings;
-};
-
-// Pushes the plaintext embedding rows in one transaction. Best-effort: a
-// failure here is logged but does not fail the (already committed) snapshot
-// upload. Runs on the worker thread.
-void UploadEmbeddings(PGconn *conn, const UploadPayload &up) {
-	if (up.embeddings.empty()) {
-		return;
+// Blocking; runs on a worker thread. Upserts messages and appends audit events
+// in multi-row batches (kUploadBatch rows per statement) inside one transaction.
+[[nodiscard]] bool DoUploadMessages(
+		PGconn *conn,
+		const QString &tenantId,
+		const std::vector<SyncMessageRow> &rows,
+		QString &error,
+		const Fn<void(int)> &onRow) {
+	if (rows.empty()) {
+		return true;
 	}
-	auto err = QString();
-	{
-		auto res = PQexec(conn, kCreateEmbeddingsTableSql);
+	PQclear(PQexec(conn, "BEGIN"));
+	const auto tenant = PgQuote(tenantId.toUtf8());
+	const auto now = QByteArray::number(QDateTime::currentSecsSinceEpoch());
+	const auto fail = [&] {
+		error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
+		PQclear(PQexec(conn, "ROLLBACK"));
+		return false;
+	};
+	const auto exec = [&](const QByteArray &sql) {
+		auto res = PQexec(conn, sql.constData());
 		const auto ok = res && (PQresultStatus(res) == PGRES_COMMAND_OK);
 		if (res) {
 			PQclear(res);
 		}
-		if (!ok) {
-			LOG(("TeleForge Sync PG: embeddings table create failed: %1")
-				.arg(QString::fromUtf8(PQerrorMessage(conn)).trimmed()));
-			return;
+		return ok;
+	};
+	auto seen = std::unordered_set<std::string>();
+	for (auto start = std::size_t(0); start < rows.size(); start += kUploadBatch) {
+		const auto stop = std::min(start + std::size_t(kUploadBatch), rows.size());
+		auto msgValues = QByteArrayList();
+		auto evtValues = QByteArrayList();
+		for (auto i = start; i != stop; ++i) {
+			const auto &row = rows[i];
+			if (!seen.insert(row.contentHash.toStdString()).second) {
+				continue; // avoids "ON CONFLICT affects row a second time"
+			}
+			const auto ch = PgQuote(row.contentHash.toUtf8());
+			const auto chat = PgQuote(row.chatIdH.toUtf8());
+			const auto acc = PgQuote(row.accountIdH.toUtf8());
+			const auto mid = PgQuote(row.messageIdH.toUtf8());
+			const auto payload = PgQuote(row.payload.toBase64());
+			const auto date = QByteArray::number(row.date);
+			const auto editDate = QByteArray::number(row.editDate);
+			const auto del = QByteArray(row.deleted ? "true" : "false");
+			const auto edt = QByteArray(row.edited ? "true" : "false");
+			msgValues.push_back("(" + tenant + "," + ch + "," + chat + ","
+				+ acc + "," + mid + "," + del + "," + edt + "," + date + ","
+				+ editDate + "," + payload + "," + now + ")");
+			const auto addEvt = [&](const char *type) {
+				evtValues.push_back("(" + tenant + "," + ch + ",'"
+					+ QByteArray(type) + "'," + chat + "," + acc + "," + mid
+					+ "," + payload + "," + now + ")");
+			};
+			addEvt("created");
+			if (row.deleted) {
+				addEvt("deleted");
+			}
+			if (row.edited) {
+				addEvt("edited");
+			}
+		}
+		if (!msgValues.isEmpty()) {
+			const auto sql = QByteArray(
+				"INSERT INTO teleforge_messages (tenant_id,content_hash,"
+				"chat_id_h,account_id_h,message_id_h,deleted,edited,date,"
+				"edit_date,payload,updated_at) VALUES ")
+				+ msgValues.join(',')
+				+ " ON CONFLICT (tenant_id,content_hash) DO UPDATE SET"
+				" deleted = teleforge_messages.deleted OR EXCLUDED.deleted,"
+				" edited = teleforge_messages.edited OR EXCLUDED.edited,"
+				" edit_date = EXCLUDED.edit_date, payload = EXCLUDED.payload,"
+				" updated_at = EXCLUDED.updated_at";
+			if (!exec(sql)) {
+				return fail();
+			}
+		}
+		if (!evtValues.isEmpty()) {
+			const auto sql = QByteArray(
+				"INSERT INTO teleforge_events (tenant_id,content_hash,"
+				"event_type,chat_id_h,account_id_h,message_id_h,payload,"
+				"created_at) VALUES ")
+				+ evtValues.join(',')
+				+ " ON CONFLICT (tenant_id,content_hash,event_type) DO NOTHING";
+			if (!exec(sql)) {
+				return fail();
+			}
+		}
+		if (onRow) {
+			onRow(int(stop));
 		}
 	}
+	PQclear(PQexec(conn, "COMMIT"));
+	return true;
+}
+
+// Blocking; runs on a worker thread. Ids are blinded (HMAC), the vector is
+// orthogonally projected (cosine preserved, raw vector hidden) and title/
+// summary are encrypted — the row stays useful for same-account similarity
+// search but opaque to anyone without the key.
+void UploadEmbeddings(
+		PGconn *conn,
+		const QString &tenantId,
+		const std::vector<EmbeddingRow> &embeddings,
+		const QByteArray &key) {
+	if (embeddings.empty()) {
+		return;
+	}
+	auto err = QString();
 	PQclear(PQexec(conn, "BEGIN"));
-	const auto tenant = up.tenantId.toUtf8();
-	for (const auto &row : up.embeddings) {
-		const auto memoryId = QByteArray::number(row.memoryId);
+	const auto tenant = tenantId.toUtf8();
+	for (const auto &row : embeddings) {
+		const auto memoryIdH = HmacId(row.memoryId, key).toUtf8();
 		const auto modelId = row.modelId.toUtf8();
 		const auto dims = QByteArray::number(row.dims);
-		const auto vec = VectorToPgArray(row.vector);
+		const auto vec = VectorToPgArray(ProjectEmbedding(row.vector, key));
 		const auto scope = row.scopeType.toUtf8();
-		const auto chatId = row.chatId
-			? QByteArray::number(*row.chatId)
+		const auto chatIdH = row.chatId
+			? HmacId(*row.chatId, key).toUtf8()
 			: QByteArray();
-		const auto userId = row.userId
-			? QByteArray::number(*row.userId)
+		const auto userIdH = row.userId
+			? HmacId(*row.userId, key).toUtf8()
 			: QByteArray();
-		const auto title = row.title.toUtf8();
-		const auto summary = row.summary.toUtf8();
+		const auto titleEnc = EncryptBundle(row.title.toUtf8(), key).toBase64();
+		const auto summaryEnc = EncryptBundle(
+			row.summary.toUtf8(), key).toBase64();
 		const auto updatedAt = QByteArray::number(row.updatedAt);
 		const char *values[11] = {
 			tenant.constData(),
-			memoryId.constData(),
+			memoryIdH.constData(),
 			modelId.constData(),
 			dims.constData(),
 			vec.constData(),
 			scope.constData(),
-			row.chatId ? chatId.constData() : nullptr,
-			row.userId ? userId.constData() : nullptr,
-			title.constData(),
-			summary.constData(),
+			row.chatId ? chatIdH.constData() : nullptr,
+			row.userId ? userIdH.constData() : nullptr,
+			titleEnc.constData(),
+			summaryEnc.constData(),
 			updatedAt.constData(),
 		};
 		auto res = PQexecParams(
-			conn,
-			kEmbeddingUpsertSql,
-			11,
-			nullptr,
-			values,
-			nullptr,
-			nullptr,
-			0);
+			conn, kEmbeddingUpsertSql, 11, nullptr, values, nullptr, nullptr, 0);
 		if (!res || PQresultStatus(res) != PGRES_COMMAND_OK) {
 			err = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
 			if (res) {
@@ -235,92 +333,15 @@ void UploadEmbeddings(PGconn *conn, const UploadPayload &up) {
 }
 
 // Blocking; runs on a worker thread.
-[[nodiscard]] bool DoUpload(const UploadPayload &up, QString &error) {
-	auto conn = Connect(up.connString, error);
-	if (!conn) {
-		return false;
-	}
-	auto guard = gsl::finally([&] { PQfinish(conn); });
-	if (!EnsureTable(conn, error)) {
-		return false;
-	}
-
-	const auto tenant = up.tenantId.toUtf8();
-	const auto revision = QByteArray::number(up.revision);
-	const auto updatedAt = QByteArray::number(
-		QDateTime::currentSecsSinceEpoch());
-	const auto sha = up.sha256Hex.toUtf8();
-	const auto dateFrom = QByteArray::number(up.dateFrom);
-	const auto dateTo = QByteArray::number(up.dateTo);
-
-	const char *values[7] = {
-		tenant.constData(),
-		revision.constData(),
-		updatedAt.constData(),
-		up.encrypted.constData(),
-		sha.constData(),
-		dateFrom.constData(),
-		dateTo.constData(),
-	};
-	const int lengths[7] = {
-		0, 0, 0, int(up.encrypted.size()), 0, 0, 0,
-	};
-	// Only the payload ($4) is passed in binary format.
-	const int formats[7] = { 0, 0, 0, 1, 0, 0, 0 };
-
-	auto res = PQexecParams(
-		conn,
-		kUpsertSql,
-		7,
-		nullptr,
-		values,
-		lengths,
-		formats,
-		0);
-	const auto ok = res && (PQresultStatus(res) == PGRES_COMMAND_OK);
-	if (!ok) {
-		error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
-	}
-	if (res) {
-		PQclear(res);
-	}
-	if (ok) {
-		// Best-effort plaintext embeddings mirror; never fails the snapshot.
-		UploadEmbeddings(conn, up);
-	}
-	return ok;
-}
-
-// Blocking; runs on a worker thread. Returns the encrypted payload (may be
-// empty when the tenant has no stored snapshot yet).
-[[nodiscard]] bool DoDownload(
-		const QString &connString,
+[[nodiscard]] bool DoDownloadMessages(
+		PGconn *conn,
 		const QString &tenantId,
-		QByteArray &payloadOut,
+		std::vector<SyncMessageRow> &out,
 		QString &error) {
-	auto conn = Connect(connString, error);
-	if (!conn) {
-		return false;
-	}
-	auto guard = gsl::finally([&] { PQfinish(conn); });
-	if (!EnsureTable(conn, error)) {
-		return false;
-	}
-
 	const auto tenant = tenantId.toUtf8();
 	const char *values[1] = { tenant.constData() };
-	const int lengths[1] = { 0 };
-	const int formats[1] = { 0 };
-	// Request the result in binary so BYTEA comes back as raw bytes.
 	auto res = PQexecParams(
-		conn,
-		kSelectSql,
-		1,
-		nullptr,
-		values,
-		lengths,
-		formats,
-		1);
+		conn, kSelectMessagesSql, 1, nullptr, values, nullptr, nullptr, 0);
 	if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
 		error = QString::fromUtf8(PQerrorMessage(conn)).trimmed();
 		if (res) {
@@ -328,9 +349,15 @@ void UploadEmbeddings(PGconn *conn, const UploadPayload &up) {
 		}
 		return false;
 	}
-	if (PQntuples(res) > 0) {
-		const auto len = PQgetlength(res, 0, 0);
-		payloadOut = QByteArray(PQgetvalue(res, 0, 0), len);
+	const auto n = PQntuples(res);
+	out.reserve(out.size() + n);
+	for (auto i = 0; i != n; ++i) {
+		auto row = SyncMessageRow{};
+		row.contentHash = QString::fromUtf8(PQgetvalue(res, i, 0));
+		row.deleted = (QByteArray(PQgetvalue(res, i, 1)) == "t");
+		row.edited = (QByteArray(PQgetvalue(res, i, 2)) == "t");
+		row.payload = QByteArray::fromBase64(QByteArray(PQgetvalue(res, i, 3)));
+		out.push_back(std::move(row));
 	}
 	PQclear(res);
 	return true;
@@ -341,37 +368,34 @@ void UploadEmbeddings(PGconn *conn, const UploadPayload &up) {
 void RunPgUpload(
 		not_null<Main::Session*> session,
 		const QByteArray &syncKey,
-		Fn<void(bool ok, QString error)> done) {
-	// Build the encrypted snapshot on the main thread (touches SQLite).
-	const auto shards = BuildEncryptedDatabaseShards(syncKey);
-	const EncryptedDbShard *dataShard = nullptr;
-	for (const auto &shard : shards) {
-		if (shard.kind == SyncDatabaseKind::Data) {
-			dataShard = &shard;
-			break;
-		}
-	}
-	if (!dataShard || dataShard->encrypted.isEmpty()) {
-		if (done) {
-			done(false, u"Не удалось подготовить снапшот базы."_q);
-		}
-		return;
-	}
-
-	auto up = UploadPayload{
-		.connString = ConnStringFromSettings(),
-		.tenantId = PgTenantId(session),
-		.encrypted = dataShard->encrypted,
-		.sha256Hex = dataShard->sha256Hex,
-		.revision = QDateTime::currentMSecsSinceEpoch(),
-		.dateFrom = dataShard->dateFrom,
-		.dateTo = dataShard->dateTo,
-		.embeddings = CollectEmbeddingRows(),
-	};
+		Fn<void(bool ok, QString error)> done,
+		Fn<void(int done, int total)> onProgress) {
+	// Build encrypted, id-blinded rows on the main thread (touches SQLite).
+	const auto rows = CollectMessageRows(syncKey);
+	const auto embeddings = CollectEmbeddingRows();
+	const auto connString = ConnStringFromSettings();
+	const auto tenantId = PgTenantId(session);
 	const auto sessionPtr = session.get();
-	crl::async([up = std::move(up), done, sessionPtr] {
+	const auto total = int(rows.size());
+	crl::async([=] {
 		auto error = QString();
-		const auto ok = DoUpload(up, error);
+		auto conn = Connect(connString, error);
+		auto ok = false;
+		if (conn) {
+			const auto onRow = [=](int doneCount) {
+				crl::on_main(sessionPtr, [=] {
+					if (onProgress) {
+						onProgress(doneCount, total);
+					}
+				});
+			};
+			ok = EnsureSchema(conn, error)
+				&& DoUploadMessages(conn, tenantId, rows, error, onRow);
+			if (ok) {
+				UploadEmbeddings(conn, tenantId, embeddings, syncKey);
+			}
+			PQfinish(conn);
+		}
 		crl::on_main(sessionPtr, [=] {
 			if (!ok) {
 				LOG(("TeleForge Sync PG: upload failed: %1").arg(error));
@@ -392,9 +416,15 @@ void RunPgDownload(
 	const auto sessionPtr = session.get();
 	const auto key = syncKey;
 	crl::async([=] {
-		auto payload = QByteArray();
 		auto error = QString();
-		const auto ok = DoDownload(connString, tenantId, payload, error);
+		auto rows = std::vector<SyncMessageRow>();
+		auto conn = Connect(connString, error);
+		auto ok = false;
+		if (conn) {
+			ok = EnsureSchema(conn, error)
+				&& DoDownloadMessages(conn, tenantId, rows, error);
+			PQfinish(conn);
+		}
 		crl::on_main(sessionPtr, [=] {
 			if (!ok) {
 				LOG(("TeleForge Sync PG: download failed: %1").arg(error));
@@ -403,22 +433,11 @@ void RunPgDownload(
 				}
 				return;
 			}
-			if (payload.isEmpty()) {
-				// No snapshot stored yet for this account — not an error.
-				if (done) {
-					done(true, QString());
-				}
-				return;
-			}
-			// Decrypt + decompress + merge on the main thread (touches SQLite).
-			const auto applied = ApplyEncryptedDatabaseShard(
-				SyncDatabaseKind::Data,
-				payload,
-				key);
+			// Merge into the local DB on the main thread (touches SQLite). The
+			// remote is only a replica — this never removes local data.
+			ApplyMessageRows(rows, key);
 			if (done) {
-				done(applied, applied
-					? QString()
-					: u"Не удалось применить снапшот из PostgreSQL."_q);
+				done(true, QString());
 			}
 		});
 	});
@@ -430,7 +449,7 @@ void PgTestConnection(
 	crl::async([connString, done] {
 		auto error = QString();
 		auto conn = Connect(connString, error);
-		const auto ok = (conn != nullptr) && EnsureTable(conn, error);
+		const auto ok = (conn != nullptr) && EnsureSchema(conn, error);
 		if (conn) {
 			PQfinish(conn);
 		}

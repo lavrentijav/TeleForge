@@ -229,7 +229,7 @@ void BuildAiTranslation(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 				}
 			}
 			AddSettingsHint(c, rpl::single(status));
-		});
+		}, [](const SearchContext &) {});
 	});
 
 	ayu.addToggle({
