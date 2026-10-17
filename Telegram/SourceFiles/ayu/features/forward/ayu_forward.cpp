@@ -30,6 +30,58 @@ namespace AyuForward {
 
 std::unordered_map<PeerId, std::shared_ptr<ForwardState>> forwardStates;
 
+namespace {
+
+constexpr auto kForwardStateTtlSec = 600;
+constexpr auto kMaxForwardStates = 64;
+
+[[nodiscard]] bool isFinished(const std::shared_ptr<ForwardState> &state) {
+	return !state || state->state == ForwardState::State::Finished;
+}
+
+[[nodiscard]] int lastActivity(const std::shared_ptr<ForwardState> &state) {
+	return state ? state->lastActivity : 0;
+}
+
+void pruneForwardStates(const PeerId &keep) {
+	const auto now = base::unixtime::now();
+	for (auto it = forwardStates.begin(); it != forwardStates.end();) {
+		if (it->first.value == keep.value) {
+			++it;
+			continue;
+		}
+		const auto expired = isFinished(it->second)
+			&& now - lastActivity(it->second) > kForwardStateTtlSec;
+		if (expired) {
+			it = forwardStates.erase(it);
+		} else {
+			++it;
+		}
+	}
+	while (int(forwardStates.size()) > kMaxForwardStates) {
+		auto oldest = forwardStates.end();
+		for (auto it = forwardStates.begin(); it != forwardStates.end(); ++it) {
+			if (it->first.value == keep.value) {
+				continue;
+			} else if (oldest == forwardStates.end()) {
+				oldest = it;
+			} else if (isFinished(it->second) != isFinished(oldest->second)) {
+				if (isFinished(it->second)) {
+					oldest = it;
+				}
+			} else if (lastActivity(it->second) < lastActivity(oldest->second)) {
+				oldest = it;
+			}
+		}
+		if (oldest == forwardStates.end()) {
+			break;
+		}
+		forwardStates.erase(oldest);
+	}
+}
+
+} // namespace
+
 bool isForwarding(const PeerId &id) {
 	const auto fwState = forwardStates.find(id);
 	if (id.value && fwState != forwardStates.end()) {
@@ -98,6 +150,7 @@ std::pair<QString, QString> stateName(const PeerId &id) {
 
 void ForwardState::updateBottomBar(const Main::Session &session, const PeerId *peer, const State &st) {
 	state = st;
+	lastActivity = base::unixtime::now();
 	auto peerCopy = *peer;
 	crl::on_main([&, peerCopy]
 	{
@@ -280,7 +333,9 @@ void intelligentForward(
 	chunks.push_back(currentChunk);
 
 	auto state = std::make_shared<ForwardState>(chunks.size());
+	state->lastActivity = base::unixtime::now();
 	forwardStates[peer->id] = state;
+	pruneForwardStates(peer->id);
 
 
 	for (const auto &chunk : chunks) {
@@ -325,7 +380,9 @@ void forwardMessages(
 		state = std::make_shared<ForwardState>(1);
 	}
 
+	state->lastActivity = base::unixtime::now();
 	forwardStates[peer->id] = state;
+	pruneForwardStates(peer->id);
 
 	std::unordered_map<uint64, uint64> groupIds;
 

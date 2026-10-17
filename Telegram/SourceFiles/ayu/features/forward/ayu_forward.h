@@ -33,6 +33,7 @@ public:
 
 	State state = State::Preparing;
 	bool stopRequested = false;
+	int lastActivity = 0;
 
 };
 

@@ -15,6 +15,7 @@
 #include "history/history_item.h"
 #include "rpl/event_stream.h"
 
+#include <deque>
 #include <unordered_set>
 
 static std::mutex mutex;
@@ -37,6 +38,56 @@ std::optional<std::unordered_map<long long, std::vector<ReversiblePattern>>> pat
 std::optional<std::unordered_map<long long, std::unordered_set<HashablePattern, PatternHasher>>> exclusionsByDialogId;
 
 std::unordered_map<long long, std::unordered_map<std::optional<int>, std::optional<bool>>> filteredMessages;
+
+namespace {
+
+using FilteredKey = std::optional<int>;
+
+// A pure derived cache: evicting an entry only costs one more regex pass, so
+// the oldest insertions are dropped instead of growing without a bound.
+constexpr auto kMaxFilteredEntries = std::size_t(50000);
+
+struct FilteredOrderEntry {
+	long long dialogId = 0;
+	FilteredKey messageId;
+};
+
+std::deque<FilteredOrderEntry> filteredOrder;
+std::size_t filteredCount = 0;
+
+void trimFilteredLocked() {
+	while (filteredCount > kMaxFilteredEntries
+		|| filteredOrder.size() > kMaxFilteredEntries * 2) {
+		if (filteredOrder.empty()) {
+			break;
+		}
+		const auto front = std::move(filteredOrder.front());
+		filteredOrder.pop_front();
+		const auto dialogIt = filteredMessages.find(front.dialogId);
+		if (dialogIt == filteredMessages.end()) {
+			continue;
+		}
+		if (dialogIt->second.erase(front.messageId)) {
+			--filteredCount;
+		}
+		if (dialogIt->second.empty()) {
+			filteredMessages.erase(dialogIt);
+		}
+	}
+}
+
+void putFilteredLocked(long long dialogId, FilteredKey messageId, bool res) {
+	auto &messages = filteredMessages[dialogId];
+	const auto [it, inserted] = messages.try_emplace(messageId, res);
+	if (!inserted) {
+		it->second = res;
+		return;
+	}
+	filteredOrder.push_back({ dialogId, messageId });
+	++filteredCount;
+}
+
+} // namespace
 
 void rebuildCache() {
 	std::lock_guard lock(mutex);
@@ -75,6 +126,8 @@ void rebuildCache() {
 	patternsByDialogId = byDialogId;
 	exclusionsByDialogId = exclByDialogId;
 	filteredMessages.clear();
+	filteredOrder.clear();
+	filteredCount = 0;
 }
 
 std::unordered_map<long long, std::unordered_set<HashablePattern, PatternHasher>> buildExclusions(
@@ -113,12 +166,14 @@ std::optional<bool> isFiltered(not_null<HistoryItem*> item) {
 
 void putFiltered(not_null<HistoryItem*> item, const Data::Group *group, bool res) {
 	std::lock_guard lock(mutex);
-	filteredMessages[item->history()->peer->id.value][item->id.bare] = res;
+	const auto dialogId = item->history()->peer->id.value;
+	putFilteredLocked(dialogId, item->id.bare, res);
 	if (group && res) {
 		for (const auto& groupItem : group->items) {
-			filteredMessages[item->history()->peer->id.value][groupItem->id.bare] = true;
+			putFilteredLocked(dialogId, groupItem->id.bare, true);
 		}
 	}
+	trimFilteredLocked();
 }
 
 void invalidateSingle(not_null<HistoryItem*> item) {
@@ -134,6 +189,15 @@ void invalidateSingle(not_null<HistoryItem*> item) {
 	}
 
 	dialogIt->second.erase(it);
+	if (dialogIt->second.empty()) {
+		filteredMessages.erase(dialogIt);
+	}
+	if (filteredCount > 0) {
+		--filteredCount;
+	}
+	if (!filteredCount) {
+		filteredOrder.clear();
+	}
 }
 
 void invalidate(not_null<HistoryItem*> item) {
