@@ -14,7 +14,8 @@ struct EmbeddingRow {
 	long long memoryId = 0;
 	QString modelId;
 	int dims = 0;
-	std::vector<float> vector;
+	// The stored int8 blob, expanded to floats only while its row uploads.
+	std::vector<char> vectorBlob;
 	QString scopeType;
 	std::optional<long long> chatId;
 	std::optional<long long> userId;

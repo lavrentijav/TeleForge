@@ -24,9 +24,11 @@ struct Index {
 	bool valid = false;
 	int dimensions = 0;
 	std::vector<FactRow> rows;
-	// Row-major [rows.size() * dimensions]; every vector is L2-normalised on
-	// load so a query only needs a dot product, not a per-row norm.
-	std::vector<float> vectors;
+	// Row-major [rows.size() * dimensions] of int8 components plus the per-row
+	// scale; every vector is L2-normalised before quantising so a query only
+	// needs a dot product, not a per-row norm.
+	std::vector<signed char> vectors;
+	std::vector<float> scales;
 };
 
 auto g_mutex = QMutex();
@@ -46,11 +48,29 @@ void NormalizeInPlace(float *values, int count) {
 	}
 }
 
+// Returns the scale a reader multiplies the quantised components by.
+float Quantize(const float *values, int count, std::vector<signed char> *out) {
+	auto maxAbs = 0.f;
+	for (auto i = 0; i != count; ++i) {
+		maxAbs = std::max(maxAbs, std::abs(values[i]));
+	}
+	const auto scale = maxAbs / 127.f;
+	out->resize(count);
+	if (maxAbs <= 0.f) {
+		out->assign(count, 0);
+		return 0.f;
+	}
+	for (auto i = 0; i != count; ++i) {
+		out->data()[i] = static_cast<signed char>(
+			std::clamp<long>(std::lround(values[i] / scale), -127, 127));
+	}
+	return scale;
+}
+
 void RebuildLocked() {
 	auto index = Index();
 	const auto items = Storage::loadMemoryItems();
-	auto pending = std::vector<std::pair<FactRow, std::vector<float>>>();
-	pending.reserve(items.size());
+	index.rows.reserve(items.size());
 
 	for (const auto &item : items) {
 		if (item.manualHidden) {
@@ -73,29 +93,26 @@ void RebuildLocked() {
 			continue;
 		}
 		NormalizeInPlace(values.data(), int(values.size()));
-		pending.push_back({
-			FactRow{
-				.id = item.id,
-				.title = QString::fromStdString(item.title),
-				.summary = QString::fromStdString(item.summary),
-				.scope = QString::fromStdString(item.scopeType),
-				.chatId = item.chatId.value_or(0),
-				.userId = item.userId.value_or(0),
-				.contentHash = QString::fromStdString(item.contentHash),
-				.updatedAt = item.updatedAt,
-			},
-			std::move(values),
+		auto quantized = std::vector<signed char>();
+		const auto scale = Quantize(
+			values.data(),
+			int(values.size()),
+			&quantized);
+		index.rows.push_back(FactRow{
+			.id = item.id,
+			.title = QString::fromStdString(item.title),
+			.summary = QString::fromStdString(item.summary),
+			.scope = QString::fromStdString(item.scopeType),
+			.chatId = item.chatId.value_or(0),
+			.userId = item.userId.value_or(0),
+			.contentHash = QString::fromStdString(item.contentHash),
+			.updatedAt = item.updatedAt,
 		});
-	}
-
-	index.rows.reserve(pending.size());
-	index.vectors.reserve(pending.size() * index.dimensions);
-	for (auto &[row, values] : pending) {
-		index.rows.push_back(std::move(row));
 		index.vectors.insert(
 			index.vectors.end(),
-			values.begin(),
-			values.end());
+			quantized.begin(),
+			quantized.end());
+		index.scales.push_back(scale);
 	}
 	index.valid = true;
 	g_index = std::move(index);
@@ -174,8 +191,9 @@ std::vector<SearchHit> Table::search(
 		const auto *vector = g_index.vectors.data() + (i * dims);
 		auto dot = 0.f;
 		for (auto d = 0; d != dims; ++d) {
-			dot += vector[d] * normalized[d];
+			dot += float(vector[d]) * normalized[d];
 		}
+		dot *= g_index.scales[i];
 		if (dot < minScore) {
 			continue;
 		}

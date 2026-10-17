@@ -20,6 +20,30 @@ namespace {
 auto &db() {
 	return TeleForge::Storage::Db();
 }
+
+struct Tx {
+	explicit Tx(decltype(db()) &store) : store(store) {
+		store.begin_transaction();
+	}
+	Tx(const Tx &) = delete;
+	Tx &operator=(const Tx &) = delete;
+	~Tx() {
+		if (!committed) {
+			try {
+				store.rollback();
+			} catch (const std::exception &ex) {
+				LOG(("Rollback failed: %1").arg(ex.what()));
+			}
+		}
+	}
+	void commit() {
+		store.commit();
+		committed = true;
+	}
+
+	decltype(db()) &store;
+	bool committed = false;
+};
 }
 
 namespace AyuMigrations {
@@ -135,9 +159,9 @@ void addEditedMessage(const EditedMessage &message) {
 		if (row.contentHash.empty()) {
 			row.contentHash = AyuContentHash::ComputeEdited(row);
 		}
-		db().begin_transaction();
+		auto tx = Tx(db());
 		db().insert(row);
-		db().commit();
+		tx.commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
 	}
@@ -180,9 +204,9 @@ void addDeletedMessage(const DeletedMessage &message) {
 		if (row.contentHash.empty()) {
 			row.contentHash = AyuContentHash::ComputeDeleted(row);
 		}
-		db().begin_transaction();
+		auto tx = Tx(db());
 		db().insert(row);
-		db().commit();
+		tx.commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save edited message for some reason: %1").arg(ex.what()));
 	}
@@ -331,9 +355,9 @@ void addRegexFilter(const RegexFilter &filter) {
 
 void addRegexExclusion(const RegexFilterGlobalExclusion &exclusion) {
 	try {
-		db().begin_transaction();
+		auto tx = Tx(db());
 		db().insert(exclusion);
-		db().commit();
+		tx.commit();
 	} catch (std::exception &ex) {
 		LOG(("Failed to save regex filter exclusion for some reason: %1").arg(ex.what()));
 	}

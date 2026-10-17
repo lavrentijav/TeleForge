@@ -3,13 +3,37 @@
 #include <QByteArray>
 #include <QString>
 
+#include <optional>
 #include <vector>
 
 namespace TeleForge::Sync {
 
+// Pre-v2 key: a single SHA-256 over publicly derivable account material. Kept
+// only so bundles written by older builds stay readable; never used for writes.
+[[nodiscard]] QByteArray DeriveLegacySyncKey(const QByteArray &masterMaterial);
+
+// v2 key: PBKDF2-HMAC-SHA256 over the random per-install secret, salted with a
+// persisted random salt plus the account binding, so different accounts never
+// share a key even on one install.
 [[nodiscard]] QByteArray DeriveSyncKey(
-	const QByteArray &masterMaterial,
-	const QByteArray &optionalExportKey = {});
+	const QByteArray &secret,
+	const QByteArray &optionalExportKey = {},
+	const QByteArray &accountBinding = {});
+
+// 32 random bytes stored once per install (DPAPI-wrapped on Windows).
+[[nodiscard]] QByteArray DeviceSecret();
+
+// Remembers the pre-v2 key as a decrypt-only fallback while a migration is
+// still possible; MarkSyncMigrationComplete() retires it for good.
+void SetLegacySyncKey(const QByteArray &key);
+void MarkSyncMigrationComplete();
+[[nodiscard]] bool SyncMigrationComplete();
+
+// Key protecting secret fields of the local DB (API keys, connection strings).
+[[nodiscard]] QByteArray FieldCryptKey();
+[[nodiscard]] QString ProtectSecret(const QString &plain);
+[[nodiscard]] QString UnprotectSecret(const QString &stored);
+[[nodiscard]] bool IsProtectedSecret(const QString &stored);
 
 // Deterministic keyed tag of arbitrary data: HMAC-SHA256(key, data) as
 // lowercase hex, truncated to 32 chars (128-bit). Opaque and non-reversible,

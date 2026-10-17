@@ -84,6 +84,19 @@ struct ObservationSource {
 [[nodiscard]] bool archiveEnabled();
 void setArchiveEnabled(bool enabled);
 
+/// Account that owns archive rows: the signed-in account's self UserId.
+[[nodiscard]] long long archiveAccountId(not_null<Main::Session*> session);
+
+/// Milliseconds until the archive may issue its next API request; 0 means now.
+[[nodiscard]] int archiveApiWaitMs();
+/// Takes one request slot from the shared archive budget.
+[[nodiscard]] bool archiveTakeApiSlot();
+/// Parses FLOOD_WAIT_X / FLOOD_PREMIUM_WAIT_X into seconds; 0 otherwise.
+[[nodiscard]] int archiveFloodWaitSeconds(const QString &errorType);
+/// Logs an API failure and pauses archive traffic on FLOOD_WAIT.
+void archiveNoteApiFailure(const QString &errorType);
+void archiveNoteFloodWait(int seconds);
+
 void attachSession(not_null<Main::Session*> session);
 
 void noteUserObserved(
@@ -111,7 +124,8 @@ void queueMessageAuthor(
 void refreshMembershipFromApi(
 	not_null<Main::Session*> session,
 	not_null<UserData*> user,
-	Fn<void()> done);
+	Fn<void()> done,
+	Fn<void(int processed, int total)> progress = nullptr);
 
 void noteChatPeerObserved(not_null<PeerData*> chatPeer);
 [[nodiscard]] QString chatUserpicArchivePath(long long chatStorageId);

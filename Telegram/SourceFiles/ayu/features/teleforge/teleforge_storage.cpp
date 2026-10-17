@@ -17,7 +17,7 @@
 namespace TeleForge::Storage {
 namespace {
 
-constexpr auto kSchemaVersion = 14;
+constexpr auto kSchemaVersion = 15;
 
 std::unique_ptr<UnifiedStorage> gTeleForgeDb;
 
@@ -263,6 +263,12 @@ void MigrateToV14() {
 	// V14 adds pgVersion on PersonalityCore (via sync_schema).
 }
 
+void MigrateToV15() {
+	// V15 scopes PeerArchive* rows per account: accountId columns and the
+	// composite (accountId, peerId) profile key are rebuilt by sync_schema,
+	// which preserves the data and defaults the new column to 0 (legacy).
+}
+
 void RunMigrations() {
 	EnsureSchemaVersionRow();
 	const auto version = DbImpl().get<SchemaVersionRecord>(1).version;
@@ -301,6 +307,8 @@ void RunMigrations() {
 				MigrateToV13();
 			} else if (next == 14) {
 				MigrateToV14();
+			} else if (next == 15) {
+				MigrateToV15();
 			}
 			DbImpl().replace(SchemaVersionRecord{
 				.singletonId = 1,
@@ -323,7 +331,6 @@ void initialize() {
 	const auto pathQt = TeleForgeDatabasePathQt();
 	const auto tryInit = [&] {
 		DbImpl().pragma.journal_mode(sqlite_orm::journal_mode::WAL);
-		DbImpl().pragma.busy_timeout(5000);
 		DbImpl().pragma.synchronous(1);
 		LOG(("TeleForge: sync_schema (preserve=true) pass 1 — sqlite_orm creates/updates schema; "
 			"indexes must be listed before tables in make_storage because sync iterates objects in reverse order"));

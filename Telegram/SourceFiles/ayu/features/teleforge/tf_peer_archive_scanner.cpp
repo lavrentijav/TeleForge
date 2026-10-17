@@ -7,6 +7,7 @@
 #include "ayu/features/teleforge/tf_peer_archive_crawler.h"
 #include "apiwrap.h"
 #include "api/api_chat_participants.h"
+#include "base/call_delayed.h"
 #include "base/flat_map.h"
 #include "base/unixtime.h"
 #include "data/data_channel.h"
@@ -20,6 +21,8 @@
 #include "history/view/history_view_element.h"
 #include "main/main_session.h"
 
+#include <algorithm>
+
 namespace TeleForge::PeerArchive {
 namespace {
 
@@ -28,6 +31,7 @@ namespace {
 }
 constexpr auto kParticipantsPerPage = 200;
 constexpr auto kParticipantsFirstPage = 50;
+constexpr auto kMaxFloodRetries = 3;
 
 [[nodiscard]] int MaxParticipants() {
 	return AyuSettings::getInstance().archiveMaxParticipants();
@@ -103,11 +107,25 @@ void RequestChannelParticipantsPage(
 		not_null<ChannelData*> channel,
 		not_null<PeerData*> chatPeer,
 		int offset,
-		Fn<void()> done) {
+		Fn<void()> done,
+		int attempt = 0) {
 	if (!channel->canViewMembers()) {
 		if (done) {
 			done();
 		}
+		return;
+	}
+	if (!archiveTakeApiSlot()) {
+		const auto wait = std::max(archiveApiWaitMs(), 50);
+		base::call_delayed(crl::time(wait), session, [=] {
+			RequestChannelParticipantsPage(
+				session,
+				channel,
+				chatPeer,
+				offset,
+				done,
+				attempt);
+		});
 		return;
 	}
 	const auto weak = base::make_weak(session);
@@ -156,7 +174,21 @@ void RequestChannelParticipantsPage(
 				done();
 			}
 		});
-	}).fail([=] {
+	}).fail([=](const MTP::Error &error) {
+		archiveNoteApiFailure(error.type());
+		const auto flood = archiveFloodWaitSeconds(error.type());
+		if (flood > 0 && attempt < kMaxFloodRetries) {
+			base::call_delayed(crl::time(flood) * 1000 + 1000, session, [=] {
+				RequestChannelParticipantsPage(
+					session,
+					channel,
+					chatPeer,
+					offset,
+					done,
+					attempt + 1);
+			});
+			return;
+		}
 		if (done) {
 			done();
 		}
@@ -182,6 +214,8 @@ void RequestBasicChatFull(
 		}, [](const MTPDchannelFull &) {
 		}, [](const MTPDcommunityFull &) {
 		});
+	}).fail([=](const MTP::Error &error) {
+		archiveNoteApiFailure(error.type());
 	}).send();
 }
 

@@ -13,6 +13,7 @@
 #include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_rows.h"
+#include "ayu/features/teleforge/teleforge_embeddings.h"
 
 #include "logs.h"
 
@@ -400,7 +401,8 @@ void UploadEmbeddings(
 		const auto memoryIdH = HmacId(row.memoryId, key).toUtf8();
 		const auto modelId = row.modelId.toUtf8();
 		const auto dims = QByteArray::number(row.dims);
-		const auto vec = VectorToPgArray(ProjectEmbedding(row.vector, key));
+		const auto vec = VectorToPgArray(
+			ProjectEmbedding(DeserializeEmbedding(row.vectorBlob), key));
 		const auto scope = row.scopeType.toUtf8();
 		const auto chatIdH = row.chatId
 			? HmacId(*row.chatId, key).toUtf8()

@@ -54,7 +54,8 @@ inline constexpr long long kTeleForgeGlobalDefaultsPeerId = 0;
 
 inline constexpr auto kSqliteTuning =
 	"PRAGMA cache_size = -8192;"
-	"PRAGMA mmap_size = 268435456;";
+	"PRAGMA mmap_size = 268435456;"
+	"PRAGMA busy_timeout = 5000;";
 
 struct PerChatSettingsRecord {
 	long long peerId = 0;

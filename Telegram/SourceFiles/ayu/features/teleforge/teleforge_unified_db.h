@@ -55,11 +55,13 @@ using namespace sqlite_orm;
 			column<OnlineEvent>(&OnlineEvent::userId),
 			column<OnlineEvent>(&OnlineEvent::timestamp)),
 		make_index(
-			"idx_peer_archive_username_peer",
+			"idx_peer_archive_username_account",
+			column<PeerArchive::UsernameRecord>(&PeerArchive::UsernameRecord::accountId),
 			column<PeerArchive::UsernameRecord>(&PeerArchive::UsernameRecord::peerId),
 			column<PeerArchive::UsernameRecord>(&PeerArchive::UsernameRecord::observedAt)),
 		make_index(
-			"idx_peer_archive_chat_peer",
+			"idx_peer_archive_chat_account",
+			column<PeerArchive::ChatMembershipRecord>(&PeerArchive::ChatMembershipRecord::accountId),
 			column<PeerArchive::ChatMembershipRecord>(&PeerArchive::ChatMembershipRecord::peerId),
 			column<PeerArchive::ChatMembershipRecord>(&PeerArchive::ChatMembershipRecord::chatId)),
 		make_table<SchemaVersionRecord>(
@@ -293,21 +295,27 @@ using namespace sqlite_orm;
 			make_column("since", &SpyTarget::since)),
 		make_table<PeerArchive::ProfileRecord>(
 			"PeerArchiveProfile",
-			make_column("peerId", &PeerArchive::ProfileRecord::peerId, primary_key()),
+			make_column("accountId", &PeerArchive::ProfileRecord::accountId, default_value(0)),
+			make_column("peerId", &PeerArchive::ProfileRecord::peerId),
 			make_column("firstSeenAt", &PeerArchive::ProfileRecord::firstSeenAt),
 			make_column("lastSeenAt", &PeerArchive::ProfileRecord::lastSeenAt),
 			make_column("firstChatId", &PeerArchive::ProfileRecord::firstChatId),
 			make_column("firstMessageId", &PeerArchive::ProfileRecord::firstMessageId),
-			make_column("firstSource", &PeerArchive::ProfileRecord::firstSource)),
+			make_column("firstSource", &PeerArchive::ProfileRecord::firstSource),
+			primary_key(
+				&PeerArchive::ProfileRecord::accountId,
+				&PeerArchive::ProfileRecord::peerId)),
 		make_table<PeerArchive::UsernameRecord>(
 			"PeerArchiveUsername",
 			make_column("id", &PeerArchive::UsernameRecord::id, primary_key().autoincrement()),
+			make_column("accountId", &PeerArchive::UsernameRecord::accountId, default_value(0)),
 			make_column("peerId", &PeerArchive::UsernameRecord::peerId),
 			make_column("username", &PeerArchive::UsernameRecord::username),
 			make_column("observedAt", &PeerArchive::UsernameRecord::observedAt)),
 		make_table<PeerArchive::NameRecord>(
 			"PeerArchiveName",
 			make_column("id", &PeerArchive::NameRecord::id, primary_key().autoincrement()),
+			make_column("accountId", &PeerArchive::NameRecord::accountId, default_value(0)),
 			make_column("peerId", &PeerArchive::NameRecord::peerId),
 			make_column("firstName", &PeerArchive::NameRecord::firstName),
 			make_column("lastName", &PeerArchive::NameRecord::lastName),
@@ -315,12 +323,14 @@ using namespace sqlite_orm;
 		make_table<PeerArchive::BioRecord>(
 			"PeerArchiveBio",
 			make_column("id", &PeerArchive::BioRecord::id, primary_key().autoincrement()),
+			make_column("accountId", &PeerArchive::BioRecord::accountId, default_value(0)),
 			make_column("peerId", &PeerArchive::BioRecord::peerId),
 			make_column("bio", &PeerArchive::BioRecord::bio),
 			make_column("observedAt", &PeerArchive::BioRecord::observedAt)),
 		make_table<PeerArchive::UserpicRecord>(
 			"PeerArchiveUserpic",
 			make_column("id", &PeerArchive::UserpicRecord::id, primary_key().autoincrement()),
+			make_column("accountId", &PeerArchive::UserpicRecord::accountId, default_value(0)),
 			make_column("peerId", &PeerArchive::UserpicRecord::peerId),
 			make_column("localPath", &PeerArchive::UserpicRecord::localPath),
 			make_column("observedAt", &PeerArchive::UserpicRecord::observedAt),
@@ -328,6 +338,7 @@ using namespace sqlite_orm;
 		make_table<PeerArchive::ChatMembershipRecord>(
 			"PeerArchiveChatMembership",
 			make_column("id", &PeerArchive::ChatMembershipRecord::id, primary_key().autoincrement()),
+			make_column("accountId", &PeerArchive::ChatMembershipRecord::accountId, default_value(0)),
 			make_column("peerId", &PeerArchive::ChatMembershipRecord::peerId),
 			make_column("chatId", &PeerArchive::ChatMembershipRecord::chatId),
 			make_column("chatTitle", &PeerArchive::ChatMembershipRecord::chatTitle),

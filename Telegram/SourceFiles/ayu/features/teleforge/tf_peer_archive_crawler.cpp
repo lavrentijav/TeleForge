@@ -132,7 +132,7 @@ void ProcessNext(not_null<Main::Session*> session) {
 	const auto storageId = *queue.begin();
 	queue.erase(queue.begin());
 
-	const auto peer = session->data().peer(
+	const auto peer = session->data().peerLoaded(
 		DeserializePeerId(static_cast<quint64>(storageId)));
 	if (!peer || peer->isSelf()) {
 		return;

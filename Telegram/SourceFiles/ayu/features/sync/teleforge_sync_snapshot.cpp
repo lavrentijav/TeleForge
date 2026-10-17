@@ -13,8 +13,15 @@
 #include <QtCore/QFile>
 #include <QtCore/QTemporaryFile>
 
+#include <zlib.h>
+
+#include <vector>
+
 namespace TeleForge::Sync {
 namespace {
+
+constexpr auto kChunkSize = std::size_t(256 * 1024);
+constexpr auto kCompressionLevel = 9;
 
 [[nodiscard]] QString SourcePath(SyncDatabaseKind kind) {
 	switch (kind) {
@@ -78,22 +85,108 @@ QByteArray CompressSnapshot(const QString &snapshotPath) {
 	if (!file.open(QIODevice::ReadOnly)) {
 		return {};
 	}
-	return qCompress(file.readAll(), 9);
+	const auto unfolded = quint32(file.size() & 0xFFFFFFFF);
+	auto compressed = QByteArray();
+	compressed.reserve(4 + int(file.size() / 4));
+	compressed.append(char((unfolded >> 24) & 0xFF));
+	compressed.append(char((unfolded >> 16) & 0xFF));
+	compressed.append(char((unfolded >> 8) & 0xFF));
+	compressed.append(char(unfolded & 0xFF));
+
+	auto stream = z_stream{};
+	if (deflateInit(&stream, kCompressionLevel) != Z_OK) {
+		return {};
+	}
+	const auto guard = gsl::finally([&] { deflateEnd(&stream); });
+	auto input = std::vector<char>(kChunkSize);
+	auto output = std::vector<char>(kChunkSize);
+	while (true) {
+		const auto read = file.read(input.data(), qint64(input.size()));
+		if (read < 0) {
+			return {};
+		}
+		const auto last = (read == 0);
+		stream.avail_in = uInt(read);
+		stream.next_in = reinterpret_cast<Bytef*>(input.data());
+		while (true) {
+			stream.avail_out = uInt(output.size());
+			stream.next_out = reinterpret_cast<Bytef*>(output.data());
+			const auto result = deflate(&stream, last ? Z_FINISH : Z_NO_FLUSH);
+			if (result != Z_OK && result != Z_STREAM_END) {
+				return {};
+			}
+			compressed.append(
+				output.data(),
+				int(output.size() - stream.avail_out));
+			if (result == Z_STREAM_END) {
+				return compressed;
+			} else if (stream.avail_out != 0) {
+				if (!last) {
+					break;
+				}
+				return {};
+			}
+		}
+		if (last) {
+			return {};
+		}
+	}
 }
 
 std::optional<QString> DecompressToTemp(const QByteArray &compressed) {
-	const auto data = qUncompress(compressed);
-	if (data.isEmpty()) {
+	if (compressed.size() <= 4) {
+		return std::nullopt;
+	}
+	const auto expected = (qint64(quint32(uchar(compressed[0]))) << 24)
+		| (qint64(quint32(uchar(compressed[1]))) << 16)
+		| (qint64(quint32(uchar(compressed[2]))) << 8)
+		| qint64(quint32(uchar(compressed[3])));
+	if (expected <= 0) {
 		return std::nullopt;
 	}
 	auto temp = QTemporaryFile(
 		QDir::tempPath() + u"/teleforge_sync_XXXXXX.db"_q);
-	temp.setAutoRemove(false);
 	if (!temp.open()) {
 		return std::nullopt;
 	}
-	temp.write(data);
+	auto stream = z_stream{};
+	if (inflateInit(&stream) != Z_OK) {
+		return std::nullopt;
+	}
+	const auto guard = gsl::finally([&] { inflateEnd(&stream); });
+	stream.next_in = reinterpret_cast<Bytef*>(
+		const_cast<char*>(compressed.constData()) + 4);
+	stream.avail_in = uInt(compressed.size() - 4);
+
+	auto output = std::vector<char>(kChunkSize);
+	auto written = qint64(0);
+	while (true) {
+		stream.avail_out = uInt(output.size());
+		stream.next_out = reinterpret_cast<Bytef*>(output.data());
+		const auto result = inflate(&stream, Z_NO_FLUSH);
+		const auto produced = qint64(output.size() - stream.avail_out);
+		if (produced && temp.write(output.data(), produced) != produced) {
+			return std::nullopt;
+		}
+		written += produced;
+		if (result == Z_STREAM_END) {
+			break;
+		} else if (result == Z_BUF_ERROR) {
+			if (!stream.avail_in && !produced) {
+				break;
+			}
+			return std::nullopt;
+		} else if (result != Z_OK) {
+			return std::nullopt;
+		} else if (!stream.avail_in && stream.avail_out) {
+			return std::nullopt;
+		}
+	}
+	if (written != expected) {
+		return std::nullopt;
+	}
 	temp.close();
+	temp.setAutoRemove(false);
 	return temp.fileName();
 }
 

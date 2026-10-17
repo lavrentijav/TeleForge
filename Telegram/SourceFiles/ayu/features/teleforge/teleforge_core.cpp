@@ -1,5 +1,6 @@
 #include "ayu/features/teleforge/teleforge_core.h"
 
+#include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/teleforge/teleforge_inference.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
 
@@ -74,7 +75,7 @@ namespace {
 		.lmStudioBaseUrl = core.lmStudioBaseUrl.toStdString(),
 		.chatModelPath = core.chatModelPath.toStdString(),
 		.chatModelId = core.chatModelId.toStdString(),
-		.openAiApiKey = core.openAiApiKey.toStdString(),
+		.openAiApiKey = Sync::ProtectSecret(core.openAiApiKey).toStdString(),
 		.chatContextMessages = core.chatContextMessages,
 		.memorySyncEnabled = core.memorySyncEnabled,
 		.rerankEndpointUrl = core.rerankEndpointUrl.toStdString(),
@@ -83,7 +84,7 @@ namespace {
 		.autoSendEnabled = core.autoSendEnabled,
 		.visionEnabled = core.visionEnabled,
 		.cloudBackend = core.cloudBackend,
-		.pgConnString = core.pgConnString.toStdString(),
+		.pgConnString = Sync::ProtectSecret(core.pgConnString).toStdString(),
 		.pgVersion = core.pgVersion.toStdString(),
 		.embeddingModelPath = core.embeddingModelPath.toStdString(),
 		.sshTunnelEnabled = core.sshTunnelEnabled,
@@ -109,7 +110,8 @@ namespace {
 		.lmStudioBaseUrl = QString::fromStdString(record.lmStudioBaseUrl),
 		.chatModelPath = QString::fromStdString(record.chatModelPath),
 		.chatModelId = QString::fromStdString(record.chatModelId),
-		.openAiApiKey = QString::fromStdString(record.openAiApiKey),
+		.openAiApiKey = Sync::UnprotectSecret(
+			QString::fromStdString(record.openAiApiKey)),
 		.chatContextMessages = record.chatContextMessages > 0
 			? record.chatContextMessages
 			: 40,
@@ -120,7 +122,8 @@ namespace {
 		.autoSendEnabled = record.autoSendEnabled,
 		.visionEnabled = record.visionEnabled,
 		.cloudBackend = record.cloudBackend,
-		.pgConnString = QString::fromStdString(record.pgConnString),
+		.pgConnString = Sync::UnprotectSecret(
+			QString::fromStdString(record.pgConnString)),
 		.pgVersion = record.pgVersion.empty()
 			? u"18"_q
 			: QString::fromStdString(record.pgVersion),
@@ -130,6 +133,13 @@ namespace {
 		.sshTunnelIdentityFile = QString::fromStdString(
 			record.sshTunnelIdentityFile),
 	};
+}
+
+[[nodiscard]] bool HasPlaintextSecrets(const Storage::PersonalityCoreRecord &record) {
+	return (!record.openAiApiKey.empty()
+			&& !Sync::IsProtectedSecret(QString::fromStdString(record.openAiApiKey)))
+		|| (!record.pgConnString.empty()
+			&& !Sync::IsProtectedSecret(QString::fromStdString(record.pgConnString)));
 }
 
 } // namespace
@@ -216,7 +226,14 @@ PersonalityCore BuildPersonalityCoreFromMessages(const std::vector<QString> &mes
 
 std::optional<PersonalityCore> LoadPersonalityCore() {
 	if (const auto record = Storage::loadPersonalityCore()) {
-		return FromRecord(*record);
+		const auto core = FromRecord(*record);
+		if (HasPlaintextSecrets(*record)) {
+			// WHY: rows written by older builds hold the API key and the DB
+			// password in plaintext; rewriting once on read migrates them
+			// without waiting for the user to open the settings page.
+			Storage::upsertPersonalityCore(ToRecord(core));
+		}
+		return core;
 	}
 	return std::nullopt;
 }
@@ -260,10 +277,8 @@ QString SerializePersonalityCore(const PersonalityCore &core) {
 		lines.push_back("chat_model_id=" + QString::fromUtf8(
 			core.chatModelId.toUtf8().toPercentEncoding()));
 	}
-	if (!core.openAiApiKey.isEmpty()) {
-		lines.push_back("openai_api_key=" + QString::fromUtf8(
-			core.openAiApiKey.toUtf8().toPercentEncoding()));
-	}
+	lines.push_back(
+		"openai_key_present=" + QString::number(core.openAiApiKey.isEmpty() ? 0 : 1));
 	if (core.chatContextMessages > 0) {
 		lines.push_back("chat_context_messages=" + QString::number(core.chatContextMessages));
 	}

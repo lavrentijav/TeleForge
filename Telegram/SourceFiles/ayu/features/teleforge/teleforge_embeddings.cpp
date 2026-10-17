@@ -53,6 +53,10 @@ auto g_cacheOrder = QList<QByteArray>();
 constexpr auto kCacheCapacity = 256;
 auto g_cacheTick = 0;
 
+constexpr auto kQuantizedMagic = "TFQ8";
+constexpr auto kQuantizedHeader = std::size_t(8);
+constexpr auto kQuantizedScale = 127.f;
+
 } // namespace
 
 QString LocalHashEmbeddingProvider::modelId() const {
@@ -259,14 +263,44 @@ float CosineSimilarity(
 }
 
 std::vector<char> SerializeEmbedding(const std::vector<float> &values) {
-	auto blob = std::vector<char>(values.size() * sizeof(float));
-	if (!blob.empty()) {
-		std::memcpy(blob.data(), values.data(), blob.size());
+	if (values.empty()) {
+		return {};
+	}
+	auto maxAbs = 0.f;
+	for (const auto value : values) {
+		maxAbs = std::max(maxAbs, std::abs(value));
+	}
+	auto blob = std::vector<char>(kQuantizedHeader + values.size());
+	std::memcpy(blob.data(), kQuantizedMagic, 4);
+	std::memcpy(blob.data() + 4, &maxAbs, sizeof(float));
+	auto *quantized = blob.data() + kQuantizedHeader;
+	if (maxAbs > 0.f) {
+		const auto scale = maxAbs / kQuantizedScale;
+		for (auto i = std::size_t(0); i != values.size(); ++i) {
+			const auto raw = std::lround(values[i] / scale);
+			quantized[i] = static_cast<char>(
+				std::clamp<long>(raw, -127, 127));
+		}
+	} else {
+		std::memset(quantized, 0, values.size());
 	}
 	return blob;
 }
 
 std::vector<float> DeserializeEmbedding(const std::vector<char> &blob) {
+	if (blob.size() > kQuantizedHeader
+		&& !std::memcmp(blob.data(), kQuantizedMagic, 4)) {
+		auto maxAbs = 0.f;
+		std::memcpy(&maxAbs, blob.data() + 4, sizeof(float));
+		const auto count = int(blob.size() - kQuantizedHeader);
+		const auto scale = maxAbs / kQuantizedScale;
+		auto values = std::vector<float>(count);
+		const auto *quantized = blob.data() + kQuantizedHeader;
+		for (auto i = 0; i != count; ++i) {
+			values[i] = float(static_cast<signed char>(quantized[i])) * scale;
+		}
+		return values;
+	}
 	if (blob.empty() || (blob.size() % sizeof(float)) != 0) {
 		return {};
 	}

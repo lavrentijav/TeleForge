@@ -28,7 +28,9 @@ auto g_mutex = std::mutex();
 }
 
 [[nodiscard]] QByteArray SyncKey(not_null<Main::Session*> session) {
-	return DeriveSyncKey(MasterMaterial(session), g_exportKey);
+	const auto binding = MasterMaterial(session);
+	SetLegacySyncKey(DeriveLegacySyncKey(binding));
+	return DeriveSyncKey(DeviceSecret(), g_exportKey, binding);
 }
 
 enum class Backend {
@@ -55,15 +57,23 @@ void BackendUpload(
 		not_null<Main::Session*> session,
 		const QByteArray &key,
 		Fn<void(bool ok, QString error)> done) {
+	const auto wrap = [done = std::move(done)](bool ok, QString error) {
+		if (ok) {
+			MarkSyncMigrationComplete();
+		}
+		if (done) {
+			done(ok, std::move(error));
+		}
+	};
 	switch (SelectedBackend()) {
 	case Backend::Postgres:
-		RunPgUpload(session, key, std::move(done));
+		RunPgUpload(session, key, wrap);
 		return;
 	case Backend::MySql:
-		RunMySqlUpload(session, key, std::move(done));
+		RunMySqlUpload(session, key, wrap);
 		return;
 	case Backend::TelegramChat:
-		RunSyncUpload(session, key, std::move(done));
+		RunSyncUpload(session, key, wrap);
 		return;
 	}
 }

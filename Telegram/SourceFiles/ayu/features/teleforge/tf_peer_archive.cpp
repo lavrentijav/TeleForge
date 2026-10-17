@@ -19,6 +19,7 @@
 #include "data/data_peer_id.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
+#include "logs.h"
 #include "rpl/rpl.h"
 #include "dialogs/dialogs_key.h"
 #include "history/history.h"
@@ -29,9 +30,11 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QRegularExpression>
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -41,6 +44,7 @@ namespace {
 using sqlite_orm::c;
 using sqlite_orm::limit;
 using sqlite_orm::order_by;
+using sqlite_orm::set;
 using sqlite_orm::where;
 
 [[nodiscard]] auto &ArchiveDb() {
@@ -50,6 +54,43 @@ using sqlite_orm::where;
 auto &ArchiveEnabledCache() {
 	static auto enabled = false;
 	return enabled;
+}
+
+[[nodiscard]] long long AccountId(not_null<Main::Session*> session) {
+	return static_cast<long long>(session->user()->id.value);
+}
+
+// Read paths without a session (the profile panel) resolve the account here.
+[[nodiscard]] long long &CurrentAccountId() {
+	static auto value = 0LL;
+	return value;
+}
+
+constexpr auto kApiMinIntervalMs = crl::time(200);
+constexpr auto kApiBurst = 4.;
+
+[[nodiscard]] double &ApiTokens() {
+	static auto value = kApiBurst;
+	return value;
+}
+
+[[nodiscard]] crl::time &ApiTokensUpdatedAt() {
+	static auto value = crl::time(0);
+	return value;
+}
+
+[[nodiscard]] crl::time &ApiBlockedUntil() {
+	static auto value = crl::time(0);
+	return value;
+}
+
+void RefillApiTokens(crl::time now) {
+	const auto elapsed = now - ApiTokensUpdatedAt();
+	if (elapsed <= 0) {
+		return;
+	}
+	ApiTokens() = std::min(kApiBurst, ApiTokens() + double(elapsed) / kApiMinIntervalMs);
+	ApiTokensUpdatedAt() = now;
 }
 
 [[nodiscard]] long long StorageId(PeerId id) {
@@ -127,12 +168,14 @@ void saveChatUserpicToDisk(not_null<PeerData*> peer) {
 }
 
 void touchProfile(
+		long long accountId,
 		long long peerId,
 		int now,
 		const ObservationSource &source) {
-	auto row = ArchiveDb().get_pointer<ProfileRecord>(peerId);
+	auto row = ArchiveDb().get_pointer<ProfileRecord>(accountId, peerId);
 	if (!row) {
 		ArchiveDb().replace(ProfileRecord{
+			.accountId = accountId,
 			.peerId = peerId,
 			.firstSeenAt = now,
 			.lastSeenAt = now,
@@ -154,36 +197,48 @@ void touchProfile(
 	ArchiveDb().replace(*row);
 }
 
-void appendUsername(long long peerId, const QString &username, int now) {
+void appendUsername(
+		long long accountId,
+		long long peerId,
+		const QString &username,
+		int now) {
 	const auto trimmed = username.trimmed();
 	if (trimmed.isEmpty()) {
 		return;
 	}
 	const auto existing = ArchiveDb().get_all<UsernameRecord>(
-		where(c(&UsernameRecord::peerId) == peerId
+		where(c(&UsernameRecord::accountId) == accountId
+			&& c(&UsernameRecord::peerId) == peerId
 			&& c(&UsernameRecord::username) == trimmed.toStdString()));
 	if (!existing.empty()) {
 		return;
 	}
 	ArchiveDb().insert(UsernameRecord{
+		.accountId = accountId,
 		.peerId = peerId,
 		.username = trimmed.toStdString(),
 		.observedAt = now,
 	});
 }
 
-void appendBio(long long peerId, const QString &bio, int now) {
+void appendBio(
+		long long accountId,
+		long long peerId,
+		const QString &bio,
+		int now) {
 	const auto trimmed = bio.trimmed();
 	if (trimmed.isEmpty()) {
 		return;
 	}
 	const auto existing = ArchiveDb().get_all<BioRecord>(
-		where(c(&BioRecord::peerId) == peerId
+		where(c(&BioRecord::accountId) == accountId
+			&& c(&BioRecord::peerId) == peerId
 			&& c(&BioRecord::bio) == trimmed.toStdString()));
 	if (!existing.empty()) {
 		return;
 	}
 	ArchiveDb().insert(BioRecord{
+		.accountId = accountId,
 		.peerId = peerId,
 		.bio = trimmed.toStdString(),
 		.observedAt = now,
@@ -191,6 +246,7 @@ void appendBio(long long peerId, const QString &bio, int now) {
 }
 
 void appendName(
+		long long accountId,
 		long long peerId,
 		const QString &first,
 		const QString &last,
@@ -198,13 +254,15 @@ void appendName(
 	const auto f = first.trimmed();
 	const auto l = last.trimmed();
 	const auto existing = ArchiveDb().get_all<NameRecord>(
-		where(c(&NameRecord::peerId) == peerId
+		where(c(&NameRecord::accountId) == accountId
+			&& c(&NameRecord::peerId) == peerId
 			&& c(&NameRecord::firstName) == f.toStdString()
 			&& c(&NameRecord::lastName) == l.toStdString()));
 	if (!existing.empty()) {
 		return;
 	}
 	ArchiveDb().insert(NameRecord{
+		.accountId = accountId,
 		.peerId = peerId,
 		.firstName = f.toStdString(),
 		.lastName = l.toStdString(),
@@ -213,16 +271,19 @@ void appendName(
 }
 
 void noteChat(
+		long long accountId,
 		long long peerId,
 		long long chatId,
 		const QString &title,
 		bool selfInChat,
 		int now) {
 	const auto rows = ArchiveDb().get_all<ChatMembershipRecord>(
-		where(c(&ChatMembershipRecord::peerId) == peerId
+		where(c(&ChatMembershipRecord::accountId) == accountId
+			&& c(&ChatMembershipRecord::peerId) == peerId
 			&& c(&ChatMembershipRecord::chatId) == chatId));
 	if (rows.empty()) {
 		ArchiveDb().insert(ChatMembershipRecord{
+			.accountId = accountId,
 			.peerId = peerId,
 			.chatId = chatId,
 			.chatTitle = title.toStdString(),
@@ -244,9 +305,13 @@ void noteChat(
 	ArchiveDb().update(row);
 }
 
-[[nodiscard]] bool HasStoredUserpic(long long peerId, long long photoId) {
+[[nodiscard]] bool HasStoredUserpic(
+		long long accountId,
+		long long peerId,
+		long long photoId) {
 	const auto rows = ArchiveDb().get_all<UserpicRecord>(
-		where(c(&UserpicRecord::peerId) == peerId
+		where(c(&UserpicRecord::accountId) == accountId
+			&& c(&UserpicRecord::peerId) == peerId
 			&& c(&UserpicRecord::photoId) == photoId),
 		order_by(&UserpicRecord::observedAt).desc(),
 		limit(1));
@@ -254,11 +319,13 @@ void noteChat(
 }
 
 void insertUserpicRecord(
+		long long accountId,
 		long long peerId,
 		const QString &path,
 		int now,
 		long long photoId) {
 	ArchiveDb().insert(UserpicRecord{
+		.accountId = accountId,
 		.peerId = peerId,
 		.localPath = path.toStdString(),
 		.observedAt = now,
@@ -269,13 +336,14 @@ void insertUserpicRecord(
 void saveUserpicToDisk(
 		not_null<UserData*> user,
 		int now,
+		long long accountId,
 		long long peerId) {
 	if (!AyuSettings::getInstance().archiveSaveUserpics()) {
 		return;
 	}
 	user->loadUserpic();
 	const auto photoId = static_cast<long long>(user->userpicPhotoId());
-	if (HasStoredUserpic(peerId, photoId)) {
+	if (HasStoredUserpic(accountId, peerId, photoId)) {
 		return;
 	}
 	const auto path = UserpicArchiveDir()
@@ -293,8 +361,8 @@ void saveUserpicToDisk(
 			return false;
 		}
 		SaveImageAsync(std::move(image), path, [=](bool ok) {
-			if (ok && !HasStoredUserpic(peerId, photoId)) {
-				insertUserpicRecord(peerId, path, now, photoId);
+			if (ok && !HasStoredUserpic(accountId, peerId, photoId)) {
+				insertUserpicRecord(accountId, peerId, path, now, photoId);
 			}
 		});
 		return true;
@@ -443,10 +511,97 @@ void FlushObservations(not_null<Main::Session*> session) {
 	}
 }
 
+// Rows written before account scoping carry accountId 0. The first account to
+// attach after the upgrade claims them, which cannot merge two live accounts.
+void AdoptLegacyRows(long long accountId) {
+	if (!accountId) {
+		return;
+	}
+	if (!ArchiveDb().count<ProfileRecord>(
+			where(c(&ProfileRecord::accountId) == 0))) {
+		return;
+	}
+	ArchiveDb().update_all(
+		set(c(&ProfileRecord::accountId) = accountId),
+		where(c(&ProfileRecord::accountId) == 0));
+	ArchiveDb().update_all(
+		set(c(&UsernameRecord::accountId) = accountId),
+		where(c(&UsernameRecord::accountId) == 0));
+	ArchiveDb().update_all(
+		set(c(&NameRecord::accountId) = accountId),
+		where(c(&NameRecord::accountId) == 0));
+	ArchiveDb().update_all(
+		set(c(&BioRecord::accountId) = accountId),
+		where(c(&BioRecord::accountId) == 0));
+	ArchiveDb().update_all(
+		set(c(&UserpicRecord::accountId) = accountId),
+		where(c(&UserpicRecord::accountId) == 0));
+	ArchiveDb().update_all(
+		set(c(&ChatMembershipRecord::accountId) = accountId),
+		where(c(&ChatMembershipRecord::accountId) == 0));
+}
+
 } // namespace
 
 bool archiveEnabled() {
 	return ArchiveEnabledCache();
+}
+
+long long archiveAccountId(not_null<Main::Session*> session) {
+	return AccountId(session);
+}
+
+int archiveApiWaitMs() {
+	const auto now = crl::now();
+	if (const auto blocked = ApiBlockedUntil() - now; blocked > 0) {
+		return int(blocked);
+	}
+	RefillApiTokens(now);
+	if (ApiTokens() >= 1.) {
+		return 0;
+	}
+	return int((1. - ApiTokens()) * kApiMinIntervalMs) + 1;
+}
+
+bool archiveTakeApiSlot() {
+	const auto now = crl::now();
+	if (now < ApiBlockedUntil()) {
+		return false;
+	}
+	RefillApiTokens(now);
+	if (ApiTokens() < 1.) {
+		return false;
+	}
+	ApiTokens() -= 1.;
+	return true;
+}
+
+int archiveFloodWaitSeconds(const QString &errorType) {
+	static const auto expression = QRegularExpression(
+		u"^FLOOD(_PREMIUM)?_WAIT_(\\d+)$"_q);
+	const auto match = expression.match(errorType);
+	return match.hasMatch() ? match.captured(2).toInt() : 0;
+}
+
+void archiveNoteFloodWait(int seconds) {
+	if (seconds <= 0) {
+		return;
+	}
+	const auto until = crl::now()
+		+ crl::time(std::min(seconds, 3600)) * 1000
+		+ 1000;
+	if (until > ApiBlockedUntil()) {
+		ApiBlockedUntil() = until;
+	}
+}
+
+void archiveNoteApiFailure(const QString &errorType) {
+	if (const auto flood = archiveFloodWaitSeconds(errorType)) {
+		archiveNoteFloodWait(flood);
+		LOG(("PeerArchive: flood wait %1 sec, archive requests paused").arg(flood));
+		return;
+	}
+	LOG(("PeerArchive: API request failed: %1").arg(errorType));
 }
 
 void setArchiveEnabled(bool enabled) {
@@ -456,6 +611,12 @@ void setArchiveEnabled(bool enabled) {
 
 void attachSession(not_null<Main::Session*> session) {
 	ArchiveEnabledCache() = AyuSettings::getInstance().peerArchiveEnabled();
+	CurrentAccountId() = AccountId(session);
+	try {
+		AdoptLegacyRows(CurrentAccountId());
+	} catch (const std::exception &ex) {
+		LOG(("PeerArchive: legacy row adoption failed: %1").arg(ex.what()));
+	}
 
 	AyuSettings::getInstance().peerArchiveEnabledChanges(
 	) | rpl::on_next([=](bool enabled) {
@@ -553,19 +714,20 @@ void noteUserObserved(
 		return;
 	}
 	const auto now = base::unixtime::now();
+	const auto accountId = AccountId(&user->session());
 	const auto peerId = StorageId(user->id);
-	touchProfile(peerId, now, source);
-	appendName(peerId, user->firstName, user->lastName, now);
+	touchProfile(accountId, peerId, now, source);
+	appendName(accountId, peerId, user->firstName, user->lastName, now);
 	const auto &bio = user->about();
-	appendBio(peerId, bio, now);
+	appendBio(accountId, peerId, bio, now);
 	enqueueLinksFromText(&user->session(), bio);
 	for (const auto &name : user->usernames()) {
-		appendUsername(peerId, name, now);
+		appendUsername(accountId, peerId, name, now);
 	}
 	if (!user->username().isEmpty()) {
-		appendUsername(peerId, user->username(), now);
+		appendUsername(accountId, peerId, user->username(), now);
 	}
-	saveUserpicToDisk(user, now, peerId);
+	saveUserpicToDisk(user, now, accountId, peerId);
 	if (const auto channelId = user->personalChannelId()) {
 		if (const auto channel = user->session().data().channelLoaded(channelId)) {
 			enqueueCrawlPeer(&user->session(), channel);
@@ -573,9 +735,10 @@ void noteUserObserved(
 		}
 	}
 	if (source.chatId) {
-		if (const auto chatPeer = user->session().data().peer(
+		if (const auto chatPeer = user->session().data().peerLoaded(
 				DeserializePeerId(static_cast<quint64>(source.chatId)))) {
 			noteChat(
+				accountId,
 				peerId,
 				source.chatId,
 				chatPeer->name(),
@@ -596,6 +759,7 @@ void noteMessageAuthor(
 		return;
 	}
 	const auto now = base::unixtime::now();
+	const auto accountId = AccountId(&user->session());
 	const auto peerId = StorageId(user->id);
 	const auto chatId = StorageId(chatPeer->id);
 	const auto source = ObservationSource{
@@ -605,19 +769,20 @@ void noteMessageAuthor(
 		.chatId = chatId,
 		.messageId = messageId ? int(messageId.bare) : 0,
 	};
-	touchProfile(peerId, now, source);
-	appendName(peerId, user->firstName, user->lastName, now);
+	touchProfile(accountId, peerId, now, source);
+	appendName(accountId, peerId, user->firstName, user->lastName, now);
 	const auto &bio = user->about();
-	appendBio(peerId, bio, now);
+	appendBio(accountId, peerId, bio, now);
 	enqueueLinksFromText(&user->session(), bio);
 	for (const auto &name : user->usernames()) {
-		appendUsername(peerId, name, now);
+		appendUsername(accountId, peerId, name, now);
 	}
 	if (!user->username().isEmpty()) {
-		appendUsername(peerId, user->username(), now);
+		appendUsername(accountId, peerId, user->username(), now);
 	}
-	saveUserpicToDisk(user, now, peerId);
+	saveUserpicToDisk(user, now, accountId, peerId);
 	noteChat(
+		accountId,
 		peerId,
 		chatId,
 		chatPeer->name(),
@@ -643,9 +808,11 @@ void queueMessageAuthor(
 			: ObservationSource::Kind::Participant);
 }
 
-ProfileSnapshot loadProfile(long long peerStorageId) {
+ProfileSnapshot LoadProfileFor(long long accountId, long long peerStorageId) {
 	auto result = ProfileSnapshot{ .peerId = peerStorageId };
-	if (const auto profile = ArchiveDb().get_pointer<ProfileRecord>(peerStorageId)) {
+	if (const auto profile = ArchiveDb().get_pointer<ProfileRecord>(
+			accountId,
+			peerStorageId)) {
 		result.firstSeenAt = profile->firstSeenAt;
 		result.lastSeenAt = profile->lastSeenAt;
 		result.firstChatId = profile->firstChatId;
@@ -653,7 +820,8 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 		result.firstSource = QString::fromStdString(profile->firstSource);
 	}
 	const auto usernames = ArchiveDb().get_all<UsernameRecord>(
-		where(c(&UsernameRecord::peerId) == peerStorageId),
+		where(c(&UsernameRecord::accountId) == accountId
+			&& c(&UsernameRecord::peerId) == peerStorageId),
 		order_by(&UsernameRecord::observedAt).desc());
 	for (const auto &row : usernames) {
 		result.usernames.push_back({
@@ -662,7 +830,8 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 		});
 	}
 	const auto names = ArchiveDb().get_all<NameRecord>(
-		where(c(&NameRecord::peerId) == peerStorageId),
+		where(c(&NameRecord::accountId) == accountId
+			&& c(&NameRecord::peerId) == peerStorageId),
 		order_by(&NameRecord::observedAt).desc());
 	for (const auto &row : names) {
 		result.names.push_back({
@@ -672,7 +841,8 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 		});
 	}
 	const auto bios = ArchiveDb().get_all<BioRecord>(
-		where(c(&BioRecord::peerId) == peerStorageId),
+		where(c(&BioRecord::accountId) == accountId
+			&& c(&BioRecord::peerId) == peerStorageId),
 		order_by(&BioRecord::observedAt).desc());
 	for (const auto &row : bios) {
 		result.bios.push_back({
@@ -681,7 +851,8 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 		});
 	}
 	const auto userpics = ArchiveDb().get_all<UserpicRecord>(
-		where(c(&UserpicRecord::peerId) == peerStorageId),
+		where(c(&UserpicRecord::accountId) == accountId
+			&& c(&UserpicRecord::peerId) == peerStorageId),
 		order_by(&UserpicRecord::observedAt).desc());
 	for (const auto &row : userpics) {
 		result.userpics.push_back({
@@ -691,7 +862,8 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 		});
 	}
 	const auto chats = ArchiveDb().get_all<ChatMembershipRecord>(
-		where(c(&ChatMembershipRecord::peerId) == peerStorageId),
+		where(c(&ChatMembershipRecord::accountId) == accountId
+			&& c(&ChatMembershipRecord::peerId) == peerStorageId),
 		order_by(&ChatMembershipRecord::lastSeenAt).desc());
 	for (const auto &row : chats) {
 		result.chats.push_back({
@@ -707,6 +879,10 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 		}
 	}
 	return result;
+}
+
+ProfileSnapshot loadProfile(long long peerStorageId) {
+	return LoadProfileFor(CurrentAccountId(), peerStorageId);
 }
 
 [[nodiscard]] QString LatestDisplayName(const ProfileSnapshot &snapshot) {
@@ -755,7 +931,7 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 	row.subtitle = LatestSubtitle(snapshot);
 
 	auto currentPhotoId = static_cast<long long>(0);
-	if (const auto peer = session->data().peer(
+	if (const auto peer = session->data().peerLoaded(
 			DeserializePeerId(static_cast<quint64>(snapshot.peerId)))) {
 		if (const auto user = peer->asUser()) {
 			currentPhotoId = static_cast<long long>(user->userpicPhotoId());
@@ -778,13 +954,15 @@ std::vector<ArchivedUserRow> searchArchivedUsers(
 		not_null<Main::Session*> session,
 		const QString &query) {
 	const auto needle = query.trimmed().toLower();
+	const auto accountId = AccountId(session);
 	const auto profiles = ArchiveDb().get_all<ProfileRecord>(
+		where(c(&ProfileRecord::accountId) == accountId),
 		order_by(&ProfileRecord::lastSeenAt).desc());
 	auto result = std::vector<ArchivedUserRow>();
 	result.reserve(profiles.size());
 
 	for (const auto &profile : profiles) {
-		const auto snapshot = loadProfile(profile.peerId);
+		const auto snapshot = LoadProfileFor(accountId, profile.peerId);
 		if (!needle.isEmpty() && !SearchBlob(snapshot).contains(needle)) {
 			continue;
 		}
@@ -793,31 +971,73 @@ std::vector<ArchivedUserRow> searchArchivedUsers(
 	return result;
 }
 
-void refreshMembershipFromApi(
+namespace {
+
+constexpr auto kMembershipRefreshStepMs = 1;
+
+struct MembershipRefreshState {
+	std::vector<ChatMembershipRecord> rows;
+	std::size_t index = 0;
+	Fn<void()> done;
+	Fn<void(int, int)> progress;
+};
+
+// One shared chat per event-loop turn: the DB connection is main-thread only,
+// so a worker pool is not an option here.
+void RefreshMembershipStep(
 		not_null<Main::Session*> session,
-		not_null<UserData*> user,
-		Fn<void()> done) {
-	const auto peerId = StorageId(user->id);
-	const auto now = base::unixtime::now();
-	const auto rows = ArchiveDb().get_all<ChatMembershipRecord>(
-		where(c(&ChatMembershipRecord::peerId) == peerId));
-	for (auto row : rows) {
-		const auto chatPeer = session->data().peer(
+		std::shared_ptr<MembershipRefreshState> state) {
+	while (state->index < state->rows.size()) {
+		if (!archiveEnabled()) {
+			if (state->done) {
+				state->done();
+			}
+			return;
+		}
+		auto row = state->rows[state->index++];
+		const auto chatPeer = session->data().peerLoaded(
 			DeserializePeerId(static_cast<quint64>(row.chatId)));
 		if (!chatPeer) {
 			continue;
 		}
-		row.lastSeenAt = now;
+		row.lastSeenAt = base::unixtime::now();
 		row.selfInChat = SelfInChat(chatPeer);
 		row.chatTitle = chatPeer->name().toStdString();
 		ArchiveDb().update(row);
-		if (archiveEnabled()) {
-			scanOpenedChat(session, chatPeer);
+		scanOpenedChat(session, chatPeer);
+		if (state->progress) {
+			state->progress(int(state->index), int(state->rows.size()));
 		}
+		base::call_delayed(kMembershipRefreshStepMs, session, [=] {
+			RefreshMembershipStep(session, state);
+		});
+		return;
 	}
-	if (done) {
-		done();
+	if (state->done) {
+		state->done();
 	}
+}
+
+} // namespace
+
+void refreshMembershipFromApi(
+		not_null<Main::Session*> session,
+		not_null<UserData*> user,
+		Fn<void()> done,
+		Fn<void(int, int)> progress) {
+	auto state = std::make_shared<MembershipRefreshState>();
+	state->rows = ArchiveDb().get_all<ChatMembershipRecord>(
+		where(c(&ChatMembershipRecord::accountId) == AccountId(session)
+			&& c(&ChatMembershipRecord::peerId) == StorageId(user->id)));
+	state->done = std::move(done);
+	state->progress = std::move(progress);
+	if (state->rows.empty()) {
+		if (state->done) {
+			state->done();
+		}
+		return;
+	}
+	RefreshMembershipStep(session, std::move(state));
 }
 
 } // namespace TeleForge::PeerArchive

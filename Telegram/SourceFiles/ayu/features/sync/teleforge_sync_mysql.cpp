@@ -13,6 +13,7 @@
 #include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_rows.h"
+#include "ayu/features/teleforge/teleforge_embeddings.h"
 
 #include "logs.h"
 
@@ -340,7 +341,8 @@ void UploadEmbeddings(
 			+ MySqlQuote(conn, HmacId(row.memoryId, key).toUtf8()) + ","
 			+ MySqlQuote(conn, row.modelId.toUtf8()) + ","
 			+ QByteArray::number(row.dims) + ","
-			+ MySqlQuote(conn, VectorToJson(ProjectEmbedding(row.vector, key))) + ","
+			+ MySqlQuote(conn, VectorToJson(
+				ProjectEmbedding(DeserializeEmbedding(row.vectorBlob), key))) + ","
 			+ MySqlQuote(conn, row.scopeType.toUtf8()) + ","
 			+ nullableH(row.chatId) + ","
 			+ nullableH(row.userId) + ","

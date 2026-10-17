@@ -10,6 +10,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
+#include <cstring>
 #include <optional>
 #include <string>
 #include <unordered_set>
@@ -59,6 +60,26 @@ namespace {
 [[nodiscard]] std::vector<char> Vec(const QJsonValue &v) {
 	const auto b = QByteArray::fromBase64(v.toString().toLatin1());
 	return std::vector<char>(b.constData(), b.constData() + b.size());
+}
+
+constexpr auto kCompressedPayloadMagic = "TFZ1";
+constexpr auto kPayloadCompressionLevel = 6;
+
+// The row payload is JSON with ids and base64 blobs, so it compresses several
+// times over even with a small window. The marker keeps rows written by older
+// builds readable, since only this function's output is ever unpacked.
+[[nodiscard]] QByteArray PackPayload(const QByteArray &plain) {
+	const auto compressed = qCompress(plain, kPayloadCompressionLevel);
+	if (compressed.size() + 4 >= plain.size()) {
+		return plain;
+	}
+	return QByteArray(kCompressedPayloadMagic, 4) + compressed;
+}
+
+[[nodiscard]] QByteArray UnpackPayload(const QByteArray &stored) {
+	const auto packed = stored.size() > 4
+		&& !std::memcmp(stored.constData(), kCompressedPayloadMagic, 4);
+	return packed ? qUncompress(stored.mid(4)) : stored;
 }
 
 // Full, self-describing JSON serialization of a captured message. 64-bit ids
@@ -170,7 +191,7 @@ namespace {
 	row.edited = edited;
 	row.date = m.date;
 	row.editDate = m.editDate;
-	row.payload = EncryptBundle(SerializeMessage(m), key);
+	row.payload = EncryptBundle(PackPayload(SerializeMessage(m)), key);
 	return row;
 }
 
@@ -218,7 +239,11 @@ int ApplyMessageRows(
 			if (!decrypted) {
 				continue;
 			}
-			const auto parsed = DeserializeMessage(*decrypted);
+			const auto plain = UnpackPayload(*decrypted);
+			if (plain.isEmpty()) {
+				continue;
+			}
+			const auto parsed = DeserializeMessage(plain);
 			if (!parsed || parsed->contentHash.empty()) {
 				continue;
 			}

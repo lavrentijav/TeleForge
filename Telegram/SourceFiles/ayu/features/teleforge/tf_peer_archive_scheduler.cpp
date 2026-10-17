@@ -25,6 +25,9 @@
 namespace TeleForge::PeerArchive {
 namespace {
 
+using sqlite_orm::c;
+using sqlite_orm::where;
+
 constexpr auto kSchedulerTickMs = 5000;
 
 enum class PollKind {
@@ -136,9 +139,10 @@ void CollectUsers(
 		int otherProfileInterval,
 		int now,
 		std::vector<DueItem> &candidates) {
-	const auto profiles = TeleForge::Storage::Db().get_all<ProfileRecord>();
+	const auto profiles = TeleForge::Storage::Db().get_all<ProfileRecord>(
+		where(c(&ProfileRecord::accountId) == archiveAccountId(session)));
 	for (const auto &profile : profiles) {
-		const auto peer = session->data().peer(
+		const auto peer = session->data().peerLoaded(
 			DeserializePeerId(static_cast<quint64>(profile.peerId)));
 		const auto user = peer ? peer->asUser() : nullptr;
 		if (!user || user->isSelf() || user->isServiceUser()) {
@@ -199,6 +203,8 @@ void PollUserOnline(
 			return;
 		}
 		weak->data().processUsers(result);
+	}).fail([=](const MTP::Error &error) {
+		archiveNoteApiFailure(error.type());
 	}).send();
 	LastOnlinePoll()[user->id.value] = base::unixtime::now();
 	setOnlinePollPrecisionSeconds(user->id.value, precisionSeconds);
@@ -217,6 +223,9 @@ void PollChat(not_null<Main::Session*> session, not_null<PeerData*> peer) {
 
 void ProcessTick(not_null<Main::Session*> session) {
 	if (!ShouldRun()) {
+		return;
+	}
+	if (archiveApiWaitMs() > 0) {
 		return;
 	}
 	const auto &settings = AyuSettings::getInstance();
@@ -267,10 +276,13 @@ void ProcessTick(not_null<Main::Session*> session) {
 	if (best == end(candidates) || best->overdue < 0) {
 		return;
 	}
+	if (!archiveTakeApiSlot()) {
+		return;
+	}
 
 	switch (best->kind) {
 	case PollKind::Chat: {
-		const auto peer = session->data().peer(
+		const auto peer = session->data().peerLoaded(
 			DeserializePeerId(static_cast<quint64>(best->id)));
 		if (peer) {
 			PollChat(session, peer);
