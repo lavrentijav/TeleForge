@@ -191,7 +191,7 @@ QImage TrayIconRasterBase(int size, int unreadCount, bool muted) {
 		auto hq = PainterHighQualityEnabler(p);
 		auto renderer = QSvgRenderer(content);
 		// WHY: the tray art occupies 159..892 x 85..911 of its 1024 canvas.
-		renderer.setViewBox(QRectF(106, 78, 840, 840));
+		renderer.setViewBox(QRectF(96, 68, 860, 860));
 		renderer.render(&p, QRectF(0, 0, size, size));
 	}
 	return TrayRasterCaches[variant].emplace(size, std::move(image)).first->second;
