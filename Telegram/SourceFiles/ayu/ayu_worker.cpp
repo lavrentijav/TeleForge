@@ -8,6 +8,7 @@
 
 #include "apiwrap.h"
 #include "ayu_settings.h"
+#include "ayu/features/presence/tf_presence_filter.h"
 #include "base/timer.h"
 #include "base/unixtime.h"
 #include "core/application.h"
@@ -18,10 +19,13 @@
 #include "main/main_session.h"
 
 namespace AyuWorker {
+namespace {
+
+constexpr auto kOfflinePacketDelay = crl::time(3000);
+
+std::unordered_map<ID, bool> scheduled;
 
 void runOnce();
-
-std::unordered_map<ID, bool> state;
 
 base::Timer &workerTimer() {
 	static base::Timer timer([] {
@@ -30,17 +34,27 @@ base::Timer &workerTimer() {
 	return timer;
 }
 
-void markAsOnline(not_null<Main::Session*> session) {
-	state[session->userId().bare] = true;
+[[nodiscard]] bool hasScheduled() {
+	for (const auto &entry : scheduled) {
+		if (entry.second) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void armTimer() {
+	if (!hasScheduled()) {
+		return;
+	}
 	workerTimer().cancel();
-	workerTimer().callEach(3000);
+	workerTimer().callOnce(kOfflinePacketDelay);
 }
 
 void lateInit() {
 	for (const auto &[index, account] : Core::App().domain().accounts()) {
 		if (const auto session = account->maybeSession()) {
-			const auto id = session->userId().bare;
-			state[id] = true;
+			scheduled[session->userId().bare] = true;
 		}
 	}
 }
@@ -50,7 +64,7 @@ void runOnce() {
 		return;
 	}
 
-	if (state.empty()) {
+	if (scheduled.empty()) {
 		lateInit();
 	}
 
@@ -60,30 +74,37 @@ void runOnce() {
 		if (account) {
 			if (const auto session = account->maybeSession()) {
 				const auto id = session->userId().bare;
-				if (!state.contains(id)) {
-					state[id] = true;
+				if (!scheduled.contains(id)) {
+					scheduled[id] = true;
+				}
+				if (!scheduled[id] && !session->user()->lastseen().isOnline(t)) {
+					continue;
 				}
 
 				const auto &ghost = AyuSettings::ghost(session);
+				scheduled[id] = false;
 				if (!ghost.sendOfflinePacketAfterOnline()) {
 					continue;
 				}
 
-				if (state[id] || session->user()->lastseen().isOnline(t)) {
-					session->api().request(MTPaccount_UpdateStatus(
-						MTP_bool(true)
-					)).send();
-					state[id] = false;
+				TeleForge::Presence::sendStatus(session, true);
 
-					DEBUG_LOG(("[AyuGram] Sent offline for account with id %1").arg(id));
-				}
+				DEBUG_LOG(("[AyuGram] Sent offline for account with id %1").arg(id));
 			}
 		}
 	}
 }
 
+} // namespace
+
+void scheduleOfflinePacket(not_null<Main::Session*> session) {
+	scheduled[session->userId().bare] = true;
+	armTimer();
+}
+
 void initialize() {
-	workerTimer().callEach(3000);
+	lateInit();
+	armTimer();
 }
 
 }

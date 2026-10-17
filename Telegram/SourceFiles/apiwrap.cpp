@@ -5229,7 +5229,7 @@ void ApiWrap::sendBotStart(
 	)).done([=](const MTPUpdates &result) {
 		applyUpdates(result);
 
-		AyuWorker::markAsOnline(_session);
+		AyuWorker::scheduleOfflinePacket(_session);
 	}).fail([=](const MTP::Error &error) {
 		if (chat) {
 			const auto type = error.type();

@@ -77,6 +77,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "apiwrap.h"
 #include "ayu/features/ghost/tf_ghost_audit.h"
+#include "ayu/features/presence/tf_presence_filter.h"
 #include "ui/text/format_values.h" // Ui::FormatPhone
 
 // AyuGram includes
@@ -1006,10 +1007,10 @@ void Updates::updateOnline(crl::time lastNonIdleTime, bool gotOtherOffline) {
 	});
 
 	// AyuGram sendOnlinePackets
-	const auto &ghost = AyuSettings::ghost(_session);
 	const auto& config = _session->serverConfig();
-	bool isOnlineOrig = Core::App().hasActiveWindow(&session());
-	bool isOnline = ghost.sendOnlinePackets() && isOnlineOrig;
+	const auto isOnlineOrig = Core::App().hasActiveWindow(&session());
+	auto isOnline = TeleForge::Presence::maySendStatus(_session, false)
+		&& isOnlineOrig;
 
 	int updateIn = config.onlineUpdatePeriod;
 	Assert(updateIn >= 0);
@@ -1041,17 +1042,9 @@ void Updates::updateOnline(crl::time lastNonIdleTime, bool gotOtherOffline) {
 		// staying quiet.
 		_lastWasOnline = isOnline;
 		_lastSetOnline = ms;
-		if (!isOnline) {
-			TeleForge::Ghost::noteWakeSignal(
-				_session,
-				u"account.updateStatus"_q,
-				u"offline"_q);
-		}
 		if (!Core::Quitting()) {
-			_onlineRequest = api().request(MTPaccount_UpdateStatus(
-				MTP_bool(!isOnline)
-			)).send();
-		} else {
+			TeleForge::Presence::sendStatus(_session, !isOnline);
+		} else if (TeleForge::Presence::maySendStatus(_session, !isOnline)) {
 			_onlineRequest = api().request(MTPaccount_UpdateStatus(
 				MTP_bool(!isOnline)
 			)).done([=] {
@@ -1059,6 +1052,8 @@ void Updates::updateOnline(crl::time lastNonIdleTime, bool gotOtherOffline) {
 			}).fail([=] {
 				Core::App().quitPreventFinished();
 			}).send();
+		} else {
+			Core::App().quitPreventFinished();
 		}
 
 		const auto self = session().user();
@@ -2150,7 +2145,7 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 			} else if (d.vstatus().type() == mtpc_userStatusOnline) {
 				cSetOtherOnline(
 					d.vstatus().c_userStatusOnline().vexpires().v);
-				AyuWorker::markAsOnline(_session);
+				AyuWorker::scheduleOfflinePacket(_session);
 			}
 		}
 	} break;
