@@ -111,6 +111,20 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Dialogs {
 namespace {
 
+[[nodiscard]] int floorclamp(int value, int rowHeight, int min, int max) {
+	const auto row = (value >= 0)
+		? value / rowHeight
+		: (value - rowHeight + 1) / rowHeight;
+	return std::clamp(row, min, max);
+}
+
+[[nodiscard]] int ceilclamp(int value, int rowHeight, int min, int max) {
+	const auto row = (value > 0)
+		? (value + rowHeight - 1) / rowHeight
+		: value / rowHeight;
+	return std::clamp(row, min, max);
+}
+
 constexpr auto kFreezeTimeout = 2 * crl::time(1000);
 constexpr auto kHashtagResultsLimit = 5;
 constexpr auto kStartReorderThreshold = 30;

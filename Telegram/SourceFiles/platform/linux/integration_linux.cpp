@@ -21,7 +21,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QAbstractEventDispatcher>
 
 #include <gio/gio.hpp>
+#if defined(__has_include)
+#if __has_include(<logind/logind.hpp>)
 #include <logind/logind.hpp>
+#define TF_HAS_LOGIND
+#endif
+#endif
 #include <xdpinhibit/xdpinhibit.hpp>
 
 #ifdef __GLIBC__
@@ -133,7 +138,9 @@ private:
 
 	const gi::ref_ptr<Application> _application;
 	XdpInhibit::InhibitProxy _inhibitProxy;
+#ifdef TF_HAS_LOGIND
 	Logind::ManagerProxy _logindProxy;
+#endif
 #if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
 	base::Platform::XDP::SettingWatcher _darkModeWatcher;
 #endif // Qt < 6.5.0
@@ -197,6 +204,7 @@ void LinuxIntegration::init() {
 }
 
 void LinuxIntegration::initSystemSleep() {
+#ifdef TF_HAS_LOGIND
 	const auto info = Logind::Manager::interface_info();
 	const auto annotations = gi::wrap_to<gi::Collection<
 		gi::ZTSpan,
@@ -232,6 +240,7 @@ void LinuxIntegration::initSystemSleep() {
 					Core::App().notifySystemSleep();
 				}));
 		}));
+#endif // TF_HAS_LOGIND
 }
 
 void LinuxIntegration::initInhibit() {

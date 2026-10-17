@@ -46,7 +46,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/linux/base_linux_xdp_utilities.h"
 #include "platform/linux/update_install_linux.h"
 
+#if defined(__has_include)
+#if __has_include(<flatpakportal/flatpakportal.hpp>)
 #include <flatpakportal/flatpakportal.hpp>
+#define TDESKTOP_HAS_FLATPAKPORTAL
+#endif
+#endif
 #endif // !Q_OS_WIN && !Q_OS_MAC
 
 extern "C" {
@@ -261,7 +266,7 @@ private:
 
 };
 
-#if !defined Q_OS_WIN && !defined Q_OS_MAC
+#if defined(TDESKTOP_HAS_FLATPAKPORTAL)
 class FlatpakChecker : public Checker {
 public:
 	FlatpakChecker(bool testing);
@@ -293,7 +298,7 @@ private:
 	ulong _progressSignal = 0;
 
 };
-#endif // !Q_OS_WIN && !Q_OS_MAC
+#endif // TDESKTOP_HAS_FLATPAKPORTAL
 
 std::shared_ptr<Updater> GetUpdaterInstance() {
 	if (const auto result = UpdaterInstance.lock()) {
@@ -1340,6 +1345,7 @@ Fn<void(const MTP::Error &error)> MtpChecker::failHandler() {
 }
 
 #if !defined Q_OS_WIN && !defined Q_OS_MAC
+#if defined(TDESKTOP_HAS_FLATPAKPORTAL)
 FlatpakChecker::FlatpakChecker(bool testing)
 : Checker(testing)
 , _watcher({u"/app"_q}) {
@@ -1492,6 +1498,7 @@ FlatpakLoader::~FlatpakLoader() {
 		_monitor.disconnect(_progressSignal);
 	}
 }
+#endif // TDESKTOP_HAS_FLATPAKPORTAL
 #endif // !Q_OS_WIN && !Q_OS_MAC
 
 } // namespace
@@ -1726,7 +1733,7 @@ void Updater::start(bool forceWait) {
 	}
 
 	if (KSandbox::isFlatpak()) {
-#if !defined Q_OS_WIN && !defined Q_OS_MAC
+#if !defined Q_OS_WIN && !defined Q_OS_MAC && defined(TDESKTOP_HAS_FLATPAKPORTAL)
 		if (!_flatpakImplementation.checker) {
 			startImplementation(
 				&_flatpakImplementation,

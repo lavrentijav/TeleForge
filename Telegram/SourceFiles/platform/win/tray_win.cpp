@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/win/tray_win.h"
 
+#include "base/flat_map.h"
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
@@ -60,20 +61,94 @@ bool DarkTasbarValueValid/* = false*/;
 	return (value == 0);
 }
 
+// WHY: the tray SVG is filled with dark paint, so it is repainted as a masked
+// silhouette; colorizing it by channel would keep it fully transparent.
+[[nodiscard]] QImage SolidIcon(const QImage &mask, QColor color) {
+	auto result = QImage(mask.size(), QImage::Format_ARGB32_Premultiplied);
+	result.fill(Qt::transparent);
+	{
+		auto p = QPainter(&result);
+		p.drawImage(0, 0, mask);
+		p.setCompositionMode(QPainter::CompositionMode_SourceIn);
+		p.fillRect(QRect(QPoint(0, 0), mask.size()), color);
+	}
+	return result;
+}
+
+[[nodiscard]] QImage MonochromeIconFor(int size, bool darkMode) {
+	Expects(size > 0);
+
+	static auto Light = QImage();
+	static auto Dark = QImage();
+	auto &result = darkMode ? Dark : Light;
+	if (result.width() != size) {
+		result = SolidIcon(
+			Window::TrayIconRasterBase(size, 0, false),
+			darkMode ? QColor(255, 255, 255) : QColor(0, 0, 0, 228));
+	}
+	return result;
+}
+
+[[nodiscard]] QImage MonochromeWithDot(QImage image, style::color color) {
+	auto p = QPainter(&image);
+	auto hq = PainterHighQualityEnabler(p);
+	const auto xm = image.width() / 16.;
+	const auto ym = image.height() / 16.;
+	p.setBrush(color);
+	p.setPen(Qt::NoPen);
+	p.drawEllipse(QRectF( // cx=3.9, cy=12.7, r=2.2
+		1.7 * xm,
+		10.5 * ym,
+		4.4 * xm,
+		4.4 * ym));
+	return image;
+}
+
 [[nodiscard]] QImage ImageIconWithCounter(
 		Window::CounterLayerArgs &&args,
 		bool supportMode,
 		bool smallIcon,
 		bool monochrome) {
-	const auto darkMode = IsDarkTaskbar();
-	const auto unread = Core::App().unreadBadge();
-	const auto muted = Core::App().unreadBadgeMuted();
+	static auto ScaledLogo = base::flat_map<int, QImage>();
+	static auto ScaledLogoNoMargin = base::flat_map<int, QImage>();
 
-	auto result = Window::TrayIconRasterBase(args.size, unread, muted);
-	if ((!monochrome || !darkMode) && supportMode) {
+	const auto darkMode = IsDarkTaskbar();
+	const auto monochromeMode = (monochrome && darkMode);
+
+	auto result = [&] {
+		if (monochromeMode) {
+			return MonochromeIconFor(args.size, *darkMode);
+		}
+		auto &scaled = smallIcon ? ScaledLogoNoMargin : ScaledLogo;
+		if (const auto it = scaled.find(args.size); it != scaled.end()) {
+			return it->second;
+		}
+		return scaled.emplace(
+			args.size,
+			(smallIcon
+				? Window::LogoNoMargin()
+				: Window::Logo()
+			).scaledToWidth(args.size, Qt::SmoothTransformation)
+		).first->second;
+	}();
+	if (!monochromeMode && supportMode) {
 		Window::ConvertIconToBlack(result);
 	}
-	// TeleForge: unread/mute are shown via alternate tray SVGs only.
+	if (!args.count) {
+		return result;
+	} else if (smallIcon) {
+		if (monochromeMode) {
+			return MonochromeWithDot(std::move(result), args.bg);
+		}
+		return Window::WithSmallCounter(std::move(result), std::move(args));
+	}
+	QPainter p(&result);
+	const auto half = args.size / 2;
+	args.size = half;
+	p.drawPixmap(
+		half,
+		half,
+		Ui::PixmapFromImage(Window::GenerateCounterLayer(std::move(args))));
 	return result;
 }
 

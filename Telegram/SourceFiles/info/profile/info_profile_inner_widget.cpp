@@ -393,7 +393,6 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 				stack.add(Section{
 					.widget = std::move(archive),
 					.shown = rpl::single(true),
-					.trailing = SectionSeparator::None(),
 				});
 			}
 		}
@@ -406,7 +405,6 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 		stack.add(Section{
 			.widget = std::move(teleforge),
 			.shown = rpl::single(true),
-			.trailing = SectionSeparator::None(),
 		});
 	}
 	if (auto actions = SetupActions(_controller, result.data(), _peer)) {

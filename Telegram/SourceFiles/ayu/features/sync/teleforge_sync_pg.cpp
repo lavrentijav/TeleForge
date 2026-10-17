@@ -249,7 +249,8 @@ constexpr auto kEmbeddingUpsertSql =
 	auto material = QByteArray();
 	for (const auto &hash : hashes) {
 		material += hash;
-		material += '\n';
+		material += '
+';
 	}
 	const auto sha = QCryptographicHash::hash(
 		material,
@@ -653,7 +654,8 @@ namespace {
 void RunPgUpload(
 		not_null<Main::Session*> session,
 		const QByteArray &syncKey,
-		Fn<void(bool ok, QString error)> done) {
+		Fn<void(bool ok, QString error)> done,
+		Fn<void(int done, int total)> onProgress) {
 	if (done) {
 		done(false, NotCompiledError());
 	}

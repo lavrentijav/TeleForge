@@ -423,7 +423,7 @@ void MainWindow::createGlobalMenu() {
 			u"TeleForge"_q),
 		[=] {
 			ensureWindowShown();
-			controller().show(Box(AboutBox, sessionController()));
+			controller().show(Box(AboutBox));
 		});
 
 	about->setMenuRole(QAction::AboutQtRole);

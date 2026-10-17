@@ -515,7 +515,8 @@ namespace {
 void RunMySqlUpload(
 		not_null<Main::Session*> session,
 		const QByteArray &syncKey,
-		Fn<void(bool ok, QString error)> done) {
+		Fn<void(bool ok, QString error)> done,
+		Fn<void(int done, int total)> onProgress) {
 	if (done) {
 		done(false, NotCompiledError());
 	}
