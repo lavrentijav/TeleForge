@@ -1,0 +1,208 @@
+name: TeleForge Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 6.9.0)'
+        required: false
+        type: string
+      arch:
+        description: 'Target architecture'
+        required: true
+        default: x86_64
+        type: choice
+        options:
+          - x86_64
+          - aarch64
+          - both
+
+concurrency:
+  group: teleforge-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/telegramdesktop/tdesktop/centos_env:latest
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: Telegram/build/version
+      - id: resolve
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(sed -n 's/^AppVersionStrSmall //p' Telegram/build/version)
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "Could not resolve version" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release version: $VERSION"
+
+  linux-build:
+    name: Linux build ${{ matrix.arch }}
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            platform: linux/amd64
+          - arch: aarch64
+            platform: linux/arm64
+    steps:
+      - name: Select architectures
+        id: filter
+        run: |
+          INPUT="${{ github.event.inputs.arch || 'both' }}"
+          if [ "$INPUT" != "both" ] && [ "$INPUT" != "${{ matrix.arch }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Clone
+        if: steps.filter.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up QEMU
+        if: steps.filter.outputs.skip != 'true' && matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Pull toolchain image
+        if: steps.filter.outputs.skip != 'true'
+        run: docker pull --platform ${{ matrix.platform }} ${{ env.IMAGE }}
+
+      - name: Build
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          docker run --rm --platform ${{ matrix.platform }} -u 0 \
+            -v "$PWD:/usr/src/teleforge" \
+            -w /usr/src/teleforge/tdesktop/Telegram \
+            ${{ env.IMAGE }} \
+            bash -c '
+              set -e
+              export HOME=/tmp
+              bash ./configure.sh \
+                -G Ninja \
+                -D TDESKTOP_API_ID=29721186 \
+                -D TDESKTOP_API_HASH=196a54e79899fbf76333ded98ff5027f \
+                -D DESKTOP_APP_USE_LLAMA_CPP=OFF \
+                -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+                -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+              cmake --build ../out --config Release --parallel "$(nproc)"
+              DESTDIR=/usr/src/teleforge/stage-'"${{ matrix.arch }}"' \
+                cmake --install ../out --config Release --prefix /usr
+            '
+
+      - name: Check
+        if: steps.filter.outputs.skip != 'true'
+        run: |
+          find stage-${{ matrix.arch }} -maxdepth 4 -type f | sort | head -40
+          test -d stage-${{ matrix.arch }}/usr/bin || { echo "install tree is empty"; exit 1; }
+
+      - name: Upload install tree
+        if: steps.filter.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: teleforge-stage-${{ matrix.arch }}
+          path: stage-${{ matrix.arch }}
+          retention-days: 7
+
+  linux-packages:
+    name: Linux packages ${{ matrix.arch }}
+    needs: [version, linux-build]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+
+      - name: Download install tree
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: teleforge-stage-${{ matrix.arch }}
+          path: stage
+
+      - name: Skip when the build was filtered out
+        id: guard
+        run: |
+          if [ -d stage/usr/bin ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install packaging tools
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm xz-utils
+
+      - name: Package
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          chmod +x packaging/linux/package.sh
+          packaging/linux/package.sh stage "${{ needs.version.outputs.version }}" \
+            "${{ matrix.arch }}" dist
+
+      - name: Upload packages
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: teleforge-packages-${{ matrix.arch }}
+          path: dist/*
+          retention-days: 7
+
+  publish:
+    name: Publish release
+    needs: [version, linux-packages]
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: teleforge-packages-*
+          merge-multiple: true
+          path: dist
+
+      - name: List assets
+        run: ls -lh dist
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --title "TeleForge $VERSION" \
+              --notes "Linux packages for TeleForge $VERSION."
+          fi

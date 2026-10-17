@@ -1,0 +1,122 @@
+# Maintainer: TeleForge <lavrentijav@gmail.com>
+# Source package: builds TeleForge from the Git repository.
+# Regenerate .SRCINFO with `makepkg --printsrcinfo > .SRCINFO` before pushing to AUR.
+
+pkgname=teleforge-git
+pkgver=6.9.0.r0.g0000000
+pkgrel=1
+pkgdesc='TeleForge Desktop messenger, built from source'
+arch=('x86_64')
+url='https://github.com/lavrentijav/TeleForge'
+license=('GPL-3.0-or-later')
+provides=('teleforge' 'telegram-desktop')
+conflicts=('teleforge' 'teleforge-bin' 'telegram-desktop' 'telegram-desktop-git')
+options=('!lto' '!debug')
+depends=(
+  abseil-cpp
+  ada
+  ffmpeg
+  hunspell
+  kcoreaddons
+  libavif
+  libfido2
+  libheif
+  libjxl
+  libsrtp
+  libvpx
+  lz4
+  minizip
+  openal
+  openh264
+  opus
+  qt6-base
+  qt6-imageformats
+  qt6-svg
+  qt6-wayland
+  range-v3
+  rnnoise
+  tlottie
+  xxhash
+)
+makedepends=(
+  boost
+  boost-libs
+  cmake
+  extra-cmake-modules
+  fmt
+  git
+  glib2-devel
+  gobject-introspection
+  gperf
+  jemalloc
+  libtg_owt
+  ninja
+  qt6-shadertools
+  tl-expected
+  vulkan-headers
+)
+optdepends=(
+  'webkit2gtk-4.1: embedded browser features'
+  'xdg-desktop-portal: desktop integration'
+)
+
+_commit=''
+_pkgsrc='TeleForge'
+_pkgsrc_tdlib='telegram-tdlib'
+
+source=(
+  "$_pkgsrc"::"git+https://github.com/lavrentijav/TeleForge.git${_commit:+#commit=$_commit}"
+  "$_pkgsrc_tdlib"::"git+https://github.com/tdlib/td.git"
+)
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+  cd "$_pkgsrc"
+  git submodule update --init --recursive --depth=1
+}
+
+pkgver() {
+  cd "$_pkgsrc"
+  local _base
+  _base=$(sed -n 's/^AppVersionStrSmall //p' Telegram/build/version)
+  printf '%s.r%s.g%s' "${_base:-0}" "$(git rev-list --count HEAD)" \
+    "$(git rev-parse --short=7 HEAD)"
+}
+
+build() {
+  local _cmake_tde2e=(
+    -B build_tde2e
+    -S "$_pkgsrc_tdlib"
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=None
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DTD_E2E_ONLY=ON
+    -DBUILD_SHARED_LIBS=OFF
+    -DBUILD_TESTING=OFF
+    -Wno-author
+  )
+  cmake "${_cmake_tde2e[@]}"
+  cmake --build build_tde2e
+  DESTDIR="$srcdir/deps" cmake --install build_tde2e
+
+  local _cmake_options=(
+    -B build
+    -S "$_pkgsrc/Telegram"
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=None
+    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_PREFIX_PATH="$srcdir/deps/usr"
+    -DDESKTOP_APP_DISABLE_AUTOUPDATE=ON
+    -DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+    -DDESKTOP_APP_USE_LLAMA_CPP=OFF
+    -DTDESKTOP_API_ID=29721186
+    -DTDESKTOP_API_HASH=196a54e79899fbf76333ded98ff5027f
+    -Wno-author
+  )
+  cmake "${_cmake_options[@]}"
+  cmake --build build
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install build
+}
