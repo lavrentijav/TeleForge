@@ -110,7 +110,7 @@ not_null<Ui::SlideWrap<Ui::FlatLabel>*> AddError(
 			content,
 			object_ptr<Ui::FlatLabel>(
 				content,
-				QString::fromStdString(errorText) + QString::fromStdString(errorText),
+				QString::fromStdString(errorText),
 				st::settingLocalPasscodeError), st::settingsCheckboxPadding));
 	error->hide(anim::type::instant);
 	if (input) {

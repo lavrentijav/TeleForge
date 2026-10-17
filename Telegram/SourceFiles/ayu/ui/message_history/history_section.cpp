@@ -240,10 +240,14 @@ int FixedBar::resizeGetHeight(int newWidth) {
 
 	const auto newHeight = _backButton->height();
 	const auto fieldLeft = searchShownLeft + _search->width();
+	const auto fieldWidth = std::max(cancelLeft - fieldLeft, 0);
+	if (_searchShown || _searchShownAnimation.animating()) {
+		_field->setVisible(fieldWidth > 0);
+	}
 	_field->setGeometryToLeft(
 		fieldLeft,
 		st::historyAdminLogSearchTop,
-		cancelLeft - fieldLeft,
+		fieldWidth,
 		_field->height());
 
 	return newHeight;

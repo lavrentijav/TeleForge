@@ -13,7 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 enum class ChatAdminRight;
 
-enum class ChatDataFlag {
+enum class ChatDataFlag : uint32 {
 	Left = (1 << 0),
 	//Kicked = (1 << 1),
 	Creator = (1 << 2),
@@ -25,7 +25,7 @@ enum class ChatDataFlag {
 	NoForwards = (1 << 8),
 	HasWelcomeMessages = (1 << 9),
 
-	AyuNoForwards = (1 << 31),
+	AyuNoForwards = (1u << 31),
 };
 inline constexpr bool is_flag_type(ChatDataFlag) { return true; };
 using ChatDataFlags = base::flags<ChatDataFlag>;
