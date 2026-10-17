@@ -191,6 +191,11 @@ private:
 	void connectingAnimationCallback();
 
 	void paintTopBar(Painter &p);
+	[[nodiscard]] std::optional<QRect> ghostChipRect(
+		int right,
+		int top,
+		int availableWidth);
+	void paintGhostChip(Painter &p, const QRect &rect);
 	[[nodiscard]] PeerData *titleNamePeer() const;
 	void paintStatus(
 		Painter &p,

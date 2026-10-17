@@ -371,8 +371,10 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 			};
 
+			// WHY: same rule as isGhostModeActive() - any checked option
+			// already makes the switch report the mode as on.
 			auto collapsible = AddCollapsibleToggle(
-				container, tr::ayu_GhostModeToggle(), std::move(checkboxes), true);
+				container, tr::ayu_GhostModeToggle(), std::move(checkboxes), false);
 			state->refreshCheckboxes = std::move(collapsible.refresh);
 			if (wctx.highlights && collapsible.widget) {
 				wctx.highlights->push_back(std::make_pair(

@@ -48,26 +48,23 @@ rpl::lifetime lifetime; // idk reactivity dies when placed in `GhostModeAccountS
 GhostModeAccountSettings::GhostModeAccountSettings() {
 	rpl::combine(
 		_sendReadMessages.value(),
-		_sendReadMessagesLocked.value(),
 		_sendReadStories.value(),
-		_sendReadStoriesLocked.value(),
 		_sendOnlinePackets.value(),
-		_sendOnlinePacketsLocked.value(),
 		_sendUploadProgress.value(),
-		_sendUploadProgressLocked.value(),
-		_sendOfflinePacketAfterOnline.value(),
-		_sendOfflinePacketAfterOnlineLocked.value()
+		_sendOfflinePacketAfterOnline.value()
 	) | rpl::on_next([=](
-			bool readMsg, bool readMsgLocked,
-			bool readStories, bool readStoriesLocked,
-			bool online, bool onlineLocked,
-			bool upload, bool uploadLocked,
-			bool offline, bool offlineLocked) {
-		_ghostModeActive = (readMsgLocked || !readMsg)
-			&& (readStoriesLocked || !readStories)
-			&& (onlineLocked || !online)
-			&& (uploadLocked || !upload)
-			&& (offlineLocked || offline);
+			bool readMsg,
+			bool readStories,
+			bool online,
+			bool upload,
+			bool offline) {
+		// WHY: a single suppressed leak already hides the user, so the mode
+		// must not stay reported as off while the network is ghosted.
+		_ghostModeActive = !readMsg
+			|| !readStories
+			|| !online
+			|| !upload
+			|| offline;
 	}, lifetime);
 }
 
@@ -130,7 +127,7 @@ void GhostModeAccountSettings::setGhostModeEnabled(bool val) {
 	if (val) {
 		if (const auto window = Core::App().activeWindow()) {
 			if (const auto session = window->maybeSession()) {
-				AyuWorker::markAsOnline(session);
+				AyuWorker::scheduleOfflinePacket(session);
 			}
 		}
 	}

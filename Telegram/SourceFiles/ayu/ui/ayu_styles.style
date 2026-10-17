@@ -113,3 +113,11 @@ ghostPickerButton: LinkButton(defaultLinkButton) {
 }
 
 ayuBetaBadgePadding: margins(4px, 1px, 4px, 1px);
+
+ayuGhostChipBg: windowBgOver;
+ayuGhostChipFg: windowActiveTextFg;
+ayuGhostChipFont: font(11px semibold);
+ayuGhostChipHeight: 16px;
+ayuGhostChipRounding: 4px;
+ayuGhostChipPadding: margins(5px, 0px, 6px, 0px);
+ayuGhostChipSkip: 6px;

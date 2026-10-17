@@ -194,6 +194,11 @@ TopBarWidget::TopBarWidget(
 		updateControlsVisibility();
 	}, lifetime());
 
+	AyuSettings::ghost(&session()).ghostModeActiveValue(
+	) | rpl::on_next([=](bool) {
+		update();
+	}, lifetime());
+
 	_back->setAcceptBoth();
 	_back->addClickHandler([=](Qt::MouseButton) {
 		InvokeQueued(_back.data(), [=] { backClicked(); });
@@ -716,6 +721,14 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			nameleft += skip + st::dialogsChatTypeSkip;
 			namewidth -= skip + st::dialogsChatTypeSkip;
 		}
+		const auto ghostChip = ghostChipRect(
+			nameleft + namewidth,
+			nametop,
+			namewidth);
+		if (ghostChip) {
+			namewidth -= ghostChip->width() + st::ayuGhostChipSkip;
+		}
+
 		const auto badgeWidth = _titleBadge.drawGetWidth(p, {
 			.peer = namePeer,
 			.rectForName = QRect(
@@ -740,6 +753,10 @@ void TopBarWidget::paintTopBar(Painter &p) {
 		});
 		namewidth -= badgeWidth;
 
+		if (ghostChip) {
+			paintGhostChip(p, *ghostChip);
+		}
+
 		p.setPen(st::dialogsNameFg);
 		_title.draw(p, {
 			.position = { nameleft, nametop },
@@ -760,6 +777,43 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			paintStatus(p, statusleft, statustop, statuswidth, width());
 		}
 	}
+}
+
+std::optional<QRect> TopBarWidget::ghostChipRect(
+		int right,
+		int top,
+		int availableWidth) {
+	if (!AyuSettings::ghost(&session()).isGhostModeActive()) {
+		return std::nullopt;
+	}
+	const auto &font = st::ayuGhostChipFont;
+	const auto chipWidth = font->width(u"GHOST"_q)
+		+ st::ayuGhostChipPadding.left()
+		+ st::ayuGhostChipPadding.right();
+	if ((availableWidth < chipWidth + st::ayuGhostChipSkip)
+		|| (right < chipWidth)) {
+		return std::nullopt;
+	}
+	return QRect(
+		right - chipWidth,
+		top + (st::msgNameStyle.font->height - st::ayuGhostChipHeight) / 2,
+		chipWidth,
+		st::ayuGhostChipHeight);
+}
+
+void TopBarWidget::paintGhostChip(Painter &p, const QRect &rect) {
+	p.save();
+	p.setPen(Qt::NoPen);
+	p.setBrush(st::ayuGhostChipBg);
+	p.setFont(st::ayuGhostChipFont);
+	p.setRenderHint(QPainter::Antialiasing);
+	p.drawRoundedRect(
+		rect,
+		st::ayuGhostChipRounding,
+		st::ayuGhostChipRounding);
+	p.setPen(st::ayuGhostChipFg);
+	p.drawText(rect, Qt::AlignCenter, u"GHOST"_q);
+	p.restore();
 }
 
 PeerData *TopBarWidget::titleNamePeer() const {
