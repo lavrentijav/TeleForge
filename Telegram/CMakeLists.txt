@@ -2864,6 +2864,10 @@ if (WIN32)
     if (_tf_mysql_libs)
         list(GET _tf_mysql_libs 0 _tf_mysql_lib)
     endif()
+    if (LINUX AND (NOT _tf_mysql_hdr OR NOT _tf_mysql_lib))
+        find_path(_tf_mysql_hdr NAMES mysql.h PATH_SUFFIXES mariadb mysql)
+        find_library(_tf_mysql_lib NAMES mariadb libmariadb mysqlclient libmysqlclient)
+    endif()
     if (_tf_mysql_hdr AND _tf_mysql_lib)
         get_filename_component(_tf_mysql_incdir "${_tf_mysql_hdr}" DIRECTORY)
         get_filename_component(_tf_mysql_incparent "${_tf_mysql_incdir}" DIRECTORY)
@@ -2900,6 +2904,8 @@ elseif (LINUX)
         target_include_directories(Telegram PRIVATE ${Python3_INCLUDE_DIRS})
         target_link_libraries(Telegram PRIVATE Python3::Python)
     endif()
+    target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-s>)
+
     include(${cmake_helpers_loc}/external/glib/generate_dbus.cmake)
     generate_dbus(Telegram org.freedesktop.portal. XdpBackground ${third_party_loc}/xdg-desktop-portal/data/org.freedesktop.portal.Background.xml)
     generate_dbus(Telegram org.freedesktop.portal. FlatpakPortal ${src_loc}/platform/linux/org.freedesktop.portal.Flatpak.xml)
@@ -2998,6 +3004,8 @@ else()
     PRIVATE
         qrc/telegram/bot_webview_shell.qrc
     )
+
+    target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-s>)
 
     include(${cmake_helpers_loc}/external/glib/generate_dbus.cmake)
     generate_dbus(Telegram org.freedesktop.portal. XdpBackground ${third_party_loc}/xdg-desktop-portal/data/org.freedesktop.portal.Background.xml)
