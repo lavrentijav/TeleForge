@@ -245,10 +245,10 @@ void intelligentForward(
 	const Api::SendAction &action,
 	const Data::ResolvedForwardDraft &draft) {
 	const auto history = action.history;
-	crl::on_main([&]
+	crl::on_main(crl::guard(session, [=]
 	{
 		history->setForwardDraft(action.replyTo.topicRootId, action.replyTo.monoforumPeerId, {});
-	});
+	}));
 
 	const auto items = draft.items;
 	const auto peer = history->peer;
@@ -312,10 +312,10 @@ void forwardMessages(
 	const auto history = action.history;
 	const auto peer = history->peer;
 
-	crl::on_main([&]
+	crl::on_main(crl::guard(session, [=]
 	{
 		history->setForwardDraft(action.replyTo.topicRootId, action.replyTo.monoforumPeerId, {});
-	});
+	}));
 
 	std::shared_ptr<ForwardState> state;
 

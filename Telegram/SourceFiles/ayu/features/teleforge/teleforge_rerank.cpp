@@ -181,6 +181,7 @@ auto g_config = RerankRuntimeConfig{};
 
 	auto request = QNetworkRequest(embedUrl);
 	request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+	request.setTransferTimeout(5000);
 	if (!config.apiKey.trimmed().isEmpty()) {
 		request.setRawHeader(
 			"Authorization",
@@ -313,6 +314,7 @@ std::optional<std::vector<float>> HttpRerankScores(
 
 	auto request = QNetworkRequest(url);
 	request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+	request.setTransferTimeout(5000);
 	if (!config.apiKey.trimmed().isEmpty()) {
 		request.setRawHeader(
 			"Authorization",

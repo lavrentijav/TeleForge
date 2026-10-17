@@ -41,6 +41,12 @@ void FilterUtils::importFromLink(const QString &link) {
 	}
 
 	const auto request = QNetworkRequest(QUrl(link));
+	if (_reply) {
+		disconnect(_reply, nullptr, this, nullptr);
+		_reply->abort();
+		_reply->deleteLater();
+		_reply = nullptr;
+	}
 	_reply = _manager->get(request);
 
 	connect(
@@ -102,6 +108,12 @@ void FilterUtils::publishFilters() {
 
 	QNetworkRequest request(QUrl("https://dpaste.com/api/v2/"));
 
+	if (_reply) {
+		disconnect(_reply, nullptr, this, nullptr);
+		_reply->abort();
+		_reply->deleteLater();
+		_reply = nullptr;
+	}
 	_reply = _manager->post(request, multiPart);
 	multiPart->setParent(_reply);
 
@@ -428,6 +440,29 @@ void FilterUtils::gotFailure(const QNetworkReply::NetworkError &error) {
 	Ui::Toast::Show(tr::ayu_FiltersToastFailFetch(tr::now));
 }
 
+namespace {
+
+[[nodiscard]] bool FilterIdFromJson(const QJsonValue &value, std::vector<char> &out) {
+	if (value.isDouble()) {
+		const auto text = QByteArray::number(qint64(value.toDouble()));
+		out.assign(text.begin(), text.end());
+		return !out.empty();
+	}
+	auto hex = value.toString();
+	hex.remove(u'-');
+	if (hex.isEmpty() || (hex.size() % 2) != 0) {
+		return false;
+	}
+	const auto bytes = QByteArray::fromHex(hex.toLatin1());
+	if (bytes.size() != hex.size() / 2) {
+		return false;
+	}
+	out.assign(bytes.begin(), bytes.end());
+	return true;
+}
+
+} // namespace
+
 ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 	const auto version = root.value("version");
 
@@ -461,11 +496,9 @@ ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 				}
 				regex.enabled = filter.value("enabled").toBool();
 
-				auto idString = filter.value("id").toString();
-				idString.remove('-');
-
-				auto idBytes = QByteArray::fromHex(idString.toUtf8());
-				regex.id = std::vector(idBytes.constData(), idBytes.constData() + idBytes.size());
+				if (!FilterIdFromJson(filter.value("id"), regex.id)) {
+					continue;
+				}
 
 				regex.reversed = filter.value("reversed").toBool();
 				regex.text = filter.value("text").toString().toStdString();
@@ -495,14 +528,9 @@ ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 
 				regex.dialogId = exclusion.value("dialogId").toVariant().toLongLong();
 
-				auto filterIdString = exclusion.value("filterId").toString();
-				filterIdString.remove('-');
-
-				auto filterIdBytes = QByteArray::fromHex(filterIdString.toUtf8());
-				regex.filterId = std::vector(
-					filterIdBytes.constData(),
-					filterIdBytes.constData() + filterIdBytes.size()
-				);
+				if (!FilterIdFromJson(exclusion.value("filterId"), regex.filterId)) {
+					continue;
+				}
 
 				auto it = std::ranges::find_if(
 					existingExclusions,
@@ -521,10 +549,10 @@ ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 	if (const auto removeFiltersByIdJson = root.value("removeFiltersById").toArray(); !removeFiltersByIdJson.
 		isEmpty()) {
 		for (const auto &filterRef : removeFiltersByIdJson) {
-			const auto filter = filterRef.toString();
-
-			const auto byteArray = filter.toUtf8();
-			const auto filterId = std::vector(byteArray.constData(), byteArray.constData() + byteArray.size());
+			std::vector<char> filterId;
+			if (!FilterIdFromJson(filterRef, filterId)) {
+				continue;
+			}
 
 			const auto exists = std::ranges::any_of(
 				existingFilters,
@@ -533,7 +561,8 @@ ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 					return f.id == filterId;
 				});
 			if (exists) {
-				removeFiltersById.push_back(filter);
+				removeFiltersById.push_back(
+					QString::fromLatin1(QByteArray(filterId.data(), filterId.size()).toHex()));
 			}
 		}
 	}
@@ -541,24 +570,22 @@ ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 	if (const auto removeExclusionsJson = root.value("removeExclusions").toArray(); !removeExclusionsJson.isEmpty()) {
 		for (const auto &exclusionRef : removeExclusionsJson) {
 			const auto exclusionObj = exclusionRef.toObject();
-			const auto filterIdStr = exclusionObj.value("filterId").toString();
-			const qint64 dialogId = exclusionObj.value("dialogId").toVariant().toLongLong();
 
-			const auto byteArray = filterIdStr.toUtf8();
-			const auto filterIdVec = std::vector<char>(byteArray.constData(), byteArray.constData() + byteArray.size());
+			RegexFilterGlobalExclusion regex;
+			regex.dialogId = exclusionObj.value("dialogId").toVariant().toLongLong();
+			if (!FilterIdFromJson(exclusionObj.value("filterId"), regex.filterId)) {
+				continue;
+			}
 
-			const bool exists = std::ranges::any_of(
+			const auto exists = std::ranges::any_of(
 				existingExclusions,
 				[&](const RegexFilterGlobalExclusion &x)
 				{
-					return x.filterId == filterIdVec && x.dialogId == dialogId;
+					return x.filterId == regex.filterId && x.dialogId == regex.dialogId;
 				});
 
 			if (exists) {
-				RegexFilterGlobalExclusion regex;
-				regex.dialogId = dialogId;
-				regex.filterId = filterIdVec;
-				removeExclusions.push_back(regex);
+				removeExclusions.push_back(std::move(regex));
 			}
 		}
 	}
@@ -611,9 +638,10 @@ void FilterUtils::applyChanges(const ApplyChanges &changes) {
 
 	if (!changes.removeFiltersById.empty()) {
 		for (const auto &id : changes.removeFiltersById) {
-			const auto byteArray = id.toUtf8();
+			const auto byteArray = QByteArray::fromHex(id.toLatin1());
 			const auto filterId = std::vector<char>(byteArray.constData(), byteArray.constData() + byteArray.size());
 			AyuDatabase::deleteExclusionsByFilterId(filterId);
+			AyuDatabase::deleteFilter(filterId);
 		}
 	}
 

@@ -10,6 +10,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
+#include <optional>
 #include <string>
 #include <unordered_set>
 
@@ -29,8 +30,30 @@ namespace {
 	return v.toString().toStdString();
 }
 
-[[nodiscard]] long long I64(const QJsonValue &v) {
-	return v.toString().toLongLong();
+[[nodiscard]] bool JsonId(const QJsonValue &v, ID *out) {
+	if (v.isDouble()) {
+		*out = qint64(v.toDouble());
+		return true;
+	}
+	if (v.isString()) {
+		auto ok = false;
+		*out = v.toString().toLongLong(&ok);
+		return ok;
+	}
+	return false;
+}
+
+[[nodiscard]] bool JsonInt(const QJsonValue &v, int *out) {
+	if (v.isDouble()) {
+		*out = v.toInt();
+		return true;
+	}
+	if (v.isString()) {
+		auto ok = false;
+		*out = v.toString().toInt(&ok);
+		return ok;
+	}
+	return false;
 }
 
 [[nodiscard]] std::vector<char> Vec(const QJsonValue &v) {
@@ -82,45 +105,54 @@ namespace {
 	return QJsonDocument(o).toJson(QJsonDocument::Compact);
 }
 
-[[nodiscard]] AyuMessageBase DeserializeMessage(const QByteArray &json) {
+[[nodiscard]] std::optional<AyuMessageBase> DeserializeMessage(
+		const QByteArray &json) {
 	const auto o = QJsonDocument::fromJson(json).object();
+	if (o.isEmpty()) {
+		return std::nullopt;
+	}
 	auto m = AyuMessageBase();
 	m.fakeId = 0;
-	m.userId = I64(o.value(u"userId"_q));
-	m.dialogId = I64(o.value(u"dialogId"_q));
-	m.groupedId = I64(o.value(u"groupedId"_q));
-	m.peerId = I64(o.value(u"peerId"_q));
-	m.fromId = I64(o.value(u"fromId"_q));
-	m.topicId = I64(o.value(u"topicId"_q));
-	m.messageId = o.value(u"messageId"_q).toInt();
-	m.date = o.value(u"date"_q).toInt();
-	m.flags = o.value(u"flags"_q).toInt();
-	m.editDate = o.value(u"editDate"_q).toInt();
-	m.views = o.value(u"views"_q).toInt();
-	m.fwdFlags = o.value(u"fwdFlags"_q).toInt();
-	m.fwdFromId = I64(o.value(u"fwdFromId"_q));
+	auto ok = true;
+	ok = JsonId(o.value(u"userId"_q), &m.userId) && ok;
+	ok = JsonId(o.value(u"dialogId"_q), &m.dialogId) && ok;
+	ok = JsonId(o.value(u"groupedId"_q), &m.groupedId) && ok;
+	ok = JsonId(o.value(u"peerId"_q), &m.peerId) && ok;
+	ok = JsonId(o.value(u"fromId"_q), &m.fromId) && ok;
+	ok = JsonId(o.value(u"topicId"_q), &m.topicId) && ok;
+	ok = JsonInt(o.value(u"messageId"_q), &m.messageId) && ok;
+	ok = JsonInt(o.value(u"date"_q), &m.date) && ok;
+	ok = JsonInt(o.value(u"flags"_q), &m.flags) && ok;
+	ok = JsonInt(o.value(u"editDate"_q), &m.editDate) && ok;
+	ok = JsonInt(o.value(u"views"_q), &m.views) && ok;
+	ok = JsonInt(o.value(u"fwdFlags"_q), &m.fwdFlags) && ok;
+	ok = JsonId(o.value(u"fwdFromId"_q), &m.fwdFromId) && ok;
 	m.fwdName = StdStr(o.value(u"fwdName"_q));
-	m.fwdDate = o.value(u"fwdDate"_q).toInt();
+	ok = JsonInt(o.value(u"fwdDate"_q), &m.fwdDate) && ok;
 	m.fwdPostAuthor = StdStr(o.value(u"fwdPostAuthor"_q));
 	m.postAuthor = StdStr(o.value(u"postAuthor"_q));
-	m.replyFlags = o.value(u"replyFlags"_q).toInt();
-	m.replyMessageId = o.value(u"replyMessageId"_q).toInt();
-	m.replyPeerId = I64(o.value(u"replyPeerId"_q));
-	m.replyTopId = o.value(u"replyTopId"_q).toInt();
+	ok = JsonInt(o.value(u"replyFlags"_q), &m.replyFlags) && ok;
+	ok = JsonInt(o.value(u"replyMessageId"_q), &m.replyMessageId) && ok;
+	ok = JsonId(o.value(u"replyPeerId"_q), &m.replyPeerId) && ok;
+	ok = JsonInt(o.value(u"replyTopId"_q), &m.replyTopId) && ok;
 	m.replyForumTopic = o.value(u"replyForumTopic"_q).toBool();
 	m.replySerialized = Vec(o.value(u"replySerialized"_q));
 	m.replyMarkupSerialized = Vec(o.value(u"replyMarkupSerialized"_q));
-	m.entityCreateDate = o.value(u"entityCreateDate"_q).toInt();
+	ok = JsonInt(o.value(u"entityCreateDate"_q), &m.entityCreateDate) && ok;
 	m.text = StdStr(o.value(u"text"_q));
 	m.textEntities = Vec(o.value(u"textEntities"_q));
 	m.mediaPath = StdStr(o.value(u"mediaPath"_q));
 	m.hqThumbPath = StdStr(o.value(u"hqThumbPath"_q));
-	m.documentType = o.value(u"documentType"_q).toInt();
+	ok = JsonInt(o.value(u"documentType"_q), &m.documentType) && ok;
 	m.documentSerialized = Vec(o.value(u"documentSerialized"_q));
 	m.thumbsSerialized = Vec(o.value(u"thumbsSerialized"_q));
 	m.documentAttributesSerialized = Vec(o.value(u"documentAttributesSerialized"_q));
 	m.mimeType = StdStr(o.value(u"mimeType"_q));
 	m.contentHash = StdStr(o.value(u"contentHash"_q));
+	if (!ok) {
+		LOG(("TeleForge Sync: rejecting message row with mismatched field types"));
+		return std::nullopt;
+	}
 	return m;
 }
 
@@ -186,10 +218,11 @@ int ApplyMessageRows(
 			if (!decrypted) {
 				continue;
 			}
-			const auto m = DeserializeMessage(*decrypted);
-			if (m.contentHash.empty()) {
+			const auto parsed = DeserializeMessage(*decrypted);
+			if (!parsed || parsed->contentHash.empty()) {
 				continue;
 			}
+			const auto &m = *parsed;
 			if (row.deleted && seenDeleted.find(m.contentHash) == seenDeleted.end()) {
 				auto stored = DeletedMessage();
 				static_cast<AyuMessageBase&>(stored) = m;

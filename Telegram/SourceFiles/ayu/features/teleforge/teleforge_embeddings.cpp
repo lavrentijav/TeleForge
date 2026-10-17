@@ -88,6 +88,7 @@ EmbeddingVector HttpEmbeddingProvider::embed(
 
 	auto request = QNetworkRequest(_endpoint);
 	request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+	request.setTransferTimeout(5000);
 	if (!_apiKey.isEmpty()) {
 		request.setRawHeader(
 			"Authorization",

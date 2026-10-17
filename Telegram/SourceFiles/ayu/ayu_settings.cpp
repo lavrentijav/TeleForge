@@ -23,6 +23,7 @@
 #include "ui/ayu_userpic.h"
 #include "window/window_controller.h"
 
+#include <exception>
 #include <fstream>
 #include <QApplication>
 
@@ -1272,6 +1273,21 @@ void to_json(nlohmann::json &j, const AyuSettings &s) {
 	};
 }
 
+namespace {
+
+template <typename T>
+[[nodiscard]] T ReadField(const json &j, const char *key, const T &fallback) {
+	try {
+		return j.value(key, fallback);
+	} catch (const std::exception &e) {
+		LOG(("TeleForgeSettings: bad field %1: %2")
+			.arg(QString::fromUtf8(key), QString::fromUtf8(e.what())));
+		return fallback;
+	}
+}
+
+} // namespace
+
 void from_json(const nlohmann::json &j, AyuSettings &s) {
 	AyuSettings defaults;
 
@@ -1279,145 +1295,156 @@ void from_json(const nlohmann::json &j, AyuSettings &s) {
 		s._ghostAccounts.clear();
 		for (auto &[key, value] : j["ghostModeSettings"].items()) {
 			auto account = std::make_unique<GhostModeAccountSettings>();
-			value.get_to(*account);
-			s._ghostAccounts[std::stoull(key)] = std::move(account);
+			try {
+				const auto id = std::stoull(key);
+				value.get_to(*account);
+				s._ghostAccounts[id] = std::move(account);
+			} catch (const std::exception &e) {
+				LOG(("TeleForgeSettings: bad ghost account %1: %2")
+					.arg(QString::fromStdString(key), QString::fromUtf8(e.what())));
+			}
 		}
 	}
 
-	s._useGlobalGhostMode = j.value("useGlobalGhostMode", defaults._useGlobalGhostMode.current());
-	s._saveDeletedMessages = j.value("saveDeletedMessages", defaults._saveDeletedMessages.current());
-	s._showDeletedInChat = j.value("showDeletedInChat", defaults._showDeletedInChat.current());
-	s._ghostPassthroughMentions = j.value("ghostPassthroughMentions", defaults._ghostPassthroughMentions.current());
-	s._deletedRestoreLimit = j.value("deletedRestoreLimit", defaults._deletedRestoreLimit.current());
-	s._saveMessagesHistory = j.value("saveMessagesHistory", defaults._saveMessagesHistory.current());
-	s._saveForBots = j.value("saveForBots", defaults._saveForBots.current());
-	s._shadowBanIds = j.value("shadowBanIds", defaults._shadowBanIds);
-	s._unreadBadgeExcludedPeers = j.value(
+	s._useGlobalGhostMode = ReadField(j, "useGlobalGhostMode", defaults._useGlobalGhostMode.current());
+	s._saveDeletedMessages = ReadField(j, "saveDeletedMessages", defaults._saveDeletedMessages.current());
+	s._showDeletedInChat = ReadField(j, "showDeletedInChat", defaults._showDeletedInChat.current());
+	s._ghostPassthroughMentions = ReadField(j, "ghostPassthroughMentions", defaults._ghostPassthroughMentions.current());
+	s._deletedRestoreLimit = ReadField(j, "deletedRestoreLimit", defaults._deletedRestoreLimit.current());
+	s._saveMessagesHistory = ReadField(j, "saveMessagesHistory", defaults._saveMessagesHistory.current());
+	s._saveForBots = ReadField(j, "saveForBots", defaults._saveForBots.current());
+	s._shadowBanIds = ReadField(j, "shadowBanIds", defaults._shadowBanIds);
+	s._unreadBadgeExcludedPeers = ReadField(j,
 		"unreadBadgeExcluded",
 		defaults._unreadBadgeExcludedPeers);
-	s._filtersEnabled = j.value("filtersEnabled", defaults._filtersEnabled.current());
-	s._filtersEnabledInChats = j.value("filtersEnabledInChats", defaults._filtersEnabledInChats.current());
-	s._hideFromBlocked = j.value("hideFromBlocked", defaults._hideFromBlocked.current());
-	s._semiTransparentDeletedMessages = j.value("semiTransparentDeletedMessages", defaults._semiTransparentDeletedMessages.current());
-	s._disableAds = j.value("disableAds", defaults._disableAds.current());
-	s._disableStories = j.value("disableStories", defaults._disableStories.current());
-	s._disableCustomBackgrounds = j.value("disableCustomBackgrounds", defaults._disableCustomBackgrounds.current());
-	s._showOnlyAddedEmojisAndStickers = j.value("showOnlyAddedEmojisAndStickers", defaults._showOnlyAddedEmojisAndStickers.current());
-	s._collapseSimilarChannels = j.value("collapseSimilarChannels", defaults._collapseSimilarChannels.current());
-	s._hideSimilarChannels = j.value("hideSimilarChannels", defaults._hideSimilarChannels.current());
-	s._disableOpenLinkWarning = j.value("disableOpenLinkWarning", defaults._disableOpenLinkWarning.current());
-	s._wideMultiplier = j.value("wideMultiplier", defaults._wideMultiplier.current());
-	s._spoofWebviewAsAndroid = j.value("spoofWebviewAsAndroid", defaults._spoofWebviewAsAndroid.current());
-	s._increaseWebviewHeight = j.value("increaseWebviewHeight", defaults._increaseWebviewHeight.current());
-	s._increaseWebviewWidth = j.value("increaseWebviewWidth", defaults._increaseWebviewWidth.current());
-	s._materialSwitches = j.value("materialSwitches", defaults._materialSwitches.current());
-	s._removeMessageTail = j.value("removeMessageTail", defaults._removeMessageTail.current());
-	s._disableNotificationsDelay = j.value("disableNotificationsDelay", defaults._disableNotificationsDelay.current());
-	s._localPremium = j.value("localPremium", defaults._localPremium.current());
-	s._showChannelReactions = j.value("showChannelReactions", defaults._showChannelReactions.current());
-	s._showGroupReactions = j.value("showGroupReactions", defaults._showGroupReactions.current());
-	s._showPrivateChatReactions = j.value("showPrivateChatReactions", defaults._showPrivateChatReactions.current());
+	s._filtersEnabled = ReadField(j, "filtersEnabled", defaults._filtersEnabled.current());
+	s._filtersEnabledInChats = ReadField(j, "filtersEnabledInChats", defaults._filtersEnabledInChats.current());
+	s._hideFromBlocked = ReadField(j, "hideFromBlocked", defaults._hideFromBlocked.current());
+	s._semiTransparentDeletedMessages = ReadField(j, "semiTransparentDeletedMessages", defaults._semiTransparentDeletedMessages.current());
+	s._disableAds = ReadField(j, "disableAds", defaults._disableAds.current());
+	s._disableStories = ReadField(j, "disableStories", defaults._disableStories.current());
+	s._disableCustomBackgrounds = ReadField(j, "disableCustomBackgrounds", defaults._disableCustomBackgrounds.current());
+	s._showOnlyAddedEmojisAndStickers = ReadField(j, "showOnlyAddedEmojisAndStickers", defaults._showOnlyAddedEmojisAndStickers.current());
+	s._collapseSimilarChannels = ReadField(j, "collapseSimilarChannels", defaults._collapseSimilarChannels.current());
+	s._hideSimilarChannels = ReadField(j, "hideSimilarChannels", defaults._hideSimilarChannels.current());
+	s._disableOpenLinkWarning = ReadField(j, "disableOpenLinkWarning", defaults._disableOpenLinkWarning.current());
+	s._wideMultiplier = ReadField(j, "wideMultiplier", defaults._wideMultiplier.current());
+	s._spoofWebviewAsAndroid = ReadField(j, "spoofWebviewAsAndroid", defaults._spoofWebviewAsAndroid.current());
+	s._increaseWebviewHeight = ReadField(j, "increaseWebviewHeight", defaults._increaseWebviewHeight.current());
+	s._increaseWebviewWidth = ReadField(j, "increaseWebviewWidth", defaults._increaseWebviewWidth.current());
+	s._materialSwitches = ReadField(j, "materialSwitches", defaults._materialSwitches.current());
+	s._removeMessageTail = ReadField(j, "removeMessageTail", defaults._removeMessageTail.current());
+	s._disableNotificationsDelay = ReadField(j, "disableNotificationsDelay", defaults._disableNotificationsDelay.current());
+	s._localPremium = ReadField(j, "localPremium", defaults._localPremium.current());
+	s._showChannelReactions = ReadField(j, "showChannelReactions", defaults._showChannelReactions.current());
+	s._showGroupReactions = ReadField(j, "showGroupReactions", defaults._showGroupReactions.current());
+	s._showPrivateChatReactions = ReadField(j, "showPrivateChatReactions", defaults._showPrivateChatReactions.current());
 	s._appIcon = TeleForgeAssets::DEFAULT_ICON;
-	s._simpleQuotesAndReplies = j.value("simpleQuotesAndReplies", defaults._simpleQuotesAndReplies.current());
-	s._hideFastShare = j.value("hideFastShare", defaults._hideFastShare.current());
-	s._replaceBottomInfoWithIcons = j.value("replaceBottomInfoWithIcons", defaults._replaceBottomInfoWithIcons.current());
-	s._deletedMark = j.value("deletedMark", defaults._deletedMark.current());
-	s._editedMark = j.value("editedMark", defaults._editedMark.current());
-	s._recentStickersCount = j.value("recentStickersCount", defaults._recentStickersCount.current());
-	s._showReactionsPanelInContextMenu = j.value("showReactionsPanelInContextMenu", defaults._showReactionsPanelInContextMenu.current());
-	s._showViewsPanelInContextMenu = j.value("showViewsPanelInContextMenu", defaults._showViewsPanelInContextMenu.current());
-	s._showHideMessageInContextMenu = j.value("showHideMessageInContextMenu", defaults._showHideMessageInContextMenu.current());
-	s._showUserMessagesInContextMenu = j.value("showUserMessagesInContextMenu", defaults._showUserMessagesInContextMenu.current());
-	s._showMessageDetailsInContextMenu = j.value("showMessageDetailsInContextMenu", defaults._showMessageDetailsInContextMenu.current());
-	s._showRepeatMessageInContextMenu = j.value("showRepeatMessageInContextMenu", defaults._showRepeatMessageInContextMenu.current());
-	s._showAddFilterInContextMenu = j.value("showAddFilterInContextMenu", defaults._showAddFilterInContextMenu.current());
-	s._showAttachButtonInMessageField = j.value("showAttachButtonInMessageField", defaults._showAttachButtonInMessageField.current());
-	s._showCommandsButtonInMessageField = j.value("showCommandsButtonInMessageField", defaults._showCommandsButtonInMessageField.current());
-	s._showEmojiButtonInMessageField = j.value("showEmojiButtonInMessageField", defaults._showEmojiButtonInMessageField.current());
-	s._showMicrophoneButtonInMessageField = j.value("showMicrophoneButtonInMessageField", defaults._showMicrophoneButtonInMessageField.current());
-	s._showAutoDeleteButtonInMessageField = j.value("showAutoDeleteButtonInMessageField", defaults._showAutoDeleteButtonInMessageField.current());
-	s._showAttachPopup = j.value("showAttachPopup", defaults._showAttachPopup.current());
-	s._showEmojiPopup = j.value("showEmojiPopup", defaults._showEmojiPopup.current());
-	s._showMyProfileInDrawer = j.value("showMyProfileInDrawer", defaults._showMyProfileInDrawer.current());
-	s._showBotsInDrawer = j.value("showBotsInDrawer", defaults._showBotsInDrawer.current());
-	s._showNewGroupInDrawer = j.value("showNewGroupInDrawer", defaults._showNewGroupInDrawer.current());
-	s._showNewChannelInDrawer = j.value("showNewChannelInDrawer", defaults._showNewChannelInDrawer.current());
-	s._showContactsInDrawer = j.value("showContactsInDrawer", defaults._showContactsInDrawer.current());
-	s._showCallsInDrawer = j.value("showCallsInDrawer", defaults._showCallsInDrawer.current());
-	s._showSavedMessagesInDrawer = j.value("showSavedMessagesInDrawer", defaults._showSavedMessagesInDrawer.current());
-	s._showLReadToggleInDrawer = j.value("showLReadToggleInDrawer", defaults._showLReadToggleInDrawer.current());
-	s._showSReadToggleInDrawer = j.value("showSReadToggleInDrawer", defaults._showSReadToggleInDrawer.current());
-	s._showNightModeToggleInDrawer = j.value("showNightModeToggleInDrawer", defaults._showNightModeToggleInDrawer.current());
-	s._showGhostToggleInDrawer = j.value("showGhostToggleInDrawer", defaults._showGhostToggleInDrawer.current());
-	s._showStreamerToggleInDrawer = j.value("showStreamerToggleInDrawer", defaults._showStreamerToggleInDrawer.current());
-	s._showGhostToggleInTray = j.value("showGhostToggleInTray", defaults._showGhostToggleInTray.current());
-	s._showStreamerToggleInTray = j.value("showStreamerToggleInTray", defaults._showStreamerToggleInTray.current());
-	s._monoFont = j.value("monoFont", defaults._monoFont.current());
-	s._hideNotificationCounters = j.value("hideNotificationCounters", defaults._hideNotificationCounters.current());
-	s._hideNotificationBadge = j.value("hideNotificationBadge", defaults._hideNotificationBadge.current());
-	s._hideAllChatsFolder = j.value("hideAllChatsFolder", defaults._hideAllChatsFolder.current());
-	s._channelBottomButton = j.value("channelBottomButton", defaults._channelBottomButton.current());
-	s._quickAdminShortcuts = j.value("quickAdminShortcuts", defaults._quickAdminShortcuts.current());
-	s._showPeerId = j.value("showPeerId", defaults._showPeerId.current());
-	s._showMessageSeconds = j.value("showMessageSeconds", defaults._showMessageSeconds.current());
-	s._showMessageShot = j.value("showMessageShot", defaults._showMessageShot.current());
-	s._filterZalgo = j.value("filterZalgo", defaults._filterZalgo.current());
-	s._stickerConfirmation = j.value("stickerConfirmation", defaults._stickerConfirmation.current());
-	s._gifConfirmation = j.value("gifConfirmation", defaults._gifConfirmation.current());
-	s._voiceConfirmation = j.value("voiceConfirmation", defaults._voiceConfirmation.current());
-	s._translationProvider = j.value("translationProvider", defaults._translationProvider.current());
-	s._aiTranslationEnabled = j.value("aiTranslationEnabled", defaults._aiTranslationEnabled.current());
-	s._aiCompressionEnabled = j.value("aiCompressionEnabled", defaults._aiCompressionEnabled.current());
-	s._deleteStubText = j.value("deleteStubText", defaults._deleteStubText.current());
-	s._spyModeGloballyEnabled = j.value("spyModeGloballyEnabled", defaults._spyModeGloballyEnabled.current());
-	s._spyRetentionDays = j.value("spyRetentionDays", defaults._spyRetentionDays.current());
-	s._peerArchiveEnabled = j.value("peerArchiveEnabled", defaults._peerArchiveEnabled.current());
-	s._archiveChatRefreshSeconds = j.value(
+	s._simpleQuotesAndReplies = ReadField(j, "simpleQuotesAndReplies", defaults._simpleQuotesAndReplies.current());
+	s._hideFastShare = ReadField(j, "hideFastShare", defaults._hideFastShare.current());
+	s._replaceBottomInfoWithIcons = ReadField(j, "replaceBottomInfoWithIcons", defaults._replaceBottomInfoWithIcons.current());
+	s._deletedMark = ReadField(j, "deletedMark", defaults._deletedMark.current());
+	s._editedMark = ReadField(j, "editedMark", defaults._editedMark.current());
+	s._recentStickersCount = ReadField(j, "recentStickersCount", defaults._recentStickersCount.current());
+	s._showReactionsPanelInContextMenu = ReadField(j, "showReactionsPanelInContextMenu", defaults._showReactionsPanelInContextMenu.current());
+	s._showViewsPanelInContextMenu = ReadField(j, "showViewsPanelInContextMenu", defaults._showViewsPanelInContextMenu.current());
+	s._showHideMessageInContextMenu = ReadField(j, "showHideMessageInContextMenu", defaults._showHideMessageInContextMenu.current());
+	s._showUserMessagesInContextMenu = ReadField(j, "showUserMessagesInContextMenu", defaults._showUserMessagesInContextMenu.current());
+	s._showMessageDetailsInContextMenu = ReadField(j, "showMessageDetailsInContextMenu", defaults._showMessageDetailsInContextMenu.current());
+	s._showRepeatMessageInContextMenu = ReadField(j, "showRepeatMessageInContextMenu", defaults._showRepeatMessageInContextMenu.current());
+	s._showAddFilterInContextMenu = ReadField(j, "showAddFilterInContextMenu", defaults._showAddFilterInContextMenu.current());
+	s._showAttachButtonInMessageField = ReadField(j, "showAttachButtonInMessageField", defaults._showAttachButtonInMessageField.current());
+	s._showCommandsButtonInMessageField = ReadField(j, "showCommandsButtonInMessageField", defaults._showCommandsButtonInMessageField.current());
+	s._showEmojiButtonInMessageField = ReadField(j, "showEmojiButtonInMessageField", defaults._showEmojiButtonInMessageField.current());
+	s._showMicrophoneButtonInMessageField = ReadField(j, "showMicrophoneButtonInMessageField", defaults._showMicrophoneButtonInMessageField.current());
+	s._showAutoDeleteButtonInMessageField = ReadField(j, "showAutoDeleteButtonInMessageField", defaults._showAutoDeleteButtonInMessageField.current());
+	s._showAttachPopup = ReadField(j, "showAttachPopup", defaults._showAttachPopup.current());
+	s._showEmojiPopup = ReadField(j, "showEmojiPopup", defaults._showEmojiPopup.current());
+	s._showMyProfileInDrawer = ReadField(j, "showMyProfileInDrawer", defaults._showMyProfileInDrawer.current());
+	s._showBotsInDrawer = ReadField(j, "showBotsInDrawer", defaults._showBotsInDrawer.current());
+	s._showNewGroupInDrawer = ReadField(j, "showNewGroupInDrawer", defaults._showNewGroupInDrawer.current());
+	s._showNewChannelInDrawer = ReadField(j, "showNewChannelInDrawer", defaults._showNewChannelInDrawer.current());
+	s._showContactsInDrawer = ReadField(j, "showContactsInDrawer", defaults._showContactsInDrawer.current());
+	s._showCallsInDrawer = ReadField(j, "showCallsInDrawer", defaults._showCallsInDrawer.current());
+	s._showSavedMessagesInDrawer = ReadField(j, "showSavedMessagesInDrawer", defaults._showSavedMessagesInDrawer.current());
+	s._showLReadToggleInDrawer = ReadField(j, "showLReadToggleInDrawer", defaults._showLReadToggleInDrawer.current());
+	s._showSReadToggleInDrawer = ReadField(j, "showSReadToggleInDrawer", defaults._showSReadToggleInDrawer.current());
+	s._showNightModeToggleInDrawer = ReadField(j, "showNightModeToggleInDrawer", defaults._showNightModeToggleInDrawer.current());
+	s._showGhostToggleInDrawer = ReadField(j, "showGhostToggleInDrawer", defaults._showGhostToggleInDrawer.current());
+	s._showStreamerToggleInDrawer = ReadField(j, "showStreamerToggleInDrawer", defaults._showStreamerToggleInDrawer.current());
+	s._showGhostToggleInTray = ReadField(j, "showGhostToggleInTray", defaults._showGhostToggleInTray.current());
+	s._showStreamerToggleInTray = ReadField(j, "showStreamerToggleInTray", defaults._showStreamerToggleInTray.current());
+	s._monoFont = ReadField(j, "monoFont", defaults._monoFont.current());
+	s._hideNotificationCounters = ReadField(j, "hideNotificationCounters", defaults._hideNotificationCounters.current());
+	s._hideNotificationBadge = ReadField(j, "hideNotificationBadge", defaults._hideNotificationBadge.current());
+	s._hideAllChatsFolder = ReadField(j, "hideAllChatsFolder", defaults._hideAllChatsFolder.current());
+	s._channelBottomButton = ReadField(j, "channelBottomButton", defaults._channelBottomButton.current());
+	s._quickAdminShortcuts = ReadField(j, "quickAdminShortcuts", defaults._quickAdminShortcuts.current());
+	s._showPeerId = ReadField(j, "showPeerId", defaults._showPeerId.current());
+	s._showMessageSeconds = ReadField(j, "showMessageSeconds", defaults._showMessageSeconds.current());
+	s._showMessageShot = ReadField(j, "showMessageShot", defaults._showMessageShot.current());
+	s._filterZalgo = ReadField(j, "filterZalgo", defaults._filterZalgo.current());
+	s._stickerConfirmation = ReadField(j, "stickerConfirmation", defaults._stickerConfirmation.current());
+	s._gifConfirmation = ReadField(j, "gifConfirmation", defaults._gifConfirmation.current());
+	s._voiceConfirmation = ReadField(j, "voiceConfirmation", defaults._voiceConfirmation.current());
+	s._translationProvider = ReadField(j, "translationProvider", defaults._translationProvider.current());
+	s._aiTranslationEnabled = ReadField(j, "aiTranslationEnabled", defaults._aiTranslationEnabled.current());
+	s._aiCompressionEnabled = ReadField(j, "aiCompressionEnabled", defaults._aiCompressionEnabled.current());
+	s._deleteStubText = ReadField(j, "deleteStubText", defaults._deleteStubText.current());
+	s._spyModeGloballyEnabled = ReadField(j, "spyModeGloballyEnabled", defaults._spyModeGloballyEnabled.current());
+	s._spyRetentionDays = ReadField(j, "spyRetentionDays", defaults._spyRetentionDays.current());
+	s._peerArchiveEnabled = ReadField(j, "peerArchiveEnabled", defaults._peerArchiveEnabled.current());
+	s._archiveChatRefreshSeconds = ReadField(j,
 		"archiveChatRefreshSeconds",
 		defaults._archiveChatRefreshSeconds.current());
-	s._archiveKnownUserOnlineSeconds = j.value(
+	s._archiveKnownUserOnlineSeconds = ReadField(j,
 		"archiveKnownUserOnlineSeconds",
 		defaults._archiveKnownUserOnlineSeconds.current());
-	s._archivePrivateOnlineSeconds = j.value(
+	s._archivePrivateOnlineSeconds = ReadField(j,
 		"archivePrivateOnlineSeconds",
 		defaults._archivePrivateOnlineSeconds.current());
-	s._archivePrivateProfileSeconds = j.value(
+	s._archivePrivateProfileSeconds = ReadField(j,
 		"archivePrivateProfileSeconds",
 		defaults._archivePrivateProfileSeconds.current());
-	s._archiveOtherProfileSeconds = j.value(
+	s._archiveOtherProfileSeconds = ReadField(j,
 		"archiveOtherProfileSeconds",
 		defaults._archiveOtherProfileSeconds.current());
-	s._archiveHistoryScanLimit = j.value(
+	s._archiveHistoryScanLimit = ReadField(j,
 		"archiveHistoryScanLimit",
 		defaults._archiveHistoryScanLimit.current());
-	s._archiveCrawlBatchSize = j.value(
+	s._archiveCrawlBatchSize = ReadField(j,
 		"archiveCrawlBatchSize",
 		defaults._archiveCrawlBatchSize.current());
-	s._archiveMaxParticipants = j.value(
+	s._archiveMaxParticipants = ReadField(j,
 		"archiveMaxParticipants",
 		defaults._archiveMaxParticipants.current());
-	s._archiveScanParticipants = j.value(
+	s._archiveScanParticipants = ReadField(j,
 		"archiveScanParticipants",
 		defaults._archiveScanParticipants.current());
-	s._archiveScanBroadcasts = j.value(
+	s._archiveScanBroadcasts = ReadField(j,
 		"archiveScanBroadcasts",
 		defaults._archiveScanBroadcasts.current());
-	s._archiveSaveUserpics = j.value(
+	s._archiveSaveUserpics = ReadField(j,
 		"archiveSaveUserpics",
 		defaults._archiveSaveUserpics.current());
-	s._archiveFollowLinks = j.value(
+	s._archiveFollowLinks = ReadField(j,
 		"archiveFollowLinks",
 		defaults._archiveFollowLinks.current());
-	s._archiveBackgroundCrawl = j.value(
+	s._archiveBackgroundCrawl = ReadField(j,
 		"archiveBackgroundCrawl",
 		defaults._archiveBackgroundCrawl.current());
-	s._adaptiveCoverColor = j.value("adaptiveCoverColor", defaults._adaptiveCoverColor.current());
-	s._improveLinkPreviews = j.value("improveLinkPreviews", defaults._improveLinkPreviews.current());
-	s._crashReporting = j.value("crashReporting", defaults._crashReporting.current());
-	s._avatarCorners = j.value("avatarCorners", defaults._avatarCorners.current());
-	s._singleCornerRadius = j.value("singleCornerRadius", defaults._singleCornerRadius.current());
+	s._adaptiveCoverColor = ReadField(j, "adaptiveCoverColor", defaults._adaptiveCoverColor.current());
+	s._improveLinkPreviews = ReadField(j, "improveLinkPreviews", defaults._improveLinkPreviews.current());
+	s._crashReporting = ReadField(j, "crashReporting", defaults._crashReporting.current());
+	s._avatarCorners = ReadField(j, "avatarCorners", defaults._avatarCorners.current());
+	s._singleCornerRadius = ReadField(j, "singleCornerRadius", defaults._singleCornerRadius.current());
 
 	if (j.contains("messageShotSettings") && j["messageShotSettings"].is_object()) {
-		j["messageShotSettings"].get_to(s._messageShotSettings);
+		try {
+			j["messageShotSettings"].get_to(s._messageShotSettings);
+		} catch (const std::exception &e) {
+			LOG(("TeleForgeSettings: bad message shot settings: %1")
+				.arg(QString::fromUtf8(e.what())));
+		}
 	}
 }

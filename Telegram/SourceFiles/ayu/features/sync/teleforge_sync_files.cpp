@@ -208,8 +208,13 @@ void UploadNextPart(const std::shared_ptr<UploadState> &state) {
 		SendUploadedDocument(state);
 		return;
 	}
-	const auto offset = state->nextPart * kPartSize;
-	const auto bytes = state->payload.mid(offset, kPartSize);
+	const auto offset = qsizetype(state->nextPart) * kPartSize;
+	const auto available = qsizetype(state->payload.size()) - offset;
+	const auto bytes = (available > 0)
+		? QByteArray(
+			state->payload.constData() + offset,
+			int(std::min(available, qsizetype(kPartSize))))
+		: QByteArray();
 	const auto partIndex = state->nextPart++;
 	const auto onDone = [=](const MTPBool &) {
 		UploadNextPart(state);
@@ -295,7 +300,7 @@ void UploadEncryptedDocument(
 		.fileName = fileName,
 		.done = std::move(done),
 		.fileId = base::RandomValue<int64>(),
-		.partsCount = std::max(1, int((payload.size() + kPartSize - 1) / kPartSize)),
+		.partsCount = std::max(1, int((qsizetype(payload.size()) + kPartSize - 1) / kPartSize)),
 		.big = (payload.size() > kUseBigFilesFrom),
 	});
 	UploadNextPart(state);

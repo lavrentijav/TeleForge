@@ -118,7 +118,7 @@ void scheduleUploadDebounced(not_null<Main::Session*> session) {
 		}
 		g_uploadScheduled = true;
 	}
-	base::call_delayed(600000, [=] {
+	base::call_delayed(600000, session, [=] {
 		{
 			const auto lock = std::unique_lock(g_mutex);
 			g_uploadScheduled = false;

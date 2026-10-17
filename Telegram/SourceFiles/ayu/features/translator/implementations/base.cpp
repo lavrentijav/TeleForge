@@ -175,7 +175,7 @@ CallbackCancel MultiThreadTranslator::startTranslation(const StartTranslationArg
 		std::function<void()> pump;
 		std::function<void(int)> tryTranslateIndex;
 
-		void cancelAll() const {
+		void cancelAll() {
 			for (auto &r : replies) {
 				if (r && r->isRunning()) {
 					r->abort();
@@ -184,6 +184,8 @@ CallbackCancel MultiThreadTranslator::startTranslation(const StartTranslationArg
 			for (auto &timer : retryTimers) {
 				if (timer) {
 					timer->stop();
+					timer->deleteLater();
+					timer = nullptr;
 				}
 			}
 		}
@@ -206,19 +208,38 @@ CallbackCancel MultiThreadTranslator::startTranslation(const StartTranslationArg
 	const auto maxRetries = getMaxRetries();
 	const auto baseWaitTime = getBaseWaitTimeMs();
 
-	auto finishFail = [state]()
+	// WHY: pump/tryTranslateIndex may be the frame that calls us right now, so
+	// the closures that hold BatchState alive are dropped only after it returns.
+	const auto releaseLater = [state]()
+	{
+		QTimer::singleShot(0, [state]
+		{
+			state->pump = nullptr;
+			state->tryTranslateIndex = nullptr;
+			state->onSuccess = nullptr;
+			state->onFail = nullptr;
+		});
+	};
+
+	auto finishFail = [state, releaseLater]()
 	{
 		if (state->finished) return;
 		state->finished = true;
 		state->cancelAll();
-		if (state->onFail) state->onFail();
+		const auto onFail = std::move(state->onFail);
+		state->onSuccess = nullptr;
+		if (onFail) onFail();
+		releaseLater();
 	};
 
-	auto finishSuccess = [state]()
+	auto finishSuccess = [state, releaseLater]()
 	{
 		if (state->finished) return;
 		state->finished = true;
-		if (state->onSuccess) state->onSuccess(state->results);
+		const auto onSuccess = std::move(state->onSuccess);
+		state->onFail = nullptr;
+		if (onSuccess) onSuccess(state->results);
+		releaseLater();
 	};
 
 	state->tryTranslateIndex = [state, finishFail, finishSuccess, maxRetries, baseWaitTime](int i) mutable
