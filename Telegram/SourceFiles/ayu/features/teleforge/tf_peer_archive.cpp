@@ -754,7 +754,7 @@ ProfileSnapshot loadProfile(long long peerStorageId) {
 	row.displayName = LatestDisplayName(snapshot);
 	row.subtitle = LatestSubtitle(snapshot);
 
-	auto currentPhotoId = long long(0);
+	auto currentPhotoId = static_cast<long long>(0);
 	if (const auto peer = session->data().peer(
 			DeserializePeerId(static_cast<quint64>(snapshot.peerId)))) {
 		if (const auto user = peer->asUser()) {

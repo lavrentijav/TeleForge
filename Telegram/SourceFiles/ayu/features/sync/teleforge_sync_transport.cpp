@@ -470,6 +470,7 @@ void FindExistingSyncChannel(
 		not_null<Main::Session*> session,
 		Fn<void(ChannelData *found)> done) {
 	session->api().request(MTPcontacts_Search(
+		MTP_flags(0),
 		MTP_string(kSyncChannelTitle),
 		MTP_int(kSyncSearchLimit)
 	)).done([=](const MTPcontacts_Found &result) {

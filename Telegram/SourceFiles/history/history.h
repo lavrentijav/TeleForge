@@ -522,6 +522,10 @@ public:
 
 	mtpRequestId sendRequestId = 0;
 
+	void insertRestoredMessage(not_null<HistoryItem*> item) {
+		insertMessageToBlocks(item);
+	}
+
 private:
 	friend class HistoryBlock;
 

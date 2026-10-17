@@ -113,9 +113,16 @@ public:
 		FullMsgId context,
 		bool showInMediaView = false) override;
 	void elementCancelUpload(const FullMsgId &context) override;
+	bool elementScrollToLocalY(
+		not_null<const HistoryView::Element*> view,
+		int localTop) override;
 	void elementShowTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback) override;
+	void elementShowHiddenSenderTooltip(
+		FullMsgId itemId,
+		const TextWithEntities &text) override;
+	HistoryView::GramReadLine *elementGramReadLine() override;
 	bool elementAnimationsPaused() override;
 	bool elementHideReply(
 		not_null<const HistoryView::Element*> view) override;

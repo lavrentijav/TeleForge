@@ -45,8 +45,6 @@ function(generate_lang target_name lang_file src_loc)
             if (entry MATCHES "\\.(cpp|mm)$")
                 file(RELATIVE_PATH relative ${src_loc} ${entry})
                 list(APPEND subset_headers ${gen_dst}/lang_subsets/${relative}.h)
-                set_property(SOURCE ${entry} APPEND PROPERTY COMPILE_DEFINITIONS
-                    "LANG_KEYS_SUBSET=\"lang_subsets/${relative}.h\"")
             endif()
         endforeach()
 

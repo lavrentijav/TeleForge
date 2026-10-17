@@ -102,7 +102,8 @@ jobs:
                 -D TDESKTOP_API_ID=29721186 \
                 -D TDESKTOP_API_HASH=196a54e79899fbf76333ded98ff5027f \
                 -D DESKTOP_APP_USE_LLAMA_CPP=OFF \
-                -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+                -D DESKTOP_APP_DISABLE_FCITX5=ON \
+                -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
                 -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
               cmake --build ../out --config Release --parallel "$(nproc)"
               DESTDIR=/usr/src/teleforge/stage-'"${{ matrix.arch }}"' \

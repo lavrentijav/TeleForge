@@ -180,6 +180,7 @@ void RequestBasicChatFull(
 			Data::ApplyChatUpdate(chat, full);
 			ScanBasicChatParticipants(session, chat);
 		}, [](const MTPDchannelFull &) {
+		}, [](const MTPDcommunityFull &) {
 		});
 	}).send();
 }

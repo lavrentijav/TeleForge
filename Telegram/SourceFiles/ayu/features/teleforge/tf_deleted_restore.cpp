@@ -87,7 +87,7 @@ void RestoreOne(
 		.date = stored.date ? stored.date : stored.entityCreateDate,
 		.postAuthor = QString::fromStdString(stored.postAuthor),
 	}, text, MTP_messageMediaEmpty());
-	history->insertMessageToBlocks(item);
+	history->insertRestoredMessage(item);
 	item->setDeleted();
 }
 

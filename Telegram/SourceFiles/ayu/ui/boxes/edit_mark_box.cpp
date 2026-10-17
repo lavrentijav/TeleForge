@@ -10,6 +10,7 @@
 #include "boxes/peer_list_controllers.h"
 #include "lang/lang_keys.h"
 #include "styles/style_boxes.h"
+#include "styles/style_add_contact_box.h"
 #include "styles/style_layers.h"
 #include "styles/style_widgets.h"
 #include "ui/widgets/popup_menu.h"
@@ -34,11 +35,11 @@ EditMarkBox::EditMarkBox(QWidget *,
 }
 
 void EditMarkBox::prepare() {
-	auto newHeight = st::contactPadding.top() + _text->height();
+	auto newHeight = st::contactsPadding.top() + _text->height();
 
 	setTitle(_title);
 
-	newHeight += st::boxPadding.bottom() + st::contactPadding.bottom();
+	newHeight += st::boxPadding.bottom() + st::contactsPadding.bottom();
 	setDimensions(st::boxWidth, newHeight);
 
 	addLeftButton(tr::ayu_BoxActionReset(),
@@ -90,7 +91,7 @@ void EditMarkBox::resizeEvent(QResizeEvent *e) {
 		_text->height());
 
 	const auto left = st::boxPadding.left() + st::newGroupInfoPadding.left();
-	_text->moveToLeft(left, st::contactPadding.top());
+	_text->moveToLeft(left, st::contactsPadding.top());
 }
 
 void EditMarkBox::save() {

@@ -122,7 +122,7 @@ PRIVATE
 
     # The alias is defined by the lib_icu submodule (github.com/AyuGram/lib_icu),
     # which still exports the ayugram:: namespace — it is not ours to rename.
-    ayugram::lib_icu
+    teleforge::lib_icu
 )
 
 set(teleforge_extension_files

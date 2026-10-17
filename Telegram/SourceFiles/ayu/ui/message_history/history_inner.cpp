@@ -568,6 +568,21 @@ void InnerWidget::elementCancelUpload(const FullMsgId &context) {
 	}
 }
 
+bool InnerWidget::elementScrollToLocalY(
+	not_null<const HistoryView::Element*> view,
+	int localTop) {
+	return false;
+}
+
+void InnerWidget::elementShowHiddenSenderTooltip(
+	FullMsgId itemId,
+	const TextWithEntities &text) {
+}
+
+HistoryView::GramReadLine *InnerWidget::elementGramReadLine() {
+	return nullptr;
+}
+
 void InnerWidget::elementShowTooltip(
 	const TextWithEntities &text,
 	Fn<void()> hiddenCallback) {

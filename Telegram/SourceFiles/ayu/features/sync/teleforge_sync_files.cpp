@@ -295,7 +295,7 @@ void UploadEncryptedDocument(
 		.fileName = fileName,
 		.done = std::move(done),
 		.fileId = base::RandomValue<int64>(),
-		.partsCount = std::max(1, (payload.size() + kPartSize - 1) / kPartSize),
+		.partsCount = std::max(1, int((payload.size() + kPartSize - 1) / kPartSize)),
 		.big = (payload.size() > kUseBigFilesFrom),
 	});
 	UploadNextPart(state);

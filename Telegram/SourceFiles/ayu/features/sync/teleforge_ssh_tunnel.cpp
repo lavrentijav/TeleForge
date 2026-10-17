@@ -195,7 +195,7 @@ int EnsureTunnelBlocking(const TunnelConfig &config, QString &error) {
 			}
 			const auto stderrText = QString::fromUtf8(
 				tunnel->process->readAllStandardError()).trimmed();
-			registry.remove(key);
+			Registry().remove(key);
 			tunnel->process->kill();
 			LOG(("TeleForge SSH tunnel: failed: %1").arg(stderrText));
 			promise->set_value({
