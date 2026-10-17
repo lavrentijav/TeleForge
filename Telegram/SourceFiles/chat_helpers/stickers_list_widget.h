@@ -51,6 +51,7 @@ enum class Notification;
 } // namespace Media::Clip
 
 namespace style {
+struct ComposeIcons;
 struct EmojiPan;
 struct FlatLabel;
 struct PopupMenu;
@@ -104,6 +105,9 @@ public:
 		StickersListDescriptor &&descriptor);
 
 	rpl::producer<FileChosen> chosen() const;
+	[[nodiscard]] rpl::producer<> photoRequests() const;
+	[[nodiscard]] rpl::producer<> audioRequests() const;
+	[[nodiscard]] rpl::producer<> linkRequests() const;
 	rpl::producer<> scrollUpdated() const;
 	rpl::producer<TabbedSelector::Action> choosingUpdated() const;
 
@@ -117,6 +121,9 @@ public:
 
 	void afterShown() override;
 	void beforeHiding() override;
+	[[nodiscard]] bool canConsumeHorizontalScroll(
+		QPoint position,
+		int delta) override;
 
 	void refreshStickers();
 
@@ -229,6 +236,16 @@ private:
 			return !(*this == other);
 		}
 	};
+	struct OverMediaButton {
+		int index = 0;
+
+		inline bool operator==(OverMediaButton other) const {
+			return (index == other.index);
+		}
+		inline bool operator!=(OverMediaButton other) const {
+			return !(*this == other);
+		}
+	};
 	using OverState = std::variant<
 		v::null_t,
 		OverSticker,
@@ -236,7 +253,8 @@ private:
 		OverButton,
 		OverSearchShortcut,
 		OverSearchBack,
-		OverGroupAdd>;
+		OverGroupAdd,
+		OverMediaButton>;
 
 	struct SectionInfo {
 		int section = 0;
@@ -307,6 +325,26 @@ private:
 	void readVisibleFeatured(int visibleTop, int visibleBottom);
 
 	void paintStickers(Painter &p, QRect clip);
+	struct MediaButton {
+		enum class Kind {
+			Photo,
+			Audio,
+			Link,
+		};
+		Kind kind = Kind::Photo;
+		QString text;
+		int textWidth = 0;
+		const style::icon *icon = nullptr;
+		std::unique_ptr<Ui::RippleAnimation> ripple;
+	};
+	[[nodiscard]] static std::vector<MediaButton> MakeMediaButtons(
+		const ComposeFeatures &features,
+		const style::EmojiPan &st);
+	void paintMediaButtons(Painter &p, QRect clip);
+	[[nodiscard]] int mediaButtonsRowHeight() const;
+	[[nodiscard]] int mediaButtonWidth(const MediaButton &button) const;
+	[[nodiscard]] QRect mediaButtonRect(int index) const;
+	[[nodiscard]] int mediaButtonIndexAt(QPoint point) const;
 	void paintMegagroupEmptySet(Painter &p, int y, bool buttonSelected);
 	void paintSticker(
 		Painter &p,
@@ -492,6 +530,9 @@ private:
 	QRect _megagroupSetButtonRect;
 	std::unique_ptr<Ui::RippleAnimation> _megagroupSetButtonRipple;
 
+	Ui::RoundRect _mediaButtonBg;
+	std::vector<MediaButton> _mediaButtons;
+
 	QString _addText;
 	int _addWidth;
 	QString _installedText;
@@ -530,6 +571,9 @@ private:
 	bool _searchLoading = false;
 
 	rpl::event_stream<FileChosen> _chosen;
+	rpl::event_stream<> _photoRequests;
+	rpl::event_stream<> _audioRequests;
+	rpl::event_stream<> _linkRequests;
 	rpl::event_stream<> _scrollUpdated;
 	rpl::event_stream<TabbedSelector::Action> _choosingUpdated;
 
@@ -547,6 +591,7 @@ private:
 	not_null<LocalStickersManager*> localSetsManager,
 	Fn<void(uint64 setId)> remove,
 	Fn<void()> repaint,
-	const style::PopupMenu &menuSt);
+	const style::PopupMenu &menuSt,
+	const style::ComposeIcons &icons);
 
 } // namespace ChatHelpers

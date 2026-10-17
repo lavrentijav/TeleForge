@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localstorage.h"
 #include "storage/storage_account.h"
 #include "storage/storage_user_photos.h"
+#include "main/main_app_config.h"
 #include "main/main_session.h"
 #include "data/business/data_business_common.h"
 #include "data/business/data_business_info.h"
@@ -38,7 +39,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "lang/lang_keys.h"
 #include "window/notifications_manager.h"
-#include "styles/style_chat.h"
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
@@ -52,6 +52,17 @@ constexpr auto kSetOnlineAfterActivity = TimeId(30);
 
 using UpdateFlag = Data::PeerUpdate::Flag;
 
+[[nodiscard]] TextWithEntities ParseBotVerificationText(
+		const MTPTextWithEntities &text) {
+	auto result = Api::ParseTextWithEntities(nullptr, text);
+	result.entities.erase(
+		ranges::remove_if(result.entities, [](const EntityInText &entity) {
+			return entity.type() != EntityType::CustomUrl;
+		}),
+		result.entities.end());
+	return result;
+}
+
 bool ApplyBotVerifierSettings(
 		not_null<BotInfo*> info,
 		const MTPBotVerifierSettings *settings) {
@@ -63,7 +74,9 @@ bool ApplyBotVerifierSettings(
 	const auto parsed = BotVerifierSettings{
 		.iconId = DocumentId(data.vicon().v),
 		.company = qs(data.vcompany()),
-		.customDescription = qs(data.vcustom_description().value_or_empty()),
+		.customDescription = (data.vcustom_description()
+			? ParseBotVerificationText(*data.vcustom_description())
+			: TextWithEntities()),
 		.canModifyDescription = data.is_can_modify_custom_description(),
 	};
 	if (!info->verifierSettings) {
@@ -233,6 +246,14 @@ void UserData::setPrivateForwardName(const QString &name) {
 	_privateForwardName = name;
 }
 
+const std::optional<QString> &UserData::gramAddress() const {
+	return _gramAddress;
+}
+
+void UserData::setGramAddress(QString address) {
+	_gramAddress = std::move(address);
+}
+
 bool UserData::hasActiveStories() const {
 	return flags() & Flag::HasActiveStories;
 }
@@ -323,6 +344,22 @@ void UserData::setPersonalChannel(ChannelId channelId, MsgId messageId) {
 	}
 }
 
+ChannelId UserData::linkedCommunityId() const {
+	return _linkedCommunityId;
+}
+
+void UserData::setLinkedCommunityId(ChannelId id) {
+	if (_linkedCommunityId == id) {
+		return;
+	}
+	_linkedCommunityId = id;
+	if (const auto history = owner().historyLoaded(this)) {
+		history->updateCommunityRegistration();
+		history->updateChatListSortPosition();
+		history->updateChatListExistence();
+	}
+}
+
 UserId UserData::botManagerId() const {
 	return _botManagerId;
 }
@@ -369,25 +406,16 @@ void UserData::setName(
 
 	bool changeName = !filteredFirstName.isEmpty() || !filteredLastName.isEmpty();
 
-	QString newFullName;
 	if (changeName && filteredFirstName.trimmed().isEmpty()) {
 		firstName = filteredLastName;
 		lastName = QString();
-		newFullName = firstName;
 	} else {
 		if (changeName) {
 			firstName = filteredFirstName;
 			lastName = filteredLastName;
 		}
-		newFullName = lastName.isEmpty()
-			? firstName
-			: tr::lng_full_name(
-				tr::now,
-				lt_first_name,
-				firstName,
-				lt_last_name,
-				lastName);
 	}
+	const auto newFullName = langFullName(firstName, lastName);
 	updateNameDelayed(newFullName, newPhoneName, newUsername);
 }
 
@@ -759,6 +787,19 @@ bool UserData::isUsernameEditable(QString username) const {
 	return _username.isEditable(username);
 }
 
+bool UserData::isOldWalletBot() const {
+	if (!isBot()) {
+		return false;
+	}
+	const auto configured = session().appConfig().oldWalletBotUsername();
+	if (configured.isEmpty()) {
+		return false;
+	}
+	return ranges::any_of(usernames(), [&](const QString &username) {
+		return !username.compare(configured, Qt::CaseInsensitive);
+	});
+}
+
 void UserData::setBotVerifyDetails(Ui::BotVerifyDetails details) {
 	if (!details) {
 		if (_botVerifyDetails) {
@@ -865,7 +906,9 @@ void UserData::setNote(const TextWithEntities &note) {
 
 namespace Data {
 
-void ApplyUserUpdate(not_null<UserData*> user, const MTPDuserFull &update) {
+void ApplyUserUpdate(
+		not_null<UserData*> user,
+		const MTPDuserFull &update) {
 	const auto profilePhoto = update.vprofile_photo()
 		? user->owner().processPhoto(*update.vprofile_photo()).get()
 		: nullptr;
@@ -949,6 +992,7 @@ void ApplyUserUpdate(not_null<UserData*> user, const MTPDuserFull &update) {
 	user->setAbout(qs(update.vabout().value_or_empty()));
 	user->setCommonChatsCount(update.vcommon_chats_count().v);
 	user->setPeerGiftsCount(update.vstargifts_count().value_or_empty());
+	user->setMainProfileTab(Data::ParseProfileTab(update.vmain_tab()));
 	user->checkFolder(update.vfolder_id().value_or_empty());
 	if (const auto theme = update.vtheme()) {
 		theme->match([&](const MTPDchatTheme &data) {
@@ -1121,12 +1165,10 @@ Ui::BotVerifyDetails ParseBotVerifyDetails(const MTPBotVerification *info) {
 		return {};
 	}
 	const auto &data = info->data();
-	const auto description = qs(data.vdescription());
-	const auto flags = TextParseLinks;
 	return {
 		.botId = UserId(data.vbot_id().v),
 		.iconId = DocumentId(data.vicon().v),
-		.description = TextUtilities::ParseEntities(description, flags),
+		.description = ParseBotVerificationText(data.vdescription()),
 	};
 }
 

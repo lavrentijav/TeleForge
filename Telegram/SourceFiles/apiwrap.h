@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_messages.h"
 
 class TaskQueue;
+class HistoryItem;
 struct MessageGroupId;
 struct SendingAlbum;
 enum class SendMediaType;
@@ -23,6 +24,10 @@ struct ChatRestrictionsInfo;
 namespace Main {
 class Session;
 } // namespace Main
+
+namespace Iv {
+struct RichPage;
+} // namespace Iv
 
 namespace Data {
 struct ReactionId;
@@ -80,7 +85,9 @@ class PeerPhoto;
 class PeerColors;
 class Polls;
 class TodoLists;
+class RichTasks;
 class ChatParticipants;
+class Communities;
 class UnreadThings;
 class Ringtones;
 class ComposeWithAi;
@@ -160,6 +167,11 @@ public:
 	void clearModifyRequest(const QString &key);
 
 	void saveCurrentDraftToCloud();
+	mtpRequestId saveDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		Fn<void()> done = nullptr,
+		Fn<void(const MTP::Error &)> fail = nullptr);
 
 	void savePinnedOrder(Data::Folder *folder);
 	void savePinnedOrder(not_null<Data::Forum*> forum);
@@ -180,6 +192,7 @@ public:
 	void requestContacts();
 	void requestDialogs(Data::Folder *folder = nullptr);
 	void requestPinnedDialogs(Data::Folder *folder = nullptr);
+	void reloadPinnedDialogs(Data::Folder *folder = nullptr);
 	void requestMoreBlockedByDateDialogs();
 	void requestMoreDialogsIfNeeded();
 	rpl::producer<bool> dialogsLoadMayBlockByDate() const;
@@ -191,6 +204,7 @@ public:
 		Fn<void()> fail);
 
 	void requestFullPeer(not_null<PeerData*> peer);
+	void reloadFullPeer(not_null<PeerData*> peer);
 	void requestPeerSettings(not_null<PeerData*> peer);
 
 	using UpdatedFileReferences = Data::UpdatedFileReferences;
@@ -297,6 +311,10 @@ public:
 		Dialogs::Key chat,
 		const QDate &date,
 		Fn<void(not_null<PeerData*>, MsgId)> callback);
+	void resolveJumpToTime(
+		Dialogs::Key chat,
+		TimeId when,
+		Fn<void(not_null<PeerData*>, MsgId)> callback);
 
 	using SliceType = Data::LoadDirection;
 	void requestHistory(
@@ -310,11 +328,17 @@ public:
 		Storage::SharedMediaType type,
 		MsgId messageId,
 		SliceType slice);
+	void requestPinnedMessagesIfNeeded(
+		not_null<PeerData*> peer,
+		MsgId messageId,
+		MsgId topicRootId = 0,
+		PeerId monoforumPeerId = 0);
 	mtpRequestId requestGlobalMedia(
 		Storage::SharedMediaType type,
 		const QString &query,
 		int32 offsetRate,
 		Data::MessagePosition offsetPosition,
+		bool onlyForwardable,
 		Fn<void(Api::GlobalMediaResult)> done);
 
 	void readFeaturedSetDelayed(uint64 setId);
@@ -352,7 +376,7 @@ public:
 		Ui::PreparedList &&list,
 		SendMediaType type,
 		std::shared_ptr<SendingAlbum> album,
-		const SendAction &action);
+		SendAction action);
 	void sendFile(
 		const QByteArray &fileContent,
 		SendMediaType type,
@@ -378,6 +402,14 @@ public:
 	void sendShortcutMessages(
 		not_null<PeerData*> peer,
 		BusinessShortcutId id);
+	void sendRichMessage(
+		not_null<HistoryItem*> item,
+		const MTPInputRichMessage &richMessage,
+		SendAction action);
+	void sendRichMessage(
+		std::shared_ptr<const Iv::RichPage> page,
+		const MTPInputRichMessage &richMessage,
+		SendAction action);
 	void sendMessage(
 		MessageToSend &&message,
 		std::optional<MsgId> localMessageId = std::nullopt);
@@ -434,7 +466,9 @@ public:
 	[[nodiscard]] Api::PeerPhoto &peerPhoto();
 	[[nodiscard]] Api::Polls &polls();
 	[[nodiscard]] Api::TodoLists &todoLists();
+	[[nodiscard]] Api::RichTasks &richTasks();
 	[[nodiscard]] Api::ChatParticipants &chatParticipants();
+	[[nodiscard]] Api::Communities &communities();
 	[[nodiscard]] Api::UnreadThings &unreadThings();
 	[[nodiscard]] Api::Ringtones &ringtones();
 	[[nodiscard]] Api::ComposeWithAi &composeWithAi();
@@ -491,12 +525,21 @@ private:
 		const QVector<MTPDialog> &dialogs,
 		const QVector<MTPMessage> &messages);
 	void requestMoreDialogs(Data::Folder *folder);
+	mtpRequestId sendPinnedDialogsRequest(
+		Data::Folder *folder,
+		Fn<void()> finish);
 	DialogsLoadState *dialogsLoadState(Data::Folder *folder);
 	void dialogsLoadFinish(Data::Folder *folder);
 
 	void checkQuitPreventFinished();
 
 	void saveDraftsToCloud();
+	mtpRequestId savePreparedDraftToCloud(
+		not_null<Data::Thread*> thread,
+		const Data::Draft &draft,
+		bool clearOnFail,
+		Fn<void()> done = nullptr,
+		Fn<void(const MTP::Error &)> fail = nullptr);
 
 	void resolveMessageDatas();
 	void finalizeMessageDataRequest(
@@ -534,18 +577,18 @@ private:
 	void requestSavedGifs(TimeId now);
 	void readFeaturedSets();
 
-	void resolveJumpToHistoryDate(
+	void resolveJumpToHistoryTime(
 		not_null<PeerData*> peer,
 		MsgId topicRootId,
 		PeerId monoforumPeerId,
-		const QDate &date,
+		TimeId when,
 		Fn<void(not_null<PeerData*>, MsgId)> callback);
 	template <typename Callback>
-	void requestMessageAfterDate(
+	void requestMessageAfterTime(
 		not_null<PeerData*> peer,
 		MsgId topicRootId,
 		PeerId monoforumPeerId,
-		const QDate &date,
+		TimeId when,
 		Callback &&callback);
 
 	void sharedMediaDone(
@@ -571,6 +614,11 @@ private:
 		not_null<PeerData*> peer,
 		bool justClear,
 		bool revoke);
+	void deleteHistory(
+		not_null<PeerData*> peer,
+		bool justClear,
+		bool revoke,
+		int retries);
 	void applyAffectedMessages(
 		const MTPmessages_AffectedMessages &result) const;
 
@@ -665,9 +713,13 @@ private:
 	};
 	base::flat_map<NotifySettingsKey, mtpRequestId> _notifySettingRequests;
 
+	struct DraftSaveState {
+		mtpRequestId requestId = 0;
+		bool changedWhileSaving = false;
+	};
 	base::flat_map<
 		base::weak_ptr<Data::Thread>,
-		mtpRequestId> _draftsSaveRequestIds;
+		DraftSaveState> _draftSaves;
 	base::Timer _draftsSaveTimer;
 
 	base::flat_set<mtpRequestId> _stickerSetDisenableRequests;
@@ -741,6 +793,7 @@ private:
 	base::flat_map<
 		not_null<Data::Folder*>,
 		DialogsLoadState> _foldersLoadState;
+	base::flat_set<Data::Folder*> _pinnedDialogsReloads;
 
 	rpl::event_stream<SendAction> _sendActions;
 
@@ -798,7 +851,9 @@ private:
 	const std::unique_ptr<Api::PeerPhoto> _peerPhoto;
 	const std::unique_ptr<Api::Polls> _polls;
 	const std::unique_ptr<Api::TodoLists> _todoLists;
+	const std::unique_ptr<Api::RichTasks> _richTasks;
 	const std::unique_ptr<Api::ChatParticipants> _chatParticipants;
+	const std::unique_ptr<Api::Communities> _communities;
 	const std::unique_ptr<Api::UnreadThings> _unreadThings;
 	const std::unique_ptr<Api::Ringtones> _ringtones;
 	const std::unique_ptr<Api::ComposeWithAi> _composeWithAi;

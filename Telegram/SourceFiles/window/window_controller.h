@@ -76,6 +76,7 @@ public:
 	void clearSetupEmailLock();
 
 	void showLogoutConfirmation();
+	void showPasscodeClearFailed(Fn<bool()> retry);
 
 	void showSettings();
 
@@ -98,7 +99,9 @@ public:
 
 	void hideLayer(anim::type animated = anim::type::normal);
 	void hideSettingsAndLayer(anim::type animated = anim::type::normal);
+	bool closeLayerByBackButton();
 	[[nodiscard]] bool isLayerShown() const;
+	[[nodiscard]] rpl::producer<bool> boxShownValue() const;
 
 	template <
 		typename BoxType,
@@ -163,7 +166,7 @@ private:
 	};
 	explicit Controller(CreateArgs &&args);
 
-	void setupIntro(QPixmap oldContentCache);
+	void setupIntro(Main::Account *accountBeforeIntro, QPixmap oldContentCache);
 	void setupMain(MsgId singlePeerShowAtMsgId, QPixmap oldContentCache);
 
 	void showAccount(
@@ -184,6 +187,7 @@ private:
 	std::unique_ptr<SessionController> _sessionController;
 	rpl::variable<SessionController*> _sessionControllerValue;
 	base::weak_qptr<Ui::BoxContent> _termsBox;
+	base::weak_qptr<Ui::BoxContent> _passcodeClearFailedBox;
 
 	rpl::event_stream<Media::View::OpenRequest> _openInMediaViewRequests;
 
@@ -197,5 +201,7 @@ private:
 	rpl::lifetime _lifetime;
 
 };
+
+[[nodiscard]] QString LogoutConfirmationText(Main::Account *account);
 
 } // namespace Window

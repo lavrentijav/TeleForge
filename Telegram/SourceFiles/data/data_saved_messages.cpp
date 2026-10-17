@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/components/recent_peers.h"
 #include "data/data_changes.h"
 #include "data/data_channel.h"
+#include "data/data_compose_stash.h"
 #include "data/data_histories.h"
 #include "data/data_user.h"
 #include "data/data_saved_sublist.h"
@@ -72,6 +73,9 @@ void SavedMessages::clear() {
 				MsgId(),
 				peer->id));
 			_owningHistory->setForwardDraft(MsgId(), peer->id, {});
+			_owningHistory->setComposeStash(
+				Data::DraftKey::Local(MsgId(), peer->id),
+				nullptr);
 
 			const auto raw = sublist.get();
 			changes.sublistRemoved(raw);
@@ -467,6 +471,10 @@ void SavedMessages::apply(const MTPDupdatePinnedSavedDialogs &update) {
 			LOG(("API Error: "
 				"updatePinnedSavedDialogs has folders."));
 			return false;
+		}, [&](const MTPDdialogPeerCommunity &data) {
+			LOG(("API Error: "
+				"updatePinnedSavedDialogs has communities."));
+			return false;
 		});
 	};
 	if (!ranges::none_of(order, notLoaded)) {
@@ -491,6 +499,8 @@ void SavedMessages::apply(const MTPDupdateSavedDialogPinned &update) {
 		}
 	}, [&](const MTPDdialogPeerFolder &data) {
 		DEBUG_LOG(("API Error: Folder in updateSavedDialogPinned."));
+	}, [&](const MTPDdialogPeerCommunity &data) {
+		DEBUG_LOG(("API Error: Community in updateSavedDialogPinned."));
 	});
 }
 
@@ -518,15 +528,19 @@ void SavedMessages::applySublistDeleted(not_null<PeerData*> sublistPeer) {
 	session().changes().entryUpdated(
 		raw,
 		Data::EntryUpdate::Flag::Destroyed);
-	_sublists.erase(i);
-
 	const auto history = owningHistory();
 	history->destroyMessagesBySublist(sublistPeer);
+	session().changes().sublistRemoved(raw);
+	_sublists.erase(i);
+
 	session().storage().unload(Storage::SharedMediaUnloadThread(
 		_owningHistory->peer->id,
 		MsgId(),
 		sublistPeer->id));
 	history->setForwardDraft(MsgId(), sublistPeer->id, {});
+	history->setComposeStash(
+		Data::DraftKey::Local(MsgId(), sublistPeer->id),
+		nullptr);
 }
 
 void SavedMessages::reorderLastSublists() {

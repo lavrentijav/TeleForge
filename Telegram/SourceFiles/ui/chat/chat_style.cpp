@@ -8,12 +8,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/chat_style.h"
 
 #include "ui/chat/chat_theme.h"
+#include "ui/chat/chat_theme_readability.h"
 #include "ui/image/image_prepare.h" // ImageRoundRadius
 #include "ui/text/text_custom_emoji.h"
 #include "ui/color_contrast.h"
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
+#include "wallet/wallet_card_angle.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_polls.h"
 #include "styles/style_widgets.h"
@@ -187,7 +190,7 @@ int ColorPatternIndex(
 		return 0;
 	}
 	auto &data = (*indices.colors)[colorIndex];
-	auto &colors = dark ? data.dark : data.light;
+	const auto &colors = dark ? data.dark : data.light;
 	return colors[2] ? 2 : colors[1] ? 1 : 0;
 }
 
@@ -233,6 +236,8 @@ ChatStyle::ChatStyle(rpl::producer<ColorIndicesCompressed> colorIndices) {
 		_historyViewsSendingInvertedIcon,
 		st::historyViewsSendingInvertedIcon);
 	make(_historyPinInvertedIcon, st::historyPinInvertedIcon);
+	make(_historySilentInvertedIcon, st::historySilentInvertedIcon);
+	make(_historyEphemeralInvertedIcon, st::historyEphemeralInvertedIcon);
 	make(_historySendingIcon, st::historySendingIcon);
 	make(_historySendingInvertedIcon, st::historySendingInvertedIcon);
 	make(_historySentInvertedIcon, st::historySentInvertedIcon);
@@ -358,6 +363,12 @@ ChatStyle::ChatStyle(rpl::producer<ColorIndicesCompressed> colorIndices) {
 		st::outReplyTextPalette,
 		st::outReplyTextPaletteSelected);
 	make(
+		&MessageStyle::richPageStyle,
+		st::messageMarkdown,
+		st::messageMarkdownSelected,
+		st::messageMarkdownOut,
+		st::messageMarkdownOutSelected);
+	make(
 		&MessageStyle::tailLeft,
 		st::historyBubbleTailInLeft,
 		st::historyBubbleTailInLeftSelected,
@@ -396,6 +407,12 @@ ChatStyle::ChatStyle(rpl::producer<ColorIndicesCompressed> colorIndices) {
 		st::historyPinOutIcon,
 		st::historyPinOutSelectedIcon);
 	make(
+		&MessageStyle::historySilentIcon,
+		st::historySilentInIcon,
+		st::historySilentInSelectedIcon,
+		st::historySilentOutIcon,
+		st::historySilentOutSelectedIcon);
+	make(
 		&MessageStyle::historySentIcon,
 		st::historySentIcon,
 		st::historySentSelectedIcon,
@@ -413,6 +430,12 @@ ChatStyle::ChatStyle(rpl::producer<ColorIndicesCompressed> colorIndices) {
 		st::historyPsaIconInSelected,
 		st::historyPsaIconOut,
 		st::historyPsaIconOutSelected);
+	make(
+		&MessageStyle::historyEphemeralIcon,
+		st::historyEphemeralIconIn,
+		st::historyEphemeralIconInSelected,
+		st::historyEphemeralIconOut,
+		st::historyEphemeralIconOutSelected);
 	make(
 		&MessageStyle::historyCommentsOpen,
 		st::historyCommentsOpenIn,
@@ -691,11 +714,19 @@ void ChatStyle::clearColorIndexCaches() {
 	for (auto &cache : _coloredQuoteCaches) {
 		cache = nullptr;
 	}
+	_collectibleCaches.clear();
 }
 
 void ChatStyle::assignPalette(not_null<const style::palette*> palette) {
 	*static_cast<style::palette*>(this) = *palette;
-	style::internal::ResetIcons();
+
+	// Only our own icons. style::internal::ResetIcons() would instead reset
+	// every icon in the process - including the app's, which this palette has
+	// nothing to do with - while iterating a registry that the GUI thread may
+	// be mutating, and theme previews build a ChatStyle off the GUI thread.
+	for (const auto &icon : _ownedIcons) {
+		icon->reset();
+	}
 
 	clearColorIndexCaches();
 	for (auto &style : _messageStyles) {
@@ -705,6 +736,9 @@ void ChatStyle::assignPalette(not_null<const style::palette*> palette) {
 		style.textPalette.linkAlwaysActive
 			= style.semiboldPalette.linkAlwaysActive
 			= (style.textPalette.linkFg->c == style.historyTextFg->c);
+		style.richPageStyle.textPalette.linkAlwaysActive
+			= (style.richPageStyle.textPalette.linkFg->c
+				== style.richPageStyle.textColor->c);
 	}
 	for (auto &style : _imageStyles) {
 		style.msgDateImgBgCorners = {};
@@ -721,6 +755,7 @@ void ChatStyle::assignPalette(not_null<const style::palette*> palette) {
 		corners = {};
 	}
 	updateDarkValue();
+	++_paletteVersion;
 
 	_paletteChanged.fire({});
 }
@@ -811,7 +846,7 @@ int ChatStyle::colorPatternIndex(uint8 colorIndex) const {
 		return 0;
 	}
 	auto &data = (*_colorIndices.colors)[colorIndex];
-	auto &colors = _dark ? data.dark : data.light;
+	const auto &colors = _dark ? data.dark : data.light;
 	return colors[2] ? 2 : colors[1] ? 1 : 0;
 }
 
@@ -862,7 +897,7 @@ ColorIndexValues ChatStyle::computeColorIndexValues(
 		return result;
 	}
 	auto &data = (*_colorIndices.colors)[colorIndex];
-	auto &colors = _dark ? data.dark : data.light;
+	const auto &colors = _dark ? data.dark : data.light;
 	if (!colors[0]) {
 		return computeColorIndexValues(
 			selected,
@@ -877,7 +912,12 @@ ColorIndexValues ChatStyle::computeColorIndexValues(
 	};
 	result.bg = result.outlines[0];
 	result.bg.setAlpha(kDefaultBgOpacity * 255);
-	result.name = result.outlines[0];
+	result.name = selected
+		? EnsurePeerNameReadable(
+			result.outlines[0],
+			msgInBgSelected()->c,
+			_dark)
+		: result.outlines[0];
 	return result;
 }
 
@@ -915,10 +955,22 @@ const ColorIndexValues &ChatStyle::coloredValues(
 }
 
 QColor ChatStyle::collectibleNameColor(
-		const std::shared_ptr<ColorCollectible> &collectible) const {
-	return (_dark && collectible->darkAccentColor.alpha() > 0)
+		const std::shared_ptr<ColorCollectible> &collectible,
+		bool selected) const {
+	const auto result = (_dark && collectible->darkAccentColor.alpha() > 0)
 		? collectible->darkAccentColor
 		: collectible->accentColor;
+	if (!selected) {
+		return result;
+	}
+	auto &entry = resolveCollectibleCaches(collectible);
+	if (!entry.nameSelected.isValid()) {
+		entry.nameSelected = EnsurePeerNameReadable(
+			result,
+			msgInBgSelected()->c,
+			_dark);
+	}
+	return entry.nameSelected;
 }
 
 const style::TextPalette &ChatStyle::coloredTextPalette(
@@ -947,7 +999,7 @@ const style::TextPalette &ChatStyle::collectibleTextPalette(
 	auto &entry = resolveCollectibleCaches(collectible);
 	auto &result = selected ? entry.paletteSelected : entry.palette;
 	if (!result.linkFg) {
-		result.linkFg.emplace(collectibleNameColor(collectible));
+		result.linkFg.emplace(collectibleNameColor(collectible, selected));
 		make(
 			result.data,
 			(selected
@@ -964,6 +1016,13 @@ not_null<BackgroundEmojiData*> ChatStyle::backgroundEmojiData(
 		const std::shared_ptr<ColorCollectible> &collectible) const {
 	const auto id = collectible ? collectible->collectibleId : emojiId;
 	return &_backgroundEmojis[id];
+}
+
+not_null<Wallet::CardAngle*> ChatStyle::gramCardAngle() const {
+	if (!_gramCardAngle) {
+		_gramCardAngle = std::make_unique<Wallet::CardAngle>();
+	}
+	return _gramCardAngle.get();
 }
 
 not_null<Text::QuotePaintCache*> ChatStyle::coloredQuoteCache(
@@ -984,7 +1043,8 @@ not_null<Text::QuotePaintCache*> ChatStyle::collectibleQuoteCache(
 	auto &entry = resolveCollectibleCaches(collectible);
 	return collectibleCache(
 		selected ? entry.quoteSelected : entry.quote,
-		collectible);
+		collectible,
+		selected);
 }
 
 not_null<Text::QuotePaintCache*> ChatStyle::collectibleReplyCache(
@@ -993,7 +1053,8 @@ not_null<Text::QuotePaintCache*> ChatStyle::collectibleReplyCache(
 	auto &entry = resolveCollectibleCaches(collectible);
 	return collectibleCache(
 		selected ? entry.replySelected : entry.reply,
-		collectible);
+		collectible,
+		selected);
 }
 
 not_null<Text::QuotePaintCache*> ChatStyle::coloredCache(
@@ -1012,9 +1073,10 @@ not_null<Text::QuotePaintCache*> ChatStyle::coloredCache(
 
 not_null<Text::QuotePaintCache*> ChatStyle::collectibleCache(
 		std::unique_ptr<Text::QuotePaintCache> &cache,
-		const std::shared_ptr<ColorCollectible> &collectible) const {
+		const std::shared_ptr<ColorCollectible> &collectible,
+		bool selected) const {
 	EnsureBlockquoteCache(cache, [&] {
-		const auto name = collectibleNameColor(collectible);
+		const auto name = collectibleNameColor(collectible, selected);
 		auto bg = name;
 		bg.setAlpha(kDefaultBgOpacity * 255);
 
@@ -1116,6 +1178,18 @@ void ChatStyle::make(style::color &my, const style::color &original) const {
 
 void ChatStyle::make(style::icon &my, const style::icon &original) const {
 	my = original.withPalette(*this);
+	if (_collectOwnedIcons) {
+		_ownedIcons.push_back(&my);
+	}
+}
+
+void ChatStyle::forgetOwnedIcons(
+		const std::vector<not_null<style::icon*>> &icons) const {
+	_ownedIcons.erase(
+		ranges::remove_if(_ownedIcons, [&](not_null<style::icon*> icon) {
+			return ranges::contains(icons, icon);
+		}),
+		_ownedIcons.end());
 }
 
 void ChatStyle::make(
@@ -1132,6 +1206,265 @@ void ChatStyle::make(
 	make(my.selectMonoFg, original.selectMonoFg);
 	make(my.selectSpoilerFg, original.selectSpoilerFg);
 	make(my.selectOverlay, original.selectOverlay);
+}
+
+void ChatStyle::make(
+		style::QuoteStyle &my,
+		const style::QuoteStyle &original) const {
+	my = original;
+	make(my.icon, original.icon);
+	make(my.expand, original.expand);
+	make(my.collapse, original.collapse);
+}
+
+void ChatStyle::make(
+		style::TextStyle &my,
+		const style::TextStyle &original) const {
+	my = original;
+	make(my.blockquote, original.blockquote);
+	make(my.pre, original.pre);
+}
+
+void ChatStyle::make(
+		style::FlatLabel &my,
+		const style::FlatLabel &original) const {
+	my = original;
+	make(my.textFg, original.textFg);
+	make(my.style, original.style);
+	make(my.palette, original.palette);
+}
+
+void ChatStyle::make(style::Check &my, const style::Check &original) const {
+	my = original;
+	make(my.bg, original.bg);
+	make(my.untoggledFg, original.untoggledFg);
+	make(my.toggledFg, original.toggledFg);
+	make(my.icon, original.icon);
+}
+
+void ChatStyle::make(
+		style::MarkdownList &my,
+		const style::MarkdownList &original) const {
+	my = original;
+	make(my.bulletFg, original.bulletFg);
+	make(my.taskCheck, original.taskCheck);
+}
+
+void ChatStyle::make(
+		style::MarkdownQuotePaintColors &my,
+		const style::MarkdownQuotePaintColors &original) const {
+	my = original;
+	make(my.blockquote, original.blockquote);
+	make(my.pre, original.pre);
+	make(my.preBg, original.preBg);
+}
+
+void ChatStyle::make(
+		style::MarkdownRule &my,
+		const style::MarkdownRule &original) const {
+	my = original;
+	make(my.fg, original.fg);
+}
+
+void ChatStyle::make(
+		style::MarkdownDisplayMath &my,
+		const style::MarkdownDisplayMath &original) const {
+	my = original;
+	make(my.fg, original.fg);
+	make(my.fallbackStyle, original.fallbackStyle);
+	make(my.fallbackBg, original.fallbackBg);
+	make(my.overflowFg, original.overflowFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownTable &my,
+		const style::MarkdownTable &original) const {
+	my = original;
+	make(my.borderFg, original.borderFg);
+	make(my.headerBg, original.headerBg);
+	make(my.headerStyle, original.headerStyle);
+	make(my.bodyStyle, original.bodyStyle);
+	make(my.overflowFg, original.overflowFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownDetails &my,
+		const style::MarkdownDetails &original) const {
+	my = original;
+	make(my.borderFg, original.borderFg);
+	make(my.headerBg, original.headerBg);
+	make(my.bodyBg, original.bodyBg);
+	make(my.summaryFg, original.summaryFg);
+	make(my.summaryStyle, original.summaryStyle);
+	make(my.icon, original.icon);
+}
+
+void ChatStyle::make(
+		style::MarkdownEmbedPost &my,
+		const style::MarkdownEmbedPost &original) const {
+	my = original;
+	make(my.accentFg, original.accentFg);
+	make(my.authorStyle, original.authorStyle);
+	make(my.authorFg, original.authorFg);
+	make(my.dateStyle, original.dateStyle);
+	make(my.dateFg, original.dateFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownPlaceholder &my,
+		const style::MarkdownPlaceholder &original) const {
+	my = original;
+	make(my.bg, original.bg);
+	make(my.bgActive, original.bgActive);
+	make(my.rippleBg, original.rippleBg);
+	make(my.borderFg, original.borderFg);
+	make(my.spinnerFg, original.spinnerFg);
+	make(my.labelStyle, original.labelStyle);
+	make(my.labelFg, original.labelFg);
+	make(my.labelFgActive, original.labelFgActive);
+}
+
+void ChatStyle::make(
+		style::MarkdownPhoto &my,
+		const style::MarkdownPhoto &original) const {
+	my = original;
+	make(my.progressBg, original.progressBg);
+	make(my.progressFg, original.progressFg);
+	make(my.fallbackBg, original.fallbackBg);
+	make(my.fallbackFg, original.fallbackFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownAudio &my,
+		const style::MarkdownAudio &original) const {
+	my = original;
+	make(my.borderFg, original.borderFg);
+	make(my.bg, original.bg);
+	make(my.titleStyle, original.titleStyle);
+	make(my.titleFg, original.titleFg);
+	make(my.subtitleStyle, original.subtitleStyle);
+	make(my.subtitleFg, original.subtitleFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownChannelButton &my,
+		const style::MarkdownChannelButton &original) const {
+	my = original;
+	make(my.borderFg, original.borderFg);
+	make(my.bg, original.bg);
+	make(my.textStyle, original.textStyle);
+	make(my.textFg, original.textFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownChannel &my,
+		const style::MarkdownChannel &original) const {
+	my = original;
+	make(my.borderFg, original.borderFg);
+	make(my.bg, original.bg);
+	make(my.titleStyle, original.titleStyle);
+	make(my.titleFg, original.titleFg);
+	make(my.subtitleStyle, original.subtitleStyle);
+	make(my.subtitleFg, original.subtitleFg);
+	make(my.button, original.button);
+}
+
+void ChatStyle::make(
+		style::MarkdownRelatedArticle &my,
+		const style::MarkdownRelatedArticle &original) const {
+	my = original;
+	make(my.borderFg, original.borderFg);
+	make(my.bg, original.bg);
+	make(my.headerBg, original.headerBg);
+	make(my.separatorFg, original.separatorFg);
+	make(my.titleStyle, original.titleStyle);
+	make(my.titleFg, original.titleFg);
+	make(my.subtitleStyle, original.subtitleStyle);
+	make(my.subtitleFg, original.subtitleFg);
+	make(my.footerStyle, original.footerStyle);
+	make(my.footerFg, original.footerFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownGroupedMedia &my,
+		const style::MarkdownGroupedMedia &original) const {
+	my = original;
+	make(my.fallbackBg, original.fallbackBg);
+	make(my.fallbackFg, original.fallbackFg);
+	make(my.navButtonBg, original.navButtonBg);
+	make(my.navButtonBgOver, original.navButtonBgOver);
+	make(my.navPreviousIcon, original.navPreviousIcon);
+	make(my.navPreviousIconOver, original.navPreviousIconOver);
+	make(my.navNextIcon, original.navNextIcon);
+	make(my.navNextIconOver, original.navNextIconOver);
+}
+
+void ChatStyle::make(
+		style::MarkdownFailure &my,
+		const style::MarkdownFailure &original) const {
+	my = original;
+	make(my.label, original.label);
+}
+
+void ChatStyle::make(
+		style::MarkdownButtonRow &my,
+		const style::MarkdownButtonRow &original) const {
+	my = original;
+	make(my.labelStyle, original.labelStyle);
+	make(my.defaultBg, original.defaultBg);
+	make(my.defaultRipple, original.defaultRipple);
+	make(my.defaultFg, original.defaultFg);
+	make(my.primaryBg, original.primaryBg);
+	make(my.primaryRipple, original.primaryRipple);
+	make(my.primaryFg, original.primaryFg);
+	make(my.successFg, original.successFg);
+	make(my.dangerFg, original.dangerFg);
+}
+
+void ChatStyle::make(
+		style::MarkdownInlineButton &my,
+		const style::MarkdownInlineButton &original) const {
+	my = original;
+	make(my.labelStyle, original.labelStyle);
+	make(my.defaultFg, original.defaultFg);
+	make(my.primaryBg, original.primaryBg);
+	make(my.successFg, original.successFg);
+	make(my.dangerFg, original.dangerFg);
+}
+
+void ChatStyle::make(
+		style::Markdown &my,
+		const style::Markdown &original) const {
+	my = original;
+	make(my.textPalette, original.textPalette);
+	make(my.textColor, original.textColor);
+	make(my.supplementaryTextColor, original.supplementaryTextColor);
+	make(my.body, original.body);
+	make(my.heading1, original.heading1);
+	make(my.heading2, original.heading2);
+	make(my.heading3, original.heading3);
+	make(my.heading4, original.heading4);
+	make(my.heading5, original.heading5);
+	make(my.heading6, original.heading6);
+	make(my.footer, original.footer);
+	make(my.code, original.code);
+	make(my.list, original.list);
+	make(my.quotePaintColors, original.quotePaintColors);
+	make(my.quoteAuthorStyle, original.quoteAuthorStyle);
+	make(my.rule, original.rule);
+	make(my.displayMath, original.displayMath);
+	make(my.table, original.table);
+	make(my.details, original.details);
+	make(my.embedPost, original.embedPost);
+	make(my.placeholder, original.placeholder);
+	make(my.photo, original.photo);
+	make(my.audio, original.audio);
+	make(my.channel, original.channel);
+	make(my.relatedArticle, original.relatedArticle);
+	make(my.groupedMedia, original.groupedMedia);
+	make(my.failure, original.failure);
+	make(my.buttonRow, original.buttonRow);
+	make(my.inlineButton, original.inlineButton);
 }
 
 void ChatStyle::make(
@@ -1196,9 +1529,7 @@ QColor FromNameFg(
 		const std::shared_ptr<Ui::ColorCollectible> &colorCollectible) {
 	return !colorCollectible
 		? st->coloredValues(selected, colorIndex).name
-		: (st->dark() && (colorCollectible->darkAccentColor.alpha() > 0))
-		? colorCollectible->darkAccentColor
-		: colorCollectible->accentColor;
+		: st->collectibleNameColor(colorCollectible, selected);
 }
 
 void FillComplexOverlayRect(

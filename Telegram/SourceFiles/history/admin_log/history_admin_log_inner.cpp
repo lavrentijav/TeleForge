@@ -186,16 +186,23 @@ void InnerWidget::enumerateUserpics(Method method) {
 
 		// Call method on a userpic for all messages that have it and for those who are not showing it
 		// because of their attachment to the next message if they are bottom-most visible.
-		if (view->displayFromPhoto() || (view->hasFromPhoto() && itembottom >= _visibleBottom)) {
+		if (view->displayFromPhoto()
+			|| (view->hasFromPhoto()
+				&& view->isAttachedToNext()
+				&& itembottom >= _visibleBottom)) {
 			if (lowestAttachedItemTop < 0) {
 				lowestAttachedItemTop = itemtop + view->marginTop();
 			}
 			// Attach userpic to the bottom of the visible area with the same margin as the last message.
 			auto userpicMinBottomSkip = st::historyPaddingBottom + st::msgMargin.bottom();
-			auto userpicBottom = qMin(itembottom - view->marginBottom(), _visibleBottom - userpicMinBottomSkip);
+			auto userpicBottom = std::min(
+				itembottom - view->marginBottom(),
+				_visibleBottom - userpicMinBottomSkip);
 
 			// Do not let the userpic go above the attached messages pack top line.
-			userpicBottom = qMax(userpicBottom, lowestAttachedItemTop + st::msgPhotoSize);
+			userpicBottom = std::max(
+				userpicBottom,
+				lowestAttachedItemTop + st::msgPhotoSize);
 
 			// Call the template callback function that was passed
 			// and return if it finished everything it needed.
@@ -234,11 +241,14 @@ void InnerWidget::enumerateDates(Method method) {
 				lowestInOneDayItemBottom = itembottom - view->marginBottom();
 			}
 			// Attach date to the top of the visible area with the same margin as it has in service message.
-			auto dateTop = qMax(itemtop, _visibleTop) + st::msgServiceMargin.top();
+			auto dateTop = std::max(itemtop, _visibleTop)
+				+ st::msgServiceMargin.top();
 
 			// Do not let the date go below the single-day messages pack bottom line.
 			auto dateHeight = st::msgServicePadding.bottom() + st::msgServiceFont->height + st::msgServicePadding.top();
-			dateTop = qMin(dateTop, lowestInOneDayItemBottom - dateHeight);
+			dateTop = std::min(
+				dateTop,
+				lowestInOneDayItemBottom - dateHeight);
 
 			// Call the template callback function that was passed
 			// and return if it finished everything it needed.
@@ -360,7 +370,9 @@ InnerWidget::InnerWidget(
 }
 
 bool InnerWidget::myView(not_null<const HistoryView::Element*> view) const {
-	return !_items.empty() && (view->delegate().get() == this);
+	return !_beingDestroyed
+		&& !_items.empty()
+		&& (view->delegate().get() == this);
 }
 
 Main::Session &InnerWidget::session() const {
@@ -816,6 +828,12 @@ void InnerWidget::elementOpenDocument(
 	_controller->openDocument(document, showInMediaView, { context });
 }
 
+bool InnerWidget::elementScrollToLocalY(
+		not_null<const Element*> view,
+		int localTop) {
+	return false;
+}
+
 void InnerWidget::elementCancelUpload(const FullMsgId &context) {
 	if (const auto item = session().data().message(context)) {
 		_controller->cancelUploadLayer(item);
@@ -825,6 +843,12 @@ void InnerWidget::elementCancelUpload(const FullMsgId &context) {
 void InnerWidget::elementShowTooltip(
 	const TextWithEntities &text,
 	Fn<void()> hiddenCallback) {
+}
+
+void InnerWidget::elementShowHiddenSenderTooltip(
+		FullMsgId itemId,
+		const TextWithEntities &text) {
+	_controller->showToast(TextWithEntities(text));
 }
 
 bool InnerWidget::elementAnimationsPaused() {
@@ -957,6 +981,10 @@ bool InnerWidget::elementHideTopicButton(not_null<const Element*> view) {
 	return false;
 }
 
+HistoryView::GramReadLine *InnerWidget::elementGramReadLine() {
+	return nullptr;
+}
+
 void InnerWidget::saveState(not_null<SectionMemento*> memento) {
 	memento->setFilter(std::move(_filter));
 	memento->setAdmins(std::move(_admins));
@@ -1073,7 +1101,7 @@ void InnerWidget::preloadMore(Direction direction) {
 
 		requestId = 0;
 
-		auto &results = result.c_channels_adminLogResults();
+		const auto &results = result.c_channels_adminLogResults();
 		_channel->owner().processUsers(results.vusers());
 		_channel->owner().processChats(results.vchats());
 		if (!loadedFlag) {
@@ -1286,7 +1314,7 @@ void InnerWidget::addEvents(Direction direction, const QVector<MTPChannelAdminLo
 		}
 	}
 
-	for (const auto item : newItems) {
+	for (const auto &item : newItems) {
 		const auto replyTo = item->replyToFullId();
 		if (replyTo.peer != _history->peer->id) {
 			continue;
@@ -1645,7 +1673,7 @@ void InnerWidget::clearDisplayPointers(DisplayPointerScope pointerScope) {
 	}
 	if (clearMember(_selectedItem)) {
 		_selectedItem = nullptr;
-		_selectedText = TextSelection();
+		_selectedTextSelection = MessageSelection();
 	}
 	if (displayPointerMatches(Element::Hovered(), pointerScope)) {
 		Element::Hovered(nullptr);
@@ -1908,8 +1936,13 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 				const auto view = i->view;
 				context.outbg = view->hasOutLayout();
 				context.selection = (view == _selectedItem)
-					? _selectedText
+					? _selectedTextSelection.flatSelection()
 					: TextSelection();
+				context.fullMessageSelected = false;
+				context.messageSelection = ((view == _selectedItem)
+					&& !_selectedTextSelection.empty())
+					? &_selectedTextSelection
+					: nullptr;
 				context.highlight = _highlighter.state(view->data());
 				view->draw(p, context);
 
@@ -2029,7 +2062,7 @@ void InnerWidget::paintEmpty(Painter &p, not_null<const Ui::ChatStyle*> st) {
 
 TextForMimeData InnerWidget::getSelectedText() const {
 	return _selectedItem
-		? _selectedItem->selectedText(_selectedText)
+		? _selectedItem->selectedText(_selectedTextSelection)
 		: TextForMimeData();
 }
 
@@ -2054,13 +2087,15 @@ void InnerWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 		request.flags |= Ui::Text::StateRequest::Flag::LookupSymbol;
 		auto dragState = _mouseActionItem->textState(_dragStartPosition, request);
 		if (dragState.cursor == CursorState::Text) {
-			_mouseTextSymbol = dragState.symbol;
+			_mouseTextAnchor = dragState;
 			_mouseSelectType = TextSelectType::Words;
 			if (_mouseAction == MouseAction::None) {
 				_mouseAction = MouseAction::Selecting;
-				auto selection = TextSelection { dragState.symbol, dragState.symbol };
 				repaintItem(std::exchange(_selectedItem, _mouseActionItem));
-				_selectedText = selection;
+				_selectedTextSelection = _mouseActionItem->selectionFromStates(
+					_mouseTextAnchor,
+					dragState,
+					_mouseSelectType);
 			}
 			mouseMoveEvent(e);
 
@@ -2084,10 +2119,7 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 	auto hasSelected = 0;
 	if (_selectedItem) {
 		isUponSelected = -1;
-
-		auto selFrom = _selectedText.from;
-		auto selTo = _selectedText.to;
-		hasSelected = (selTo > selFrom) ? 1 : 0;
+		hasSelected = _selectedTextSelection.empty() ? 0 : 1;
 		if (Element::Moused() && Element::Moused() == Element::Hovered()) {
 			auto mousePos = mapPointToItem(
 				mapFromGlobal(_mousePosition),
@@ -2095,8 +2127,9 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			StateRequest request;
 			request.flags |= Ui::Text::StateRequest::Flag::LookupSymbol;
 			auto dragState = Element::Moused()->textState(mousePos, request);
-			if (dragState.cursor == CursorState::Text
-				&& base::in_range(dragState.symbol, selFrom, selTo)) {
+			if (Element::Moused()->selectionContains(
+					_selectedTextSelection,
+					dragState)) {
 				isUponSelected = 1;
 			}
 		}
@@ -2215,6 +2248,9 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				}
 			}
 			suggestRestrictParticipant(participant, realId);
+			if (_overSenderUserpic) {
+				_menu->setForcedOrigin(Ui::PanelAnimation::Origin::BottomLeft);
+			}
 		}
 	} else { // maybe cursor on some text history item?
 		const auto item = view ? view->data().get() : nullptr;
@@ -2458,13 +2494,18 @@ void InnerWidget::suggestRestrictParticipant(
 
 	{
 		const auto lifetime = std::make_shared<rpl::lifetime>();
+		const auto weak = base::make_weak(this);
 		auto handler = [=, this] {
 			participant->session().changes().peerUpdates(
 				_channel,
 				Data::PeerUpdate::Flag::Members
-			) | rpl::on_next([=](const Data::PeerUpdate &update) {
-				_downLoaded = false;
-				preloadMore(Direction::Down);
+			) | rpl::on_next_done([=] {
+				lifetime->destroy();
+				if (const auto strong = weak.get()) {
+					strong->_downLoaded = false;
+					strong->preloadMore(Direction::Down);
+				}
+			}, [=] {
 				lifetime->destroy();
 			}, *lifetime);
 			participant->session().api().chatParticipants().kick(
@@ -2608,10 +2649,12 @@ void InnerWidget::mouseActionStart(const QPoint &screenPos, Qt::MouseButton butt
 			request.flags = Ui::Text::StateRequest::Flag::LookupSymbol;
 			dragState = _mouseActionItem->textState(_dragStartPosition, request);
 			if (dragState.cursor == CursorState::Text) {
-				auto selection = TextSelection { dragState.symbol, dragState.symbol };
 				repaintItem(std::exchange(_selectedItem, _mouseActionItem));
-				_selectedText = selection;
-				_mouseTextSymbol = dragState.symbol;
+				_selectedTextSelection = _mouseActionItem->selectionFromStates(
+					dragState,
+					dragState,
+					TextSelectType::Paragraphs);
+				_mouseTextAnchor = dragState;
 				_mouseAction = MouseAction::Selecting;
 				_mouseSelectType = TextSelectType::Paragraphs;
 				mouseActionUpdate(_mousePosition);
@@ -2624,22 +2667,20 @@ void InnerWidget::mouseActionStart(const QPoint &screenPos, Qt::MouseButton butt
 		}
 		if (_mouseSelectType != TextSelectType::Paragraphs) {
 			if (Element::Pressed()) {
-				_mouseTextSymbol = dragState.symbol;
-				auto uponSelected = (dragState.cursor == CursorState::Text);
-				if (uponSelected) {
-					if (!_selectedItem || _selectedItem != _mouseActionItem) {
-						uponSelected = false;
-					} else if (_mouseTextSymbol < _selectedText.from || _mouseTextSymbol >= _selectedText.to) {
-						uponSelected = false;
-					}
-				}
+				auto uponSelected = _mouseActionItem
+					&& (_selectedItem == _mouseActionItem)
+					&& _mouseActionItem->selectionContains(
+						_selectedTextSelection,
+						dragState);
 				if (uponSelected) {
 					_mouseAction = MouseAction::PrepareDrag; // start text drag
 				} else if (!_pressWasInactive) {
-					if (dragState.afterSymbol) ++_mouseTextSymbol;
-					auto selection = TextSelection { _mouseTextSymbol, _mouseTextSymbol };
 					repaintItem(std::exchange(_selectedItem, _mouseActionItem));
-					_selectedText = selection;
+					_mouseTextAnchor = dragState;
+					_selectedTextSelection = _mouseActionItem->selectionFromStates(
+						_mouseTextAnchor,
+						dragState,
+						_mouseSelectType);
 					_mouseAction = MouseAction::Selecting;
 					repaintItem(_mouseActionItem);
 				}
@@ -2662,6 +2703,7 @@ void InnerWidget::mouseActionUpdate(const QPoint &screenPos) {
 void InnerWidget::mouseActionCancel() {
 	_mouseActionItem = nullptr;
 	_mouseAction = MouseAction::None;
+	_mouseTextAnchor = TextState();
 	_dragStartPosition = QPoint(0, 0);
 	_wasSelectedText = false;
 	//_widget->noSelectingScroll(); // TODO
@@ -2732,7 +2774,7 @@ void InnerWidget::mouseActionFinish(const QPoint &screenPos, Qt::MouseButton but
 		repaintItem(base::take(_selectedItem));
 	} else if (_mouseAction == MouseAction::Selecting) {
 		if (_selectedItem && !_pressWasInactive) {
-			if (_selectedText.from == _selectedText.to) {
+			if (_selectedTextSelection.empty()) {
 				_selectedItem = nullptr;
 				_controller->widget()->setInnerFocus();
 			}
@@ -2741,13 +2783,14 @@ void InnerWidget::mouseActionFinish(const QPoint &screenPos, Qt::MouseButton but
 	_mouseAction = MouseAction::None;
 	_mouseActionItem = nullptr;
 	_mouseSelectType = TextSelectType::Letters;
+	_mouseTextAnchor = TextState();
 	//_widget->noSelectingScroll(); // TODO
 
 	if (QGuiApplication::clipboard()->supportsSelection()
 		&& _selectedItem
-		&& _selectedText.from != _selectedText.to) {
+		&& !_selectedTextSelection.empty()) {
 		TextUtilities::SetClipboardText(
-			_selectedItem->selectedText(_selectedText),
+			_selectedItem->selectedText(_selectedTextSelection),
 			QClipboard::Selection);
 	}
 }
@@ -2784,6 +2827,7 @@ void InnerWidget::updateSelected() {
 
 	TextState dragState;
 	ClickHandlerHost *lnkhost = nullptr;
+	auto dragStateUserpic = false;
 	auto selectingText = _selectedItem
 		&& (view == _mouseActionItem)
 		&& (view == Element::Hovered());
@@ -2819,6 +2863,7 @@ void InnerWidget::updateSelected() {
 					// stop enumeration if we've found a userpic under the cursor
 					if (point.y() >= userpicTop && point.y() < userpicTop + st::msgPhotoSize) {
 						dragState.link = view->data()->from()->openLink();
+						dragStateUserpic = true;
 						lnkhost = view;
 						return false;
 					}
@@ -2827,6 +2872,7 @@ void InnerWidget::updateSelected() {
 			}
 		}
 	}
+	_overSenderUserpic = dragStateUserpic;
 	auto lnkChanged = ClickHandler::setActive(dragState.link, lnkhost);
 	if (lnkChanged || dragState.cursor != _mouseCursorState) {
 		Ui::Tooltip::Hide();
@@ -2851,21 +2897,12 @@ void InnerWidget::updateSelected() {
 	} else if (item) {
 		if (_mouseAction == MouseAction::Selecting) {
 			if (selectingText) {
-				auto second = dragState.symbol;
-				if (dragState.afterSymbol && _mouseSelectType == TextSelectType::Letters) {
-					++second;
-				}
-				auto selection = TextSelection { qMin(second, _mouseTextSymbol), qMax(second, _mouseTextSymbol) };
-				if (_mouseSelectType != TextSelectType::Letters) {
-					selection = _mouseActionItem->adjustSelection(
-						selection,
-						_mouseSelectType);
-				}
-				if (_selectedText != selection) {
-					_selectedText = selection;
-					repaintItem(_mouseActionItem);
-				}
-				if (!_wasSelectedText && (selection.from != selection.to)) {
+				_selectedTextSelection = _mouseActionItem->selectionFromStates(
+					_mouseTextAnchor,
+					dragState,
+					_mouseSelectType);
+				repaintItem(_mouseActionItem);
+				if (!_wasSelectedText && !_selectedTextSelection.empty()) {
 					_wasSelectedText = true;
 					setFocus();
 				}
@@ -3087,11 +3124,11 @@ void InnerWidget::touchUpdateSpeed() {
 			const QPoint newPixelDiff = (_touchPos - _touchPrevPos);
 			const QPoint pixelsPerSecond = newPixelDiff * (1000 / elapsed);
 
-			const int newSpeedY = (qAbs(pixelsPerSecond.y())
+			const int newSpeedY = (std::abs(pixelsPerSecond.y())
 					> Ui::kFingerAccuracyThreshold)
 				? pixelsPerSecond.y()
 				: 0;
-			const int newSpeedX = (qAbs(pixelsPerSecond.x())
+			const int newSpeedX = (std::abs(pixelsPerSecond.x())
 					> Ui::kFingerAccuracyThreshold)
 				? pixelsPerSecond.x()
 				: 0;
@@ -3144,13 +3181,13 @@ void InnerWidget::touchDeaccelerate(int32 elapsed) {
 	_touchSpeed.setX((x == 0)
 		? x
 		: (x > 0)
-		? qMax(0, x - elapsed)
-		: qMin(0, x + elapsed));
+		? std::max(0, x - elapsed)
+		: std::min(0, x + elapsed));
 	_touchSpeed.setY((y == 0)
 		? y
 		: (y > 0)
-		? qMax(0, y - elapsed)
-		: qMin(0, y + elapsed));
+		? std::max(0, y - elapsed)
+		: std::min(0, y + elapsed));
 }
 
 void InnerWidget::touchEvent(QTouchEvent *e) {
@@ -3272,6 +3309,10 @@ void InnerWidget::touchScrollUpdated(const QPoint &screenPos) {
 	touchUpdateSpeed();
 }
 
-InnerWidget::~InnerWidget() = default;
+InnerWidget::~InnerWidget() {
+	_beingDestroyed = true;
+	clearDisplayItems(DisplayPointerScope::All);
+	base::take(_items);
+}
 
 } // namespace AdminLog

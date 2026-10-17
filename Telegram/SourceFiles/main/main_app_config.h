@@ -84,6 +84,7 @@ public:
 	[[nodiscard]] float64 currencyWithdrawRate() const;
 	[[nodiscard]] float64 starsSellRate() const;
 	[[nodiscard]] float64 currencySellRate() const;
+	[[nodiscard]] bool starsSpendTopupInvoiceDisabled() const;
 	[[nodiscard]] bool paidMessagesAvailable() const;
 	[[nodiscard]] int paidMessageStarsMax() const;
 	[[nodiscard]] int paidMessageCommission() const;
@@ -126,6 +127,9 @@ public:
 	[[nodiscard]] QString ageVerifyCountry() const;
 	[[nodiscard]] int ageVerifyMinAge() const;
 	[[nodiscard]] QString ageVerifyBotUsername() const;
+
+	[[nodiscard]] QString oldWalletBotUsername() const;
+	[[nodiscard]] bool walletAvailable() const;
 
 	[[nodiscard]] int storiesAlbumsLimit() const;
 	[[nodiscard]] int storiesAlbumLimit() const;

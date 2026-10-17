@@ -37,6 +37,8 @@ namespace HistoryView {
 
 class Element;
 
+[[nodiscard]] bool CanPlayEmojiInteraction(not_null<const Element*> view);
+
 class EmojiInteractions final {
 public:
 	EmojiInteractions(
@@ -120,7 +122,6 @@ private:
 	void checkPendingEffects();
 
 	void refreshLayerShift();
-	void refreshLayerGeometryAndUpdate(QRect rect);
 
 	const not_null<QWidget*> _parent;
 	const not_null<QWidget*> _layerParent;

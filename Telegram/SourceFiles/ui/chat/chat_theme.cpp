@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/chat/message_bubble.h"
 #include "ui/chat/chat_style.h"
+#include "ui/chat/chat_theme_readability.h"
 #include "ui/image/image_prepare.h"
 #include "ui/text/text_custom_emoji.h"
 #include "ui/style/style_core_palette.h"
@@ -247,16 +248,23 @@ constexpr auto kMinAcceptableContrast = 1.14;// 4.5;
 	}
 }
 
-[[nodiscard]] QImage PrepareBubblesBackground(
-		const ChatThemeBubblesData &data) {
+} // namespace
+
+std::vector<QColor> BubblesGradientColors(const ChatThemeBubblesData &data) {
+	return (data.dark && data.colors.size() > 1)
+		? DarkenUnderWhiteText(data.colors)
+		: data.colors;
+}
+
+QImage PrepareBubblesBackground(const ChatThemeBubblesData &data) {
 	if (data.colors.size() < 2) {
 		return QImage();
 	}
 	constexpr auto kSize = 512;
-	return Images::GenerateLinearGradient(QSize(kSize, kSize), data.colors);
+	return Images::GenerateLinearGradient(
+		QSize(kSize, kSize),
+		BubblesGradientColors(data));
 }
-
-} // namespace
 
 bool operator==(const ChatThemeBackground &a, const ChatThemeBackground &b) {
 	return (a.key == b.key)
@@ -316,7 +324,7 @@ ChatTheme::ChatTheme(ChatThemeDescriptor &&descriptor)
 ChatTheme::~ChatTheme() = default;
 
 void ChatTheme::adjustPalette(const ChatThemeDescriptor &descriptor) {
-	auto &p = *_palette;
+	const auto &p = *_palette;
 	const auto overrideOutBg = (descriptor.bubblesData.colors.size() == 1);
 	if (overrideOutBg) {
 		set(p.msgOutBg(), descriptor.bubblesData.colors.front());
@@ -465,6 +473,15 @@ void ChatTheme::adjustPalette(const ChatThemeDescriptor &descriptor) {
 			set(color, now);
 		}
 	}
+	const auto &bubbles = descriptor.bubblesData;
+	if (!bubbles.colors.empty() || bubbles.accent) {
+		EnsureBubblesReadable(p, {
+			.dark = descriptor.basedOnDark,
+			.outgoingGradient = BubblesGradientColors(bubbles),
+			.deriveOutgoingSelection = descriptor.basedOnDark
+				&& !bubbles.colors.empty(),
+		});
+	}
 }
 
 style::colorizer ChatTheme::bubblesAccentColorizer(
@@ -551,7 +568,10 @@ void ChatTheme::setBubblesBackground(QImage image) {
 			: _bubblesBackground.area),
 	});
 	if (!_bubblesBackgroundPattern) {
-		_bubblesBackgroundPattern = PrepareBubblePattern(palette());
+		const auto use = _palette
+			? _palette.get()
+			: style::main_palette::get().get();
+		_bubblesBackgroundPattern = PrepareBubblePattern(use);
 	}
 	_bubblesBackgroundPattern->pixmap = _bubblesBackground.pixmap;
 	// setBubblesBackground called only from background thread.

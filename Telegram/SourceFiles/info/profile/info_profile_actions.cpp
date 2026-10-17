@@ -19,6 +19,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/qt/qt_key_modifiers.h"
 #include "base/timer_rpl.h"
 #include "base/unixtime.h"
+#include "boxes/choose_filter_box.h"
+#include "boxes/peer_list_box.h"
 #include "boxes/peers/add_bot_to_chat_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/peers/edit_participants_box.h"
@@ -37,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_changes.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_chat_filters.h"
 #include "data/data_folder.h"
 #include "data/data_forum.h"
 #include "data/data_forum_topic.h"
@@ -82,6 +85,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/rect.h"
 #include "ui/ui_utility.h"
 #include "ui/text/format_values.h"
+#include "ui/text/text_custom_emoji.h"
 #include "ui/text/text_utilities.h"
 #include "ui/text/text_variant.h"
 #include "ui/toast/toast.h"
@@ -102,7 +106,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
 #include "styles/style_channel_earn.h" // st::channelEarnCurrencyCommonMargins
+#include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
+#include "styles/style_info_profile_actions.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h" // settingsButtonRightSkip.
@@ -125,6 +131,7 @@ namespace Profile {
 namespace {
 
 constexpr auto kDay = Data::WorkingInterval::kDay;
+constexpr auto kPeerIdLinkIndex = uint16(1);
 
 class DraggableUrlClickHandler final : public UrlClickHandler {
 public:
@@ -214,8 +221,13 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 		if (!link.isEmpty()) {
 			TextUtilities::SetClipboardText({ link });
 			if (const auto strong = weak.get()) {
-				strong->showToast(
-					tr::lng_channel_public_link_copied(tr::now));
+				strong->showToast({
+					.text = {
+						tr::lng_channel_public_link_copied(tr::now),
+					},
+					.iconLottie = u"toast/voip_invite"_q,
+					.iconLottieSize = st::toastLottieIconSize,
+				});
 			}
 		}
 	};
@@ -241,7 +253,7 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 			const auto raw = peer->id.value & PeerId::kChatTypeMask;
 			value.append(Link(
 				Italic(Lang::FormatCountDecimal(raw)),
-				"internal:~peer_id~:copy:" + QString::number(raw)));
+				kPeerIdLinkIndex));
 		}
 		if (ShowChannelJoinedBelowAbout.value()) {
 			if (const auto channel = peer->asChannel()) {
@@ -269,6 +281,24 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 		}
 		return std::move(value);
 	});
+}
+
+void SetupAboutPeerIdDrag(
+		not_null<Ui::FlatLabel*> label,
+		not_null<PeerData*> peer) {
+	if (!ShowPeerIdBelowAbout.value()) {
+		return;
+	}
+	const auto id = QString::number(peer->id.value & PeerId::kChatTypeMask);
+	AboutValue(
+		peer
+	) | rpl::on_next([=] {
+		label->setLink(
+			kPeerIdLinkIndex,
+			std::make_shared<DraggableUrlClickHandler>(
+				u"internal:~peer_id~:copy:"_q + id,
+				id));
+	}, label->lifetime());
 }
 
 [[nodiscard]] bool AreNonTrivialHours(const Data::WorkingHours &hours) {
@@ -920,9 +950,7 @@ void DeleteContactNote(
 	) | rpl::start_spawning(result->lifetime());
 
 	auto label = BirthdayLabelText(rpl::duplicate(birthday));
-	auto text = BirthdayValueText(
-		rpl::duplicate(birthday)
-	) | rpl::map(tr::marked);
+	auto text = BirthdayValueMarkedText(user, rpl::duplicate(birthday));
 
 	const auto giftIcon = Ui::CreateChild<Ui::RpWidget>(layout);
 	giftIcon->resize(st::birthdayTodayIcon.size());
@@ -975,7 +1003,12 @@ void DeleteContactNote(
 	layout->add(object_ptr<Ui::FlatLabel>(
 		layout,
 		std::move(nonEmptyText),
-		st::birthdayLabeled));
+		st::birthdayLabeled,
+		st::defaultPopupMenu,
+		Ui::Text::MarkedContext{
+			.customEmojiFactory = user->owner().customEmojiManager().factory(
+				Data::CustomEmojiManager::SizeTag::Normal),
+		}));
 	layout->add(Ui::CreateSkipWidget(layout, st::infoLabelSkip));
 	layout->add(object_ptr<Ui::FlatLabel>(
 		layout,
@@ -1112,7 +1145,7 @@ rpl::producer<CreditsAmount> AddCurrencyAction(
 	const auto button = wrapButton->entity();
 	const auto name = Ui::CreateChild<Ui::FlatLabel>(button, st.rightLabel);
 	const auto icon = state->helper.paletteDependent({ .factory = [=] {
-		return Ui::Earn::IconCurrencyColored(
+		return Ui::Earn::IconCurrencyTwoTone(
 			st.rightLabel.style.font,
 			st.rightLabel.textFg->c);
 	}, .margin = st::channelEarnCurrencyCommonMargins });
@@ -1239,13 +1272,14 @@ private:
 	[[nodiscard]] Section makePersonalChannel(not_null<UserData*> user);
 	[[nodiscard]] Section makeInfo();
 	[[nodiscard]] Section makeAddAsContact(not_null<UserData*> user);
-	[[nodiscard]] Section makeBotVerifyDivider();
-	[[nodiscard]] Section makeMainApp(not_null<UserData*> user);
+	void addBotVerify();
+	void addMainApp(not_null<UserData*> user);
 	[[nodiscard]] Section makeBotPermissions(not_null<UserData*> user);
-	[[nodiscard]] Section makeManagedBotFooter(
-		not_null<UserData*> managerUser);
+	void addManagedBotFooter(not_null<UserData*> managerUser);
 	[[nodiscard]] Section makeReportOrDeleteReaction();
 	[[nodiscard]] Section makeViewChannel(not_null<ChannelData*> channel);
+	[[nodiscard]] Section makeCommunityLink(not_null<PeerData*> peer);
+	void addCommunityHiddenNote();
 	[[nodiscard]] Section makeTopicsList(not_null<Data::Forum*> forum);
 
 	[[nodiscard]] Section makeDeleteReactionSection(GroupReactionOrigin data);
@@ -1499,9 +1533,9 @@ Section DetailsFiller::makeInfo() {
 				Qt::SkipEmptyParts).last();
 			if (!joinDate.isEmpty()) {
 				const auto weak = base::make_weak(window);
-				window->session().api().resolveJumpToDate(
+				window->session().api().resolveJumpToTime(
 					Dialogs::Key(peer->owner().history(peer)),
-					base::unixtime::parse(joinDate.toULongLong()).date(),
+					TimeId(joinDate.toULongLong()),
 					[=](not_null<PeerData*> p, MsgId m) {
 						const auto f = Window::SectionShow::Way::Forward;
 						if (const auto strong = weak.get()) {
@@ -1516,16 +1550,18 @@ Section DetailsFiller::makeInfo() {
 		return true;
 	};
 
-	const auto addTranslateToMenu = [&,
+	const auto setupAboutContextMenu = [&,
 			peer = _peer.get(),
 			controller = _controller->parentController()](
 			not_null<Ui::FlatLabel*> label,
 			rpl::producer<TextWithEntities> &&text) {
 		struct State {
 			rpl::variable<TextWithEntities> labelText;
+			rpl::variable<TextWithEntities> aboutText;
 		};
 		const auto state = label->lifetime().make_state<State>();
 		state->labelText = std::move(text);
+		state->aboutText = AboutValue(peer);
 		label->setContextMenuHook([=](
 				Ui::FlatLabel::ContextMenuRequest request) {
 			if (request.link) {
@@ -1542,24 +1578,49 @@ Section DetailsFiller::makeInfo() {
 					return;
 				}
 			}
-			label->fillContextMenu(request);
-			if (Ui::SkipTranslate(state->labelText.current())) {
+			const auto selected = !request.selection.empty();
+			const auto full = state->labelText.current();
+			const auto about = state->aboutText.current();
+			const auto advanced = (about.text.size() < full.text.size());
+			if (selected || !advanced) {
+				label->fillContextMenu(request);
+			} else {
+				if (!about.empty()) {
+					request.menu->addAction(
+						tr::lng_context_copy_text(tr::now),
+						[=] {
+							TextUtilities::SetClipboardText(
+								TextForMimeData::WithExpandedLinks(about));
+						});
+				}
+				if (const auto link = request.link) {
+					const auto copy = link->copyToClipboardContextItemText();
+					if (!copy.isEmpty()) {
+						request.menu->addAction(
+							copy,
+							[text = link->copyToClipboardText()] {
+								TextUtilities::SetClipboardText({ text });
+							});
+					}
+				}
+			}
+			if (Ui::SkipTranslate(selected ? full : about)) {
 				return;
 			}
-			auto item = (request.selection.empty()
-				? tr::lng_context_translate
-				: tr::lng_context_translate_selected)(tr::now);
+			auto item = (selected
+				? tr::lng_context_translate_selected
+				: tr::lng_context_translate)(tr::now);
 			request.menu->addAction(std::move(item), [=] {
 				controller->window().show(Box(
 					Ui::TranslateBox,
 					peer,
 					MsgId(),
-					request.selection.empty()
-						? state->labelText.current()
-						: Ui::Text::Mid(
-							state->labelText.current(),
+					(selected
+						? Ui::Text::Mid(
+							full,
 							request.selection.from,
-							request.selection.to - request.selection.from),
+							request.selection.to - request.selection.from)
+						: about),
 					false));
 			});
 		});
@@ -1569,14 +1630,16 @@ Section DetailsFiller::makeInfo() {
 			v::text::data &&label,
 			rpl::producer<TextWithEntities> &&text,
 			const style::FlatLabel &textSt = st::infoLabeled,
-			const style::margins &padding = st::infoProfileLabeledPadding) {
+			const style::margins &padding = st::infoProfileLabeledPadding,
+			const style::PopupMenu &stMenu = st::defaultPopupMenu) {
 		auto line = CreateTextWithLabel(
 			result,
 			v::text::take_marked(std::move(label)),
 			std::move(text),
 			st::infoLabel,
 			textSt,
-			padding);
+			padding,
+			stMenu);
 		tracker.track(result->add(std::move(line.wrap)));
 
 		line.text->setClickHandlerFilter(infoClickFilter);
@@ -1586,23 +1649,27 @@ Section DetailsFiller::makeInfo() {
 			v::text::data &&label,
 			rpl::producer<TextWithEntities> &&text,
 			const style::FlatLabel &textSt = st::infoLabeled,
-			const style::margins &padding = st::infoProfileLabeledPadding) {
+			const style::margins &padding = st::infoProfileLabeledPadding,
+			const style::PopupMenu &stMenu = st::defaultPopupMenu) {
 		return addInfoLineGeneric(
 			std::move(label),
 			std::move(text),
 			textSt,
-			padding);
+			padding,
+			stMenu);
 	};
 	const auto addInfoOneLine = [&](
 			v::text::data &&label,
 			rpl::producer<TextWithEntities> &&text,
 			const QString &contextCopyText,
-			const style::margins &padding = st::infoProfileLabeledPadding) {
+			const style::margins &padding = st::infoProfileLabeledPadding,
+			const style::PopupMenu &stMenu = st::defaultPopupMenu) {
 		auto result = addInfoLine(
 			std::move(label),
 			std::move(text),
 			st::infoLabeledOneLine,
-			padding);
+			padding,
+			stMenu);
 		result.text->setDoubleClickSelectsParagraph(true);
 		result.text->setContextCopyText(contextCopyText);
 		return result;
@@ -1648,8 +1715,13 @@ Section DetailsFiller::makeInfo() {
 				[=] {
 					TextUtilities::SetClipboardText({ url });
 					if (const auto strong = weak.get()) {
-						strong->showToast(
-							tr::lng_channel_public_link_copied(tr::now));
+						strong->showToast({
+							.text = {
+								tr::lng_channel_public_link_copied(tr::now),
+							},
+							.iconLottie = u"toast/voip_invite"_q,
+							.iconLottieSize = st::toastLottieIconSize,
+						});
 					}
 				});
 			request.menu->addAction(
@@ -1701,32 +1773,35 @@ Section DetailsFiller::makeInfo() {
 		{
 			const auto phoneLabel = addInfoOneLine(
 				tr::lng_info_mobile_label(),
-				PhoneOrHiddenValue(user),
-				tr::lng_profile_copy_phone(tr::now)).text;
+				PhoneWithSpoilerValue(user, PhoneOrHiddenValue(user)),
+				tr::lng_profile_copy_phone(tr::now),
+				st::infoProfileLabeledPadding,
+				st::popupMenuWithIcons).text;
 			const auto hook = [=](Ui::FlatLabel::ContextMenuRequest request) {
 				if (request.selection.empty()) {
 					const auto callback = [=] {
-						auto phone = rpl::variable<TextWithEntities>(
-							PhoneOrHiddenValue(user)).current().text;
-						phone.replace(' ', QString()).replace('-', QString());
-						TextUtilities::SetClipboardText({ phone });
+						CopyPhoneToClipboard(PhoneOrHiddenValue(user));
 					};
 					request.menu->addAction(
 						tr::lng_profile_copy_phone(tr::now),
-						callback);
+						callback,
+						&st::menuIconCopy);
 				} else {
 					phoneLabel->fillContextMenu(request);
 				}
 				AddPhoneMenu(request.menu, user);
+				AddPhoneSpoilerMenu(request.menu, user);
 			};
 			phoneLabel->setContextMenuHook(hook);
 		}
 		auto label = user->isBot()
 			? tr::lng_info_about_label()
 			: tr::lng_info_bio_label();
-		addTranslateToMenu(
-			addInfoLine(std::move(label), AboutWithAdvancedValue(user)).text,
+		const auto about = addInfoLine(
+			std::move(label),
 			AboutWithAdvancedValue(user));
+		setupAboutContextMenu(about.text, AboutWithAdvancedValue(user));
+		SetupAboutPeerIdDrag(about.text, user);
 
 		const auto usernameLine = addInfoOneLine(
 			UsernamesSubtext(_peer, tr::lng_info_username_label()),
@@ -1951,7 +2026,8 @@ Section DetailsFiller::makeInfo() {
 			? rpl::single(TextWithEntities())
 			: AboutWithAdvancedValue(_peer));
 		if (!_topic) {
-			addTranslateToMenu(about.text, AboutWithAdvancedValue(_peer));
+			setupAboutContextMenu(about.text, AboutWithAdvancedValue(_peer));
+			SetupAboutPeerIdDrag(about.text, _peer);
 		}
 	}
 	raw->toggleOn(tracker.atLeastOneShownValue());
@@ -1960,7 +2036,6 @@ Section DetailsFiller::makeInfo() {
 	return Section{
 		.widget = std::move(wrap),
 		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::None(),
 	};
 }
 
@@ -2306,11 +2381,10 @@ Section DetailsFiller::makePersonalChannel(not_null<UserData*> user) {
 	return Section{
 		.widget = std::move(result),
 		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::None(),
 	};
 }
 
-Section DetailsFiller::makeMainApp(not_null<UserData*> user) {
+void DetailsFiller::addMainApp(not_null<UserData*> user) {
 	const auto parent = _stack->layout();
 	auto wrap = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 		parent,
@@ -2354,18 +2428,25 @@ Section DetailsFiller::makeMainApp(not_null<UserData*> user) {
 		return text;
 	});
 	auto setup = [url](not_null<Ui::FlatLabel*> label) {
-		label->setClickHandlerFilter([=](const auto &...) {
-			UrlClickHandler::Open(url);
-			return false;
+		label->setClickHandlerFilter([=](
+				const ClickHandlerPtr &link,
+				Qt::MouseButton) {
+			if (link && link->url() == url) {
+				UrlClickHandler::Open(url);
+				return false;
+			}
+			return true;
 		});
 	};
-	return Section{
+
+	_stack->add(Section{
 		.widget = std::move(wrap),
 		.shown = rpl::single(true),
-		.trailing = SectionSeparator::Text(
-			std::move(textProducer),
-			std::move(setup)),
-	};
+	});
+	_stack->addTextSeparator(
+		std::move(textProducer),
+		rpl::single(true),
+		std::move(setup));
 }
 
 Section DetailsFiller::makeBotPermissions(not_null<UserData*> user) {
@@ -2403,7 +2484,6 @@ Section DetailsFiller::makeBotPermissions(not_null<UserData*> user) {
 	return Section{
 		.widget = std::move(wrap),
 		.shown = rpl::single(true),
-		.trailing = SectionSeparator::None(),
 	};
 }
 
@@ -2427,18 +2507,11 @@ Section DetailsFiller::makeAddAsContact(not_null<UserData*> user) {
 	return Section{
 		.widget = std::move(wrap),
 		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::None(),
 	};
 }
 
-Section DetailsFiller::makeBotVerifyDivider() {
+void DetailsFiller::addBotVerify() {
 	const auto peer = _peer.get();
-	const auto parent = _stack->layout();
-	auto wrap = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		parent,
-		object_ptr<Ui::VerticalLayout>(parent));
-	const auto raw = wrap.data();
-
 	auto shown = peer->session().changes().peerFlagsValue(
 		peer,
 		Data::PeerUpdate::Flag::VerifyInfo
@@ -2464,56 +2537,33 @@ Section DetailsFiller::makeBotVerifyDivider() {
 		return info ? info->description : TextWithEntities();
 	});
 
-	raw->toggleOn(std::move(shown), anim::type::instant);
-	raw->finishAnimating();
-	return Section{
-		.widget = std::move(wrap),
-		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::Text(std::move(description)),
-	};
+	_stack->addTextSeparator(std::move(description), std::move(shown));
 }
 
-Section DetailsFiller::makeManagedBotFooter(
-		not_null<UserData*> managerUser) {
-	const auto parent = _stack->layout();
-	auto wrap = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
-		parent,
-		object_ptr<Ui::VerticalLayout>(parent));
-	const auto raw = wrap.data();
-	const auto inner = raw->entity();
+void DetailsFiller::addManagedBotFooter(not_null<UserData*> managerUser) {
 	const auto botUsername = managerUser->username();
 	const auto linkText = botUsername.isEmpty()
 		? managerUser->name()
 		: (u"@"_q + botUsername);
-	auto label = object_ptr<Ui::FlatLabel>(
-		inner,
-		tr::lng_managed_bot_label(
-			lt_icon,
-			rpl::single(Ui::Text::IconEmoji(&st::managedBotIconEmoji)),
-			lt_bot,
-			rpl::single(tr::link(linkText)),
-			tr::marked),
-		st::defaultDividerLabel.label);
-	const auto flatLabel = label.data();
-	inner->add(object_ptr<Ui::DividerLabel>(
-		inner,
-		std::move(label),
-		st::defaultBoxDividerLabelPadding,
-		st::defaultDividerLabel.bar,
-		RectPart::Top | RectPart::Bottom));
+	auto text = tr::lng_managed_bot_label(
+		lt_icon,
+		rpl::single(Ui::Text::IconEmoji(&st::managedBotIconEmoji)),
+		lt_bot,
+		rpl::single(tr::link(linkText)),
+		tr::marked);
 	const auto weak = base::make_weak(_controller);
-	flatLabel->setClickHandlerFilter([=](const auto &...) {
-		if (const auto strong = weak.get()) {
-			strong->showPeerInfo(managerUser);
-		}
-		return false;
-	});
-	return Section{
-		.widget = std::move(wrap),
-		.shown = rpl::single(true),
-		.trailing = SectionSeparator::None(),
-		.embedsLeadingSeparator = true,
+	auto setup = [=](not_null<Ui::FlatLabel*> label) {
+		label->setClickHandlerFilter([=](const auto &...) {
+			if (const auto strong = weak.get()) {
+				strong->showPeerInfo(managerUser);
+			}
+			return false;
+		});
 	};
+	_stack->addTextSeparator(
+		std::move(text),
+		rpl::single(true),
+		std::move(setup));
 }
 
 Section DetailsFiller::makeReportOrDeleteReaction() {
@@ -2564,7 +2614,6 @@ Section DetailsFiller::makeDeleteReactionSection(GroupReactionOrigin data) {
 	return Section{
 		.widget = std::move(wrap),
 		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::None(),
 	};
 }
 
@@ -2605,7 +2654,6 @@ Section DetailsFiller::makeReportReactionSection(
 	return Section{
 		.widget = std::move(wrap),
 		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::None(),
 	};
 }
 
@@ -2678,8 +2726,141 @@ Section DetailsFiller::makeViewChannel(not_null<ChannelData*> channel) {
 	return Section{
 		.widget = std::move(wrap),
 		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::None(),
 	};
+}
+
+Section DetailsFiller::makeCommunityLink(not_null<PeerData*> peer) {
+	const auto parent = _stack->layout();
+	auto wrap = object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+		parent,
+		object_ptr<Ui::VerticalLayout>(parent));
+	const auto raw = wrap.data();
+	const auto container = raw->entity();
+	const auto window = _controller->parentController();
+	const auto community = peer->owner().channel(
+		Data::PeerLinkedCommunityId(peer));
+
+	class Controller final : public PeerListController {
+	public:
+		Controller(
+			not_null<Window::SessionController*> window,
+			not_null<ChannelData*> community,
+			Fn<void()> open)
+		: _window(window)
+		, _community(community)
+		, _open(std::move(open)) {
+			setStyleOverrides(&st::peerListSingleRow);
+		}
+
+		Main::Session &session() const override {
+			return _community->session();
+		}
+		void prepare() override {
+			auto row = std::make_unique<PeerListRow>(_community);
+			const auto rawRow = row.get();
+			const auto updateStatus = [=] {
+				const auto info = _community->communityInfo();
+				const auto count = info
+					? int(info->linkedPeers().size())
+					: 0;
+				rawRow->setCustomStatus(count
+					? tr::lng_community_profile_status(
+						tr::now,
+						lt_count,
+						count)
+					: tr::lng_community_title(tr::now));
+			};
+			updateStatus();
+			delegate()->peerListAppendRow(std::move(row));
+			delegate()->peerListRefreshRows();
+			_community->session().changes().peerUpdates(
+				_community,
+				Data::PeerUpdate::Flag::FullInfo
+			) | rpl::on_next([=] {
+				updateStatus();
+				delegate()->peerListUpdateRow(rawRow);
+			}, lifetime());
+		}
+		void rowClicked(not_null<PeerListRow*> row) override {
+			_open();
+		}
+		base::unique_qptr<Ui::PopupMenu> rowContextMenu(
+				QWidget *parent,
+				not_null<PeerListRow*> row) override {
+			const auto history = _community->owner().history(_community);
+			if (!history->owner().chatsFilters().has()
+				|| !history->inChatList()
+				|| (_community->isCommunity()
+					&& !_community->collapsedInDialogs())) {
+				return nullptr;
+			}
+			auto result = base::make_unique_q<Ui::PopupMenu>(
+				parent,
+				st::popupMenuWithIcons);
+			Ui::Menu::CreateAddActionCallback(result.get())({
+				.text = tr::lng_filters_menu_add(tr::now),
+				.handler = nullptr,
+				.icon = &st::menuIconAddToFolder,
+				.fillSubmenu = [&](not_null<Ui::PopupMenu*> submenu) {
+					FillChooseFilterMenu(_window, submenu, history);
+				},
+				.submenuSt = &st::foldersMenu,
+			});
+			return result;
+		}
+
+	private:
+		const not_null<Window::SessionController*> _window;
+		const not_null<ChannelData*> _community;
+		Fn<void()> _open;
+
+	};
+
+	const auto delegate = container->lifetime().make_state<
+		PeerListContentDelegateSimple
+	>();
+	const auto controller = container->lifetime().make_state<Controller>(
+		window,
+		community,
+		[=] { window->showPeerInfo(community); });
+	const auto content = container->add(object_ptr<PeerListContent>(
+		container,
+		controller));
+	delegate->setContent(content);
+	controller->setDelegate(delegate);
+
+	if (!community->wasFullUpdated()) {
+		community->session().api().requestFullPeer(community);
+	}
+
+	raw->toggle(true, anim::type::instant);
+	return Section{
+		.widget = std::move(wrap),
+		.shown = raw->toggledValue(),
+	};
+}
+
+void DetailsFiller::addCommunityHiddenNote() {
+	const auto peer = _peer.get();
+	const auto community = peer->owner().channel(
+		Data::PeerLinkedCommunityId(peer));
+	auto shown = peer->session().changes().peerFlagsValue(
+		community,
+		Data::PeerUpdate::Flag::FullInfo
+	) | rpl::map([=] {
+		return community->communityInfo();
+	}) | rpl::map([=](Data::CommunityInfo *info) -> rpl::producer<bool> {
+		if (!info) {
+			return rpl::single(false);
+		}
+		return info->linkedPeersValue() | rpl::map([=] {
+			return info->isHidden(peer);
+		});
+	}) | rpl::flatten_latest() | rpl::distinct_until_changed();
+
+	_stack->addTextSeparator(
+		tr::lng_community_hidden_chat_about(tr::marked),
+		std::move(shown));
 }
 
 Section DetailsFiller::makeTopicsList(not_null<Data::Forum*> forum) {
@@ -2718,7 +2899,6 @@ Section DetailsFiller::makeTopicsList(not_null<Data::Forum*> forum) {
 	return Section{
 		.widget = std::move(wrap),
 		.shown = raw->toggledValue(),
-		.trailing = SectionSeparator::None(),
 	};
 }
 
@@ -2729,20 +2909,25 @@ void DetailsFiller::buildSections() {
 		_stack->add(makePersonalChannel(user));
 		_stack->addPlainSeparator();
 	}
+	if (Data::PeerLinkedCommunityId(_peer)) {
+		_stack->add(makeCommunityLink(_peer));
+		addCommunityHiddenNote();
+		_stack->addPlainSeparator();
+	}
 	_stack->add(makeInfo());
 	if (const auto user = _peer->asUser()) {
 		_stack->add(makeAddAsContact(user));
-		_stack->add(makeBotVerifyDivider());
+		addBotVerify();
 		if (const auto info = user->botInfo.get()) {
 			if (info->hasMainApp) {
-				_stack->add(makeMainApp(user));
+				addMainApp(user);
 			}
 			if (info->canManageEmojiStatus) {
 				_stack->add(makeBotPermissions(user));
 			}
 			if (const auto id = user->botManagerId()) {
 				if (const auto mgr = user->owner().userLoaded(id)) {
-					_stack->add(makeManagedBotFooter(mgr));
+					addManagedBotFooter(mgr);
 				}
 			}
 		}
@@ -2753,7 +2938,7 @@ void DetailsFiller::buildSections() {
 			}
 		}
 	} else if (const auto channel = _peer->asChannel()) {
-		_stack->add(makeBotVerifyDivider());
+		addBotVerify();
 		if (!channel->isMegagroup()) {
 			_stack->add(makeViewChannel(channel));
 		}
@@ -2802,7 +2987,7 @@ void ActionsFiller::addAffiliateProgram(not_null<UserData*> user) {
 		bool requested = false;
 		Fn<void()> open;
 	};
-	const auto recipients = std::make_shared<StarRefRecipients>();
+	const auto recipients = inner->lifetime().make_state<StarRefRecipients>();
 	recipients->open = [=] {
 		if (!recipients->list.empty()) {
 			const auto program = user->botInfo->starRefProgram;
@@ -2812,10 +2997,11 @@ void ActionsFiller::addAffiliateProgram(not_null<UserData*> user) {
 				recipients->list));
 		} else if (!recipients->requested) {
 			recipients->requested = true;
-			const auto done = [=](std::vector<not_null<PeerData*>> list) {
+			const auto done = crl::guard(inner, [=](
+					std::vector<not_null<PeerData*>> list) {
 				recipients->list = std::move(list);
 				recipients->open();
-			};
+			});
 			Info::BotStarRef::ResolveRecipients(&user->session(), done);
 		}
 	};
@@ -3158,12 +3344,12 @@ void ActionsFiller::fillUserActions(not_null<UserData*> user) {
 		addEditContactAction(user);
 		addDeleteContactAction(user);
 	}
+	if (CanReportBot(user)) {
+		addBotCommandActions(user);
+		_wrap->add(CreateSkipWidget(_wrap, st::infoBlockButtonSkip));
+		addReportAction();
+	}
 	if (!user->isSelf() && !user->isSupport() && !user->isVerifyCodes()) {
-		if (user->isBot()) {
-			addBotCommandActions(user);
-			_wrap->add(CreateSkipWidget(_wrap, st::infoBlockButtonSkip));
-			addReportAction();
-		}
 		addBlockAction(user);
 	}
 }
@@ -3372,7 +3558,7 @@ object_ptr<Ui::RpWidget> SetupChannelMembersAndManage(
 		) -> std::unique_ptr<Ui::Text::CustomEmoji> {
 			return (data == Ui::kCreditsCurrency)
 				? Ui::MakeCreditsIconEmoji(height, 1)
-				: std::make_unique<Ui::Text::ShiftedEmoji>(
+				: MakeWrappedEmoji<Ui::Text::ShiftedEmoji>(
 					Ui::Earn::MakeCurrencyIconEmoji(font, color),
 					QPoint(0, st::channelEarnCurrencyCommonMargins.top()));
 		};

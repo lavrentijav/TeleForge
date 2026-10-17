@@ -7,17 +7,23 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/weak_ptr.h"
 #include "ui/cached_round_corners.h"
 #include "ui/chat/message_bubble.h"
 #include "ui/chat/chat_style_radius.h"
 #include "ui/controls/swipe_handler_data.h"
 #include "ui/style/style_core_palette.h"
 #include "layout/layout_selection.h"
+#include "styles/style_iv.h"
 #include "styles/style_basic.h"
 
 #include <vector>
 
 enum class ImageRoundRadius;
+
+namespace HistoryView {
+struct MessageSelection;
+} // namespace HistoryView
 
 namespace style {
 struct TwoIconButton;
@@ -27,6 +33,10 @@ struct ScrollArea;
 namespace Ui::Text {
 class CustomEmoji;
 } // namespace Ui::Text
+
+namespace Wallet {
+class CardAngle;
+} // namespace Wallet
 
 namespace Ui {
 
@@ -64,17 +74,19 @@ struct MessageStyle {
 	style::TextPalette semiboldPalette;
 	style::TextPalette fwdTextPalette;
 	style::TextPalette replyTextPalette;
+	style::Markdown richPageStyle;
 
 	style::icon channelBadgeIcon = { Qt::Uninitialized };
-
 	style::icon tailLeft = { Qt::Uninitialized };
 	style::icon tailRight = { Qt::Uninitialized };
 	style::icon historyRepliesIcon = { Qt::Uninitialized };
 	style::icon historyViewsIcon = { Qt::Uninitialized };
 	style::icon historyPinIcon = { Qt::Uninitialized };
+	style::icon historySilentIcon = { Qt::Uninitialized };
 	style::icon historySentIcon = { Qt::Uninitialized };
 	style::icon historyReceivedIcon = { Qt::Uninitialized };
 	style::icon historyPsaIcon = { Qt::Uninitialized };
+	style::icon historyEphemeralIcon = { Qt::Uninitialized };
 	style::icon historyCommentsOpen = { Qt::Uninitialized };
 	style::icon historyComments = { Qt::Uninitialized };
 	style::icon historyCallArrow = { Qt::Uninitialized };
@@ -198,6 +210,8 @@ struct ChatPaintContext {
 	QRect area;
 	QRect clip;
 	TextSelection selection;
+	bool fullMessageSelected = false;
+	const HistoryView::MessageSelection *messageSelection = nullptr;
 	ChatPaintHighlight highlight;
 	QPainterPath *highlightPathCache = nullptr;
 	mutable QRect highlightInterpolateTo;
@@ -215,7 +229,7 @@ struct ChatPaintContext {
 	}
 
 	[[nodiscard]] bool selected() const {
-		return (selection == FullSelection);
+		return fullMessageSelected;
 	}
 	[[nodiscard]] not_null<const MessageStyle*> messageStyle() const;
 	[[nodiscard]] not_null<const MessageImageStyle*> imageStyle() const;
@@ -233,8 +247,19 @@ struct ChatPaintContext {
 	}
 	[[nodiscard]] ChatPaintContext withSelection(
 			TextSelection selection) const {
+		return withSelectionState(
+			selection,
+			(selection == FullSelection),
+			nullptr);
+	}
+	[[nodiscard]] ChatPaintContext withSelectionState(
+			TextSelection selection,
+			bool fullMessageSelected,
+			const HistoryView::MessageSelection *messageSelection) const {
 		auto result = *this;
 		result.selection = selection;
+		result.fullMessageSelected = fullMessageSelected;
+		result.messageSelection = messageSelection;
 		return result;
 	}
 	[[nodiscard]] auto computeHighlightCache() const
@@ -309,7 +334,9 @@ struct ColorIndexValues {
 [[nodiscard]] std::vector<Text::SpecialColor> SyntaxHighlightColors(
 	not_null<const style::palette*> palette);
 
-class ChatStyle final : public style::palette {
+class ChatStyle final
+	: public style::palette
+	, public base::has_weak_ptr {
 public:
 	explicit ChatStyle(rpl::producer<ColorIndicesCompressed> colorIndices);
 	explicit ChatStyle(not_null<const style::palette*> isolated);
@@ -330,10 +357,17 @@ public:
 	[[nodiscard]] rpl::producer<> paletteChanged() const {
 		return _paletteChanged.events();
 	}
+	[[nodiscard]] int paletteVersion() const {
+		return _paletteVersion;
+	}
 
 	template <typename Type>
 	[[nodiscard]] Type value(const Type &original) const {
 		auto my = Type();
+		// The result belongs to the caller and we know nothing about how
+		// long it lives, so its icons must not be tracked for reset.
+		_collectOwnedIcons = false;
+		const auto guard = gsl::finally([&] { _collectOwnedIcons = true; });
 		make(my, original);
 		return my;
 	}
@@ -343,7 +377,24 @@ public:
 			rpl::lifetime &parentLifetime,
 			const Type &original) const {
 		const auto my = parentLifetime.make_state<Type>();
+		const auto from = _ownedIcons.size();
 		make(*my, original);
+		if (_ownedIcons.size() != from) {
+			// These live in the caller's lifetime, not ours, so they have
+			// to leave _ownedIcons when it ends - otherwise the next
+			// assignPalette() resets through freed icons.
+			auto added = std::vector<not_null<style::icon*>>(
+				_ownedIcons.begin() + from,
+				_ownedIcons.end());
+			parentLifetime.add([
+				weak = base::make_weak(this),
+				added = std::move(added)
+			] {
+				if (const auto strong = weak.get()) {
+					strong->forgetOwnedIcons(added);
+				}
+			});
+		}
 		return *my;
 	}
 
@@ -370,7 +421,8 @@ public:
 		bool selected,
 		uint8 colorIndex) const;
 	[[nodiscard]] QColor collectibleNameColor(
-		const std::shared_ptr<ColorCollectible> &collectible) const;
+		const std::shared_ptr<ColorCollectible> &collectible,
+		bool selected) const;
 	[[nodiscard]] not_null<Text::QuotePaintCache*> coloredQuoteCache(
 		bool selected,
 		uint8 colorIndex) const;
@@ -394,6 +446,7 @@ public:
 	[[nodiscard]] not_null<BackgroundEmojiData*> backgroundEmojiData(
 		uint64 emojiId,
 		const std::shared_ptr<ColorCollectible> &collectible) const;
+	[[nodiscard]] not_null<Wallet::CardAngle*> gramCardAngle() const;
 
 	[[nodiscard]] const CornersPixmaps &msgBotKbOverBgAddCornersSmall() const;
 	[[nodiscard]] const CornersPixmaps &msgBotKbOverBgAddCornersLarge() const;
@@ -426,6 +479,12 @@ public:
 	}
 	[[nodiscard]] const style::icon &historyPinInvertedIcon() const {
 		return _historyPinInvertedIcon;
+	}
+	[[nodiscard]] const style::icon &historySilentInvertedIcon() const {
+		return _historySilentInvertedIcon;
+	}
+	[[nodiscard]] const style::icon &historyEphemeralInvertedIcon() const {
+		return _historyEphemeralInvertedIcon;
 	}
 	[[nodiscard]] const style::icon &historySendingIcon() const {
 		return _historySendingIcon;
@@ -515,6 +574,7 @@ private:
 		std::unique_ptr<Text::QuotePaintCache> replySelected;
 		ColoredPalette palette;
 		ColoredPalette paletteSelected;
+		QColor nameSelected;
 	};
 
 	void assignPalette(not_null<const style::palette*> palette);
@@ -527,7 +587,8 @@ private:
 		uint8 colorIndex) const;
 	[[nodiscard]] not_null<Text::QuotePaintCache*> collectibleCache(
 		std::unique_ptr<Text::QuotePaintCache> &cache,
-		const std::shared_ptr<ColorCollectible> &collectible) const;
+		const std::shared_ptr<ColorCollectible> &collectible,
+		bool selected) const;
 	[[nodiscard]] CollectibleColors &resolveCollectibleCaches(
 		const std::shared_ptr<ColorCollectible> &collectible) const;
 
@@ -536,6 +597,68 @@ private:
 	void make(
 		style::TextPalette &my,
 		const style::TextPalette &original) const;
+	void make(
+		style::QuoteStyle &my,
+		const style::QuoteStyle &original) const;
+	void make(
+		style::TextStyle &my,
+		const style::TextStyle &original) const;
+	void make(
+		style::FlatLabel &my,
+		const style::FlatLabel &original) const;
+	void make(style::Check &my, const style::Check &original) const;
+	void make(
+		style::MarkdownList &my,
+		const style::MarkdownList &original) const;
+	void make(
+		style::MarkdownQuotePaintColors &my,
+		const style::MarkdownQuotePaintColors &original) const;
+	void make(
+		style::MarkdownRule &my,
+		const style::MarkdownRule &original) const;
+	void make(
+		style::MarkdownDisplayMath &my,
+		const style::MarkdownDisplayMath &original) const;
+	void make(
+		style::MarkdownTable &my,
+		const style::MarkdownTable &original) const;
+	void make(
+		style::MarkdownDetails &my,
+		const style::MarkdownDetails &original) const;
+	void make(
+		style::MarkdownEmbedPost &my,
+		const style::MarkdownEmbedPost &original) const;
+	void make(
+		style::MarkdownPlaceholder &my,
+		const style::MarkdownPlaceholder &original) const;
+	void make(
+		style::MarkdownPhoto &my,
+		const style::MarkdownPhoto &original) const;
+	void make(
+		style::MarkdownAudio &my,
+		const style::MarkdownAudio &original) const;
+	void make(
+		style::MarkdownChannelButton &my,
+		const style::MarkdownChannelButton &original) const;
+	void make(
+		style::MarkdownChannel &my,
+		const style::MarkdownChannel &original) const;
+	void make(
+		style::MarkdownRelatedArticle &my,
+		const style::MarkdownRelatedArticle &original) const;
+	void make(
+		style::MarkdownGroupedMedia &my,
+		const style::MarkdownGroupedMedia &original) const;
+	void make(
+		style::MarkdownFailure &my,
+		const style::MarkdownFailure &original) const;
+	void make(
+		style::MarkdownButtonRow &my,
+		const style::MarkdownButtonRow &original) const;
+	void make(
+		style::MarkdownInlineButton &my,
+		const style::MarkdownInlineButton &original) const;
+	void make(style::Markdown &my, const style::Markdown &original) const;
 	void make(
 		style::TwoIconButton &my,
 		const style::TwoIconButton &original) const;
@@ -600,6 +723,7 @@ private:
 		CollectibleColors,
 		ColorCollectiblePtrCompare> _collectibleCaches;
 	mutable base::flat_map<uint64, BackgroundEmojiData> _backgroundEmojis;
+	mutable std::unique_ptr<Wallet::CardAngle> _gramCardAngle;
 
 	style::TextPalette _historyPsaForwardPalette;
 	style::TextPalette _imgReplyTextPalette;
@@ -610,6 +734,8 @@ private:
 	style::icon _historyViewsSendingIcon = { Qt::Uninitialized };
 	style::icon _historyViewsSendingInvertedIcon = { Qt::Uninitialized };
 	style::icon _historyPinInvertedIcon = { Qt::Uninitialized };
+	style::icon _historySilentInvertedIcon = { Qt::Uninitialized };
+	style::icon _historyEphemeralInvertedIcon = { Qt::Uninitialized };
 	style::icon _historySendingIcon = { Qt::Uninitialized };
 	style::icon _historySendingInvertedIcon = { Qt::Uninitialized };
 	style::icon _historySentInvertedIcon = { Qt::Uninitialized };
@@ -636,10 +762,20 @@ private:
 	ColorIndicesCompressed _colorIndices;
 
 	bool _dark = false;
+	int _paletteVersion = 0;
 
 	rpl::event_stream<> _paletteChanged;
 
 	rpl::lifetime _defaultPaletteChangeLifetime;
+	void forgetOwnedIcons(
+		const std::vector<not_null<style::icon*>> &icons) const;
+
+	// Every icon this palette copy owns, collected by make(): they are
+	// withPalette() copies of it, so assignPalette() resets exactly these
+	// instead of every icon in the process.
+	mutable std::vector<not_null<style::icon*>> _ownedIcons;
+	mutable bool _collectOwnedIcons = true;
+
 	rpl::lifetime _colorIndicesLifetime;
 
 };

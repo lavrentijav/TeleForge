@@ -14,7 +14,6 @@ namespace Core {
 extern const char kOptionFractionalScalingEnabled[];
 extern const char kOptionHighDpiDownscale[];
 extern const char kOptionFreeType[];
-extern const char kOptionUseQtRhi[];
 
 class Launcher {
 public:
@@ -54,6 +53,7 @@ protected:
 private:
 	void prepareSettings();
 	void initQtMessageLogging();
+	void initFFmpegMessageLogging();
 	void processArguments();
 
 	QStringList readArguments(int argc, char *argv[]) const;

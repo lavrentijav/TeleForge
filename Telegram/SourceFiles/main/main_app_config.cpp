@@ -117,6 +117,10 @@ float64 AppConfig::currencySellRate() const {
 	return get<float64>(u"ton_usd_rate"_q, 1);
 }
 
+bool AppConfig::starsSpendTopupInvoiceDisabled() const {
+	return get<bool>(u"stars_spend_topup_invoice_disabled"_q, false);
+}
+
 bool AppConfig::paidMessagesAvailable() const {
 	return get<bool>(u"stars_paid_messages_available"_q, false);
 }
@@ -272,6 +276,14 @@ int AppConfig::ageVerifyMinAge() const {
 
 QString AppConfig::ageVerifyBotUsername() const {
 	return get<QString>(u"verify_age_bot_username"_q, QString());
+}
+
+QString AppConfig::oldWalletBotUsername() const {
+	return get<QString>(u"old_wallet_bot_username"_q, u"wallet"_q);
+}
+
+bool AppConfig::walletAvailable() const {
+	return get<bool>(u"wallet_available"_q, true);
 }
 
 int AppConfig::storiesAlbumsLimit() const {

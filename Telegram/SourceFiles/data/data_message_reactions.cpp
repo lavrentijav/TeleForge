@@ -15,13 +15,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_components.h"
-#include "core/application.h"
-#include "window/window_session_controller.h"
 #include "main/main_app_config.h"
 #include "main/main_session.h"
+#include "main/main_session_settings.h"
 #include "main/session/send_as_peers.h"
 #include "data/components/credits.h"
-#include "data/data_channel.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
 #include "data/data_histories.h"
@@ -41,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "apiwrap.h"
 #include "styles/style_chat.h"
+#include "window/window_session_controller.h"
 
 #include "base/random.h"
 
@@ -201,13 +200,6 @@ PossibleItemReactionsRef LookupPossibleReactions(
 		}
 	}
 	const auto session = &peer->session();
-	if (const auto channel = peer->asChannel()) {
-		if ((!channel->amCreator())
-			&& (channel->adminRights() & ChatAdminRight::Anonymous)
-			&& (session->sendAsPeers().resolveChosen(channel) == channel)) {
-			return {};
-		}
-	}
 	const auto reactions = &session->data().reactions();
 	const auto &full = reactions->list(Reactions::Type::Active);
 	const auto &top = reactions->list(Reactions::Type::Top);
@@ -316,6 +308,19 @@ PossibleItemReactionsRef LookupPossibleReactions(
 				std::rotate(begin(result.recent), i, i + 1);
 			}
 		};
+		if (!limited) {
+			const auto &extra = session->settings().extraFavoriteReactions();
+			for (const auto &id : extra | ranges::views::reverse) {
+				if (id.custom()
+					&& result.customAllowed
+					&& !ranges::contains(result.recent, id, &Reaction::id)) {
+					if (const auto temp = reactions->lookupTemporary(id)) {
+						result.recent.insert(begin(result.recent), temp);
+					}
+				}
+				toFront(id);
+			}
+		}
 		toFront(reactions->favoriteId());
 		if (paidInFront) {
 			toFront(ReactionId::Paid());
@@ -736,7 +741,7 @@ void Reactions::preloadImageFor(const ReactionId &id) {
 		loadImage(set, lookupPaid()->centerIcon, true);
 		return;
 	}
-	auto &list = set.effect ? _effects : _available;
+	const auto &list = set.effect ? _effects : _available;
 	const auto i = ranges::find(list, id, &Reaction::id);
 	const auto document = (i == end(list))
 		? nullptr

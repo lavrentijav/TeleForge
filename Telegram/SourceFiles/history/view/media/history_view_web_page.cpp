@@ -55,6 +55,7 @@ constexpr auto kFactcheckCollapsedLines = 3;
 constexpr auto kStickerSetLines = 3;
 constexpr auto kFactcheckAboutDuration = 5 * crl::time(1000);
 constexpr auto kSponsoredUserpicLines = 2;
+constexpr auto kLogEntryPreviewLines = 2;
 
 [[nodiscard]] int ArticleThumbWidth(not_null<PhotoData*> thumb, int height) {
 	const auto size = thumb->location(Data::PhotoSize::Thumbnail);
@@ -89,7 +90,7 @@ constexpr auto kSponsoredUserpicLines = 2;
 			result.push_back(std::make_unique<Data::MediaPhoto>(
 				parent,
 				*photo,
-				spoiler));
+				Data::MediaPhoto::Args{ .spoiler = spoiler }));
 		} else {
 			return {};
 		}
@@ -98,38 +99,6 @@ constexpr auto kSponsoredUserpicLines = 2;
 		}
 	}
 	return result;
-}
-
-[[nodiscard]] QString ExtractHash(
-		not_null<WebPageData*> webpage,
-		const TextWithEntities &text) {
-	const auto simplify = [](const QString &url) {
-		auto result = url.split('#')[0].toLower();
-		if (result.endsWith('/')) {
-			result.chop(1);
-		}
-		const auto prefixes = { u"http://"_q, u"https://"_q };
-		for (const auto &prefix : prefixes) {
-			if (result.startsWith(prefix)) {
-				result = result.mid(prefix.size());
-				break;
-			}
-		}
-		return result;
-	};
-	const auto simplified = simplify(webpage->url);
-	for (const auto &entity : text.entities) {
-		const auto link = (entity.type() == EntityType::Url)
-			? text.text.mid(entity.offset(), entity.length())
-			: (entity.type() == EntityType::CustomUrl)
-			? entity.data()
-			: QString();
-		if (simplify(link) == simplified) {
-			const auto i = link.indexOf('#');
-			return (i > 0) ? link.mid(i + 1) : QString();
-		}
-	}
-	return QString();
 }
 
 [[nodiscard]] ClickHandlerPtr IvClickHandler(
@@ -441,6 +410,7 @@ QSize WebPage::countOptimalSize() {
 		return { 0, 0 };
 	}
 	setupAdditionalData();
+	_hasLogEntryPreview = hasLogEntryPreview() ? 1 : 0;
 
 	const auto sponsored = sponsoredData();
 	const auto factcheck = factcheckData();
@@ -449,8 +419,9 @@ QSize WebPage::countOptimalSize() {
 		|| (sponsored && !sponsored->hasMedia && _data->photo));
 
 	// Detect _openButtonWidth before counting paddings.
+	const auto mediaEditor = (_parent->context() == Context::MediaEditor);
 	_openButton = Ui::Text::String();
-	if (HasButton(_data)) {
+	if (!mediaEditor && HasButton(_data)) {
 		const auto context = Core::TextContext({
 			.session = &_data->session(),
 			.customEmojiLoopLimit = 1,
@@ -460,10 +431,14 @@ QSize WebPage::countOptimalSize() {
 			PageToPhrase(_data),
 			kMarkupTextOptions,
 			context);
-	} else if (sponsored && !sponsored->buttonText.isEmpty()) {
-		_openButton.setText(
-			st::semiboldTextStyle,
-			tr::upper(sponsored->buttonText));
+	} else if (!mediaEditor
+		&& sponsored
+		&& !sponsored->buttonText.isEmpty()) {
+		auto phrase = TextWithEntities{ tr::upper(sponsored->buttonText) };
+		if (!sponsored->isLinkInternal) {
+			phrase.append(st::historyExternalLinkIcon);
+		}
+		_openButton.setMarkedText(st::semiboldTextStyle, std::move(phrase));
 	}
 
 	const auto padding = inBubblePadding() + innerMargin();
@@ -471,6 +446,7 @@ QSize WebPage::countOptimalSize() {
 	if (versionChanged) {
 		_dataVersion = _data->version;
 		_openl = nullptr;
+		_previewLink = nullptr;
 		_attach = nullptr;
 		const auto item = _parent->data();
 		_collage = PrepareCollageMedia(item, _data->collage);
@@ -559,6 +535,26 @@ QSize WebPage::countOptimalSize() {
 		}
 	}
 
+	if (_hasLogEntryPreview && !_previewLink) {
+		const auto contextId = _parent->data()->fullId();
+		if (_data->photo) {
+			_previewLink = std::make_shared<PhotoOpenClickHandler>(
+				_data->photo,
+				crl::guard(this, [=](FullMsgId id) {
+					_parent->delegate()->elementOpenPhoto(_data->photo, id);
+				}),
+				contextId);
+		} else if (_data->document) {
+			_previewLink = std::make_shared<LambdaClickHandler>(
+				crl::guard(this, [=] {
+					_parent->delegate()->elementOpenDocument(
+						_data->document,
+						contextId,
+						/* showInMediaView */ true);
+				}));
+		}
+	}
+
 	// init layout
 	const auto title = TextUtilities::SingleLine(_data->title.isEmpty()
 		? _data->author
@@ -572,6 +568,9 @@ QSize WebPage::countOptimalSize() {
 		_asArticle = _data->computeDefaultSmallMedia();
 	}
 	if (sponsored && sponsored->hasMedia) {
+		_asArticle = 0;
+	}
+	if (isLogEntryOriginal()) {
 		_asArticle = 0;
 	}
 
@@ -614,7 +613,10 @@ QSize WebPage::countOptimalSize() {
 				},
 				.expandCurrentWidth = true,
 			});
-	} else if (!_attach && !_asArticle) {
+	} else if (!_attach
+		&& !_asArticle
+		&& (!isLogEntryOriginal()
+			|| (_data->document && !_hasLogEntryPreview))) {
 		_attach = CreateAttach(
 			_parent,
 			_data->document,
@@ -706,6 +708,8 @@ QSize WebPage::countOptimalSize() {
 				* (stickerSet
 					? kStickerSetLines
 					: kSponsoredUserpicLines)))
+		: _hasLogEntryPreview
+		? (st::webPagePhotoDelta + lineHeight * kLogEntryPreviewLines)
 		: 0;
 
 	if (!_siteName.isEmpty()) {
@@ -742,7 +746,9 @@ QSize WebPage::countOptimalSize() {
 		accumulate_max(maxWidth, maxMediaWidth);
 		minHeight += _attach->minHeight() - rect::m::sum::v(bubble);
 	}
-	if (_data->type == WebPageType::Video && _data->duration) {
+	if (_data->type == WebPageType::Video
+		&& _data->duration
+		&& !mediaEditor) {
 		_duration = Ui::FormatDurationText(_data->duration);
 		_durationWidth = st::msgDateFont->width(_duration);
 	}
@@ -804,6 +810,18 @@ QSize WebPage::countCurrentSize(int newWidth) {
 	const auto siteNameHeight = _siteNameLines ? lineHeight : 0;
 	const auto twoTitleLines = 2 * st::webPageTitleFont->height;
 	const auto descriptionLineHeight = st::webPageDescriptionFont->height;
+	if (_hasLogEntryPreview) {
+		_pixw = _pixh = lineHeight * kLogEntryPreviewLines;
+		_titleLines = 0;
+		_descriptionLines = -1;
+		_logPreviewDescHeight = _description.isEmpty()
+			? 0
+			: _description.countDimensions(
+				logEntryGeometry(innerWidth)).height;
+		newHeight = std::max(siteNameHeight + _logPreviewDescHeight, _pixh)
+			+ rect::m::sum::v(padding);
+		return { newWidth, newHeight };
+	}
 	if (asArticle() || specialRightPix) {
 		_pixh = lineHeight
 			* (stickerSet
@@ -1045,7 +1063,9 @@ void WebPage::draw(Painter &p, const PaintContext &context) const {
 				*backgroundEmojiCache,
 				backgroundEmojiData->firstGiftFrame);
 		}
-	} else if (factcheck && factcheck->expandable) {
+	} else if (factcheck
+		&& factcheck->expandable
+		&& (_parent->context() != Context::MediaEditor)) {
 		const auto &icon = factcheck->expanded ? _st.collapse : _st.expand;
 		const auto &position = factcheck->expanded
 			? _st.collapsePosition
@@ -1091,7 +1111,7 @@ void WebPage::draw(Painter &p, const PaintContext &context) const {
 		ensurePhotoMediaCreated();
 
 		auto pix = QPixmap();
-		const auto pw = qMax(_pixw, lineHeight);
+		const auto pw = std::max(_pixw, lineHeight);
 		const auto ph = _pixh;
 		auto pixw = _pixw;
 		auto pixh = ArticleThumbHeight(_photoMedia.get(), _pixw);
@@ -1137,6 +1157,31 @@ void WebPage::draw(Painter &p, const PaintContext &context) const {
 			// as its width only affects the title.
 			paintw -= pw + st::webPagePhotoDelta;
 		}
+	} else if (_hasLogEntryPreview) {
+		const auto pw = _pixw;
+		const auto ph = _pixh;
+		const auto item = _parent->data();
+		const auto image = _data->photo
+			? _data->photo->getReplyPreview(item)
+			: _data->document->getReplyPreview(item);
+		if (image) {
+			const auto to = style::rtlrect(
+				inner.left() + paintw - pw,
+				tshift,
+				pw,
+				ph,
+				width());
+			p.drawPixmap(to.topLeft(), image->pixSingle(
+				to.size(),
+				{
+					.colored = (context.selected()
+						? &st->msgStickerOverlay()
+						: nullptr),
+					.options = Images::Option::RoundSmall,
+					.outer = to.size(),
+				}));
+		}
+		paintw -= pw + st::webPagePhotoDelta;
 	}
 	if (_siteNameLines) {
 		p.setPen(cache->icon);
@@ -1228,11 +1273,18 @@ void WebPage::draw(Painter &p, const PaintContext &context) const {
 		const auto endskip = _description.hasSkipBlock()
 			? _parent->skipBlockWidth()
 			: 0;
+		const auto previewGeometry = _hasLogEntryPreview;
+		const auto descriptionWidth = previewGeometry
+			? inner.width()
+			: paintw;
 		_parent->prepareCustomEmojiPaint(p, context, _description);
 		_description.draw(p, {
 			.position = { inner.left(), tshift },
 			.outerWidth = width(),
-			.availableWidth = paintw,
+			.availableWidth = descriptionWidth,
+			.geometry = previewGeometry
+				? logEntryGeometry(descriptionWidth)
+				: Ui::Text::GeometryDescriptor(),
 			.spoiler = Ui::Text::DefaultSpoilerCache(),
 			.now = context.now,
 			.pausedEmoji = context.paused || On(PowerSaving::kEmojiChat),
@@ -1244,7 +1296,9 @@ void WebPage::draw(Painter &p, const PaintContext &context) const {
 			.elisionRemoveFromEnd = (_descriptionLines > 0) ? endskip : 0,
 			.useFullWidth = true,
 		});
-		tshift += (_descriptionLines > 0)
+		tshift += previewGeometry
+			? _logPreviewDescHeight
+			: (_descriptionLines > 0)
 			? (_descriptionLines * lineHeight)
 			: _description.countHeight(paintw);
 	}
@@ -1294,7 +1348,8 @@ void WebPage::draw(Painter &p, const PaintContext &context) const {
 			&& _collage.empty()
 			&& _data->photo
 			&& !_data->document) {
-			if (_attach->isReadyForOpen()) {
+			if (_attach->isReadyForOpen()
+				&& (_parent->context() != Context::MediaEditor)) {
 				if (_data->siteName == u"YouTube"_q) {
 					st->youtubeIcon().paint(
 						p,
@@ -1389,7 +1444,9 @@ WebPage::FactcheckData *WebPage::factcheckData() const {
 }
 
 WebPage::HintData *WebPage::hintData() const {
-	if (const auto sponsored = sponsoredData()) {
+	if (_parent->context() == Context::MediaEditor) {
+		return nullptr;
+	} else if (const auto sponsored = sponsoredData()) {
 		return sponsored->hint.link ? &sponsored->hint : nullptr;
 	} else if (const auto factcheck = factcheckData()) {
 		return factcheck->hint.link ? &factcheck->hint : nullptr;
@@ -1424,6 +1481,17 @@ TextState WebPage::textState(QPoint point, StateRequest request) const {
 	if (asArticle()) {
 		const auto pw = std::max(_pixw, lineHeight);
 		inThumb = style::rtlrect(
+			inner.left() + paintw - pw,
+			tshift,
+			pw,
+			_pixh,
+			width()).contains(point);
+		paintw -= pw + st::webPagePhotoDelta;
+	}
+	auto inPreview = false;
+	if (_hasLogEntryPreview) {
+		const auto pw = _pixw;
+		inPreview = style::rtlrect(
 			inner.left() + paintw - pw,
 			tshift,
 			pw,
@@ -1468,11 +1536,20 @@ TextState WebPage::textState(QPoint point, StateRequest request) const {
 		tshift += _titleLines * lineHeight;
 	}
 	if (_descriptionLines) {
-		const auto descriptionHeight = (_descriptionLines > 0)
+		const auto descriptionHeight = _hasLogEntryPreview
+			? _logPreviewDescHeight
+			: (_descriptionLines > 0)
 			? _descriptionLines * lineHeight
 			: _description.countHeight(paintw);
 		if (point.y() >= tshift && point.y() < tshift + descriptionHeight) {
-			if (_descriptionLines > 0) {
+			if (_hasLogEntryPreview) {
+				result = TextState(
+					_parent,
+					_description.getState(
+						point - QPoint(inner.left(), tshift),
+						logEntryGeometry(inner.width()),
+						request.forText()));
+			} else if (_descriptionLines > 0) {
 				auto descriptionRequest = Ui::Text::StateRequestElided(
 					request.forText());
 				descriptionRequest.lines = _descriptionLines;
@@ -1498,7 +1575,9 @@ TextState WebPage::textState(QPoint point, StateRequest request) const {
 		tshift += descriptionHeight;
 	}
 	auto isWithinSponsoredMedia = false;
-	if (inThumb) {
+	if (inPreview) {
+		result.link = _previewLink;
+	} else if (inThumb) {
 		result.link = _openl;
 	} else if (_attach) {
 		const auto attachAtTop = hasSponsoredMedia
@@ -1766,6 +1845,33 @@ QMargins WebPage::innerMargin() const {
 
 bool WebPage::isLogEntryOriginal() const {
 	return _parent->data()->isAdminLogEntry() && _parent->media() != this;
+}
+
+bool WebPage::hasLogEntryPreview() const {
+	if (!isLogEntryOriginal()) {
+		return false;
+	} else if (_data->photo) {
+		return true;
+	} else if (const auto document = _data->document) {
+		return document->isVideoFile()
+			|| document->isAnimation()
+			|| document->isImage();
+	}
+	return false;
+}
+
+Ui::Text::GeometryDescriptor WebPage::logEntryGeometry(int width) const {
+	const auto narrow = std::max(
+		width - _pixw - st::webPagePhotoDelta,
+		1);
+	const auto narrowLines = kLogEntryPreviewLines - _siteNameLines;
+	return Ui::Text::GeometryDescriptor{
+		.layout = [=](int line) {
+			return Ui::Text::LineGeometry{
+				.width = (line < narrowLines) ? narrow : width,
+			};
+		},
+	};
 }
 
 WebPage::FactcheckMetrics WebPage::computeFactcheckMetrics(

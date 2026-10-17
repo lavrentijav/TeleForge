@@ -21,9 +21,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_unread_value.h"
 #include "data/data_user.h"
 #include "lang/lang_keys.h"
+#include "menu/menu_mark_as_read.h"
 #include "main/main_session.h"
 #include "settings/sections/settings_folders.h"
 #include "ui/widgets/menu/menu_action.h"
+#include "ui/filter_icons.h"
 #include "ui/power_saving.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/chat_filters_tabs_slider_reorder.h"
@@ -59,6 +61,7 @@ struct State final {
 
 	std::unique_ptr<Ui::ChatsFiltersTabsReorder> reorder;
 	bool ignoreRefresh = false;
+	bool ignoreActivation = false;
 };
 
 void ShowMenu(
@@ -88,8 +91,9 @@ void ShowMenu(
 			[=] { EditExistingFilter(controller, id); },
 			&st::menuIconEdit);
 
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			controller,
+			MarkAsReadMenu::ChatListKind::Folder,
 			[=] { return session->data().chatsFilters().chatsList(id); },
 			addAction);
 
@@ -103,16 +107,11 @@ void ShowMenu(
 			.isAttention = true,
 		});
 	} else {
-		auto customUnreadState = [=] {
-			return Data::MainListMapUnreadState(
-				session,
-				session->data().chatsList()->unreadState());
-		};
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			controller,
+			MarkAsReadMenu::ChatListKind::AllChats,
 			[=] { return session->data().chatsList(); },
-			addAction,
-			std::move(customUnreadState));
+			addAction);
 
 		auto openFiltersSettings = [=] {
 			const auto filters = &session->data().chatsFilters();
@@ -409,6 +408,13 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					? Data::ForceCustomEmojiStatic(title.text)
 					: title.text;
 			}) | ranges::to_vector, context, paused);
+		slider->setSectionIcons(ranges::views::all(
+			list
+		) | ranges::views::transform([](const Data::ChatFilter &filter) {
+			return LookupFilterIcon(filter.id()
+				? ComputeFilterIcon(filter)
+				: FilterIcon::All).tabs.get();
+		}) | ranges::to_vector);
 		if (!sectionsChanged) {
 			return;
 		}
@@ -440,7 +446,10 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 			reassignUnreadValue();
 		}
 		[&] {
-			const auto lookingId = state->lastFilterId.value_or(list[0].id());
+			const auto lookingId = state->lastFilterId.value_or(
+				trackActiveFilterAndUnreadAndReorder
+					? controller->activeChatsFilterCurrent()
+					: list[0].id());
 			for (auto i = 0; i < list.size(); i++) {
 				const auto &filter = list[i];
 				if (filter.id() == lookingId) {
@@ -450,7 +459,9 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					scrollToIndex(
 						i,
 						wasLast ? anim::type::normal : anim::type::instant);
-					applyFilter(filter);
+					if (wasLast || !trackActiveFilterAndUnreadAndReorder) {
+						applyFilter(filter);
+					}
 					return;
 				}
 			}
@@ -469,7 +480,9 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				const auto &list = session->data().chatsFilters().list();
 				for (auto i = 0; i < list.size(); ++i) {
 					if (list[i].id() == id) {
+						state->ignoreActivation = true;
 						slider->setActiveSection(i);
+						state->ignoreActivation = false;
 						scrollToIndex(i, anim::type::normal);
 						break;
 					}
@@ -489,7 +502,9 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				state->lastFilterId = filter.id();
 				scrollToIndex(index, anim::type::normal);
 			}
-			applyFilter(filter);
+			if (!state->ignoreActivation) {
+				applyFilter(filter);
+			}
 		}, state->rebuildLifetime);
 		slider->contextMenuRequested() | rpl::on_next([=](int index) {
 			if (trackActiveFilterAndUnreadAndReorder) {
@@ -513,6 +528,11 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 		session->data().chatsFilters().changed(),
 		Data::AmPremiumValue(session) | rpl::to_empty
 	) | rpl::on_next(rebuild, wrap->lifetime());
+	Core::App().settings().chatFiltersTabsModeValue(
+	) | rpl::on_next([=](ChatsFiltersTabsMode mode) {
+		slider->setTabsMode(HorizontalChatsFiltersTabsMode(mode));
+		scrollToIndex(slider->activeSection(), anim::type::instant);
+	}, wrap->lifetime());
 	rebuild();
 
 	session->data().chatsFilters().isChatlistChanged(

@@ -39,7 +39,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 //#include "info/profile/info_profile_badge.h"
 //#include "info/profile/info_profile_values.h"
 #include "lang/lang_keys.h"
-#include "main/main_app_config.h"
 #include "main/main_session.h"
 #include "mainwidget.h"
 #include "payments/payments_checkout_process.h"
@@ -75,6 +74,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h" // ShowChooseRecipientBox.
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_credits.h"
 #include "styles/style_giveaway.h"
 #include "styles/style_info.h"
@@ -1376,15 +1376,6 @@ void ResolveGiveawayInfo(
 		crl::guard(controller, show));
 }
 
-QString TonAddressUrl(
-		not_null<Main::Session*> session,
-		const QString &address) {
-	const auto prefix = session->appConfig().get<QString>(
-		u"ton_blockchain_explorer_url"_q,
-		u"https://tonviewer.com/"_q);
-	return prefix + address;
-}
-
 struct AddedUniqueDetails {
 	object_ptr<Ui::RpWidget> widget;
 	not_null<Ui::FlatLabel*> label;
@@ -1560,8 +1551,11 @@ void AddStarGiftTable(
 			label->setClickHandlerFilter([=](const auto &...) {
 				TextUtilities::SetClipboardText(
 					TextForMimeData::Simple(FixupTransactionId(address)));
-				show->showToast(
-					tr::lng_gift_unique_address_copied(tr::now));
+				show->showToast({
+					.text = { tr::lng_gift_unique_address_copied(tr::now) },
+					.iconLottie = u"toast/copy"_q,
+					.iconLottieSize = st::toastLottieIconSize,
+				});
 				return false;
 			});
 			AddTableRow(
@@ -2046,8 +2040,13 @@ void AddCreditsHistoryEntryTable(
 		label->setClickHandlerFilter([=](const auto &...) {
 			TextUtilities::SetClipboardText(
 				TextForMimeData::Simple(FixupTransactionId(entry.id)));
-			show->showToast(
-				tr::lng_credits_box_history_entry_id_copied(tr::now));
+			show->showToast({
+				.text = {
+					tr::lng_credits_box_history_entry_id_copied(tr::now),
+				},
+				.iconLottie = u"toast/copy"_q,
+				.iconLottieSize = st::toastLottieIconSize,
+			});
 			return false;
 		});
 		AddTableRow(
@@ -2247,8 +2246,13 @@ void AddChannelEarnTable(
 		label->setClickHandlerFilter([=](const auto &...) {
 			TextUtilities::SetClipboardText(
 				TextForMimeData::Simple(FixupTransactionId(entry.id)));
-			show->showToast(
-				tr::lng_credits_box_history_entry_id_copied(tr::now));
+			show->showToast({
+				.text = {
+					tr::lng_credits_box_history_entry_id_copied(tr::now),
+				},
+				.iconLottie = u"toast/copy"_q,
+				.iconLottieSize = st::toastLottieIconSize,
+			});
 			return false;
 		});
 		AddTableRow(

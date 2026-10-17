@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_msg_id.h"
 #include "base/qt/qt_compare.h"
 
+struct AudioAlbumThumbLocation;
 class HistoryItem;
 using HistoryItemsList = std::vector<not_null<HistoryItem*>>;
 
@@ -45,6 +46,8 @@ struct UploadState {
 	int64 offset = 0;
 	int64 size = 0;
 	bool waitingForAlbum = false;
+	bool preparing = false;
+	float64 prepareProgress = 0.;
 };
 
 Storage::Cache::Key DocumentCacheKey(int32 dcId, uint64 id);
@@ -291,8 +294,8 @@ enum class MessageFlag : uint64 {
 	// Generated on the client side and should be unread.
 	ClientSideUnread      = (1ULL << 24),
 
-	// In a supergroup.
-	HasAdminBadge         = (1ULL << 25),
+	// AyuGram: message-level no-forwards (MTP::f_noforwards).
+	AyuNoForwards         = (1ULL << 25),
 
 	// Outgoing message that is being sent.
 	BeingSent             = (1ULL << 26),
@@ -300,8 +303,7 @@ enum class MessageFlag : uint64 {
 	// Outgoing message and failed to be sent.
 	SendingFailed         = (1ULL << 27),
 
-	// No media and only a several emoji or an only custom emoji text.
-	SpecialOnlyEmoji      = (1ULL << 28),
+	EmojiInteractionWatched = (1ULL << 28),
 
 	// Message existing in the message history.
 	HistoryEntry          = (1ULL << 29),
@@ -370,8 +372,7 @@ enum class MessageFlag : uint64 {
 
 	GuestChatViaFrom      = (1ULL << 62),
 
-	// AyuGram: message-level no-forwards (MTP::f_noforwards).
-	AyuNoForwards         = (1ULL << 63),
+	Ephemeral             = (1ULL << 63),
 };
 inline constexpr bool is_flag_type(MessageFlag) { return true; }
 using MessageFlags = base::flags<MessageFlag>;

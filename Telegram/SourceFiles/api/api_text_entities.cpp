@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "main/main_session.h"
+#include "ui/basic_click_handlers.h"
 
 namespace Api {
 namespace {
@@ -66,6 +67,10 @@ using namespace TextUtilities;
 			MTP_long(parsed.userId),
 			MTP_long(parsed.accessHash));
 	return MTP_inputMessageEntityMentionName(offset, length, input);
+}
+
+[[nodiscard]] bool IsInternalUrl(const QString &url) {
+	return url.startsWith(u"internal:"_q, Qt::CaseInsensitive);
 }
 
 } // namespace
@@ -137,11 +142,15 @@ EntitiesInText EntitiesFromMTP(
 				qs(d.vlanguage()),
 			});
 		}, [&](const MTPDmessageEntityTextUrl &d) {
+			const auto url = qs(d.vurl());
+			if (IsInternalUrl(url)) {
+				return;
+			}
 			result.push_back({
 				EntityType::CustomUrl,
 				d.voffset().v,
 				d.vlength().v,
-				qs(d.vurl()),
+				url,
 			});
 		}, [&](const MTPDmessageEntityMentionName &d) {
 			if (!session) {
@@ -215,6 +224,12 @@ EntitiesInText EntitiesFromMTP(
 		}, [&](const MTPDmessageEntityBankCard &d) {
 			result.push_back({
 				EntityType::BankCard,
+				d.voffset().v,
+				d.vlength().v,
+			});
+		}, [&](const MTPDmessageEntityTonAddress &d) {
+			result.push_back({
+				EntityType::TonAddress,
 				d.voffset().v,
 				d.vlength().v,
 			});
@@ -309,11 +324,15 @@ MTPVector<MTPMessageEntity> EntitiesToMTP(
 			v.push_back(MTP_messageEntityUrl(offset, length));
 		} break;
 		case EntityType::CustomUrl: {
-			v.push_back(
-				MTP_messageEntityTextUrl(
+			const auto external = UrlClickHandler::ExternalUrlFromInternalUrl(
+				entity.data());
+			const auto url = external.isEmpty() ? entity.data() : external;
+			if (!IsInternalUrl(url)) {
+				v.push_back(MTP_messageEntityTextUrl(
 					offset,
 					length,
-					MTP_string(entity.data())));
+					MTP_string(url)));
+			}
 		} break;
 		case EntityType::Email: {
 			v.push_back(MTP_messageEntityEmail(offset, length));
@@ -323,6 +342,9 @@ MTPVector<MTPMessageEntity> EntitiesToMTP(
 		} break;
 		case EntityType::BankCard: {
 			v.push_back(MTP_messageEntityBankCard(offset, length));
+		} break;
+		case EntityType::TonAddress: {
+			v.push_back(MTP_messageEntityTonAddress(offset, length));
 		} break;
 		case EntityType::Hashtag: {
 			v.push_back(MTP_messageEntityHashtag(offset, length));

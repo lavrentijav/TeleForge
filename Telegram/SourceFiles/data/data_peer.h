@@ -121,6 +121,18 @@ enum class AllowedReactionsType : uchar {
 	Some,
 };
 
+enum class ProfileTab : uchar {
+	None,
+	Posts,
+	Gifts,
+	Media,
+	Files,
+	Music,
+	Voice,
+	Links,
+	Gifs,
+};
+
 struct AllowedReactions {
 	std::vector<ReactionId> some;
 	int maxCount = 0;
@@ -185,7 +197,7 @@ struct PeerBarDetails {
 	TimeId nameChangeDate = 0;
 	TimeId photoChangeDate = 0;
 	QString requestChatTitle;
-	TimeId requestChatDate;
+	TimeId requestChatDate = 0;
 	UserData *businessBot = nullptr;
 	QString businessBotManageUrl;
 	int paysPerMessage = 0;
@@ -321,6 +333,7 @@ public:
 	[[nodiscard]] int slowmodeSecondsLeft() const;
 	[[nodiscard]] bool canManageGroupCall() const;
 	[[nodiscard]] bool canManageRanks() const;
+	[[nodiscard]] bool canManageWelcomeMessages() const;
 	[[nodiscard]] bool amMonoforumAdmin() const;
 
 	[[nodiscard]] int starsPerMessage() const;
@@ -588,6 +601,9 @@ public:
 
 	[[nodiscard]] int peerGiftsCount() const;
 
+	void setMainProfileTab(Data::ProfileTab tab);
+	[[nodiscard]] Data::ProfileTab mainProfileTab() const;
+
 	[[nodiscard]] MTPInputPeer input() const;
 
 	const PeerId id;
@@ -651,6 +667,7 @@ private:
 	BlockStatus _blockStatus = BlockStatus::Unknown;
 	LoadedStatus _loadedStatus = LoadedStatus::Not;
 	TranslationFlag _translationFlag = TranslationFlag::Unknown;
+	Data::ProfileTab _mainProfileTab = Data::ProfileTab::None;
 	uint8 _colorIndex : 6 = 0;
 	uint8 _colorIndexCloud : 1 = 0;
 	std::optional<uint8> _colorProfileIndex;
@@ -667,6 +684,11 @@ namespace Data {
 void SetTopPinnedMessageId(
 	not_null<PeerData*> peer,
 	MsgId messageId);
+void ApplyPinnedMessageId(
+	not_null<PeerData*> peer,
+	MsgId messageId,
+	MsgId topicRootId = 0,
+	PeerId monoforumPeerId = 0);
 [[nodiscard]] FullMsgId ResolveTopPinnedId(
 	not_null<PeerData*> peer,
 	MsgId topicRootId,
@@ -680,6 +702,9 @@ void SetTopPinnedMessageId(
 
 [[nodiscard]] uint64 BackgroundEmojiIdFromColor(const MTPPeerColor *color);
 [[nodiscard]] std::optional<uint8> ColorIndexFromColor(const MTPPeerColor *);
+
+[[nodiscard]] ProfileTab ParseProfileTab(const MTPProfileTab *tab);
+[[nodiscard]] MTPProfileTab ProfileTabToMTP(ProfileTab tab);
 
 [[nodiscard]] bool IsBotUserCreatesTopics(not_null<PeerData*>);
 [[nodiscard]] bool IsBotCreatesTopics(not_null<const PeerData*>);

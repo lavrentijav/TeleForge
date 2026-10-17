@@ -10,12 +10,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/invoke_queued.h"
 #include "base/integration.h"
 #include "ui/effects/animations.h"
+#include "ui/ui_utility.h"
 #include "ui/style/style_core.h"
 #include "ui/text/text.h"
 #include "ui/text/text_custom_emoji.h"
 #include "ui/text/text_utilities.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/rp_window.h"
 #include "ui/painter.h"
+#include "styles/style_widgets.h"
 
 #include <QApplication>
 #include <QAbstractNativeEventFilter>
@@ -24,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QImage>
 
 #include <algorithm>
+#include <memory>
 #include <span>
 #include <utility>
 
@@ -241,6 +245,37 @@ namespace {
 	return false;
 }
 
+[[nodiscard]] std::optional<QPoint> FirstPaintedPoint(
+		const QImage &image,
+		QRect rect = QRect()) {
+	if (rect.isNull()) {
+		rect = QRect(QPoint(), image.size());
+	}
+	rect = rect.intersected(QRect(QPoint(), image.size()));
+	if (rect.isEmpty()) {
+		return std::nullopt;
+	}
+	const auto background = image.pixel(rect.topLeft());
+	for (auto y = rect.top(); y <= rect.bottom(); ++y) {
+		for (auto x = rect.left(); x <= rect.right(); ++x) {
+			if (image.pixel(x, y) != background) {
+				return QPoint(x, y);
+			}
+		}
+	}
+	return std::nullopt;
+}
+
+[[nodiscard]] QRect ScaleRect(QRect rect, qreal ratio) {
+	return QRect(
+		QPoint(
+			int(base::SafeRound(rect.x() * ratio)),
+			int(base::SafeRound(rect.y() * ratio))),
+		QSize(
+			int(base::SafeRound(rect.width() * ratio)),
+			int(base::SafeRound(rect.height() * ratio))));
+}
+
 class FormulaLikeObject final : public Ui::Text::CustomEmoji {
 public:
 	FormulaLikeObject(QString entityData, QString replacementText, QImage image);
@@ -325,10 +360,9 @@ QString name() {
 	return u"text"_q;
 }
 
-void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
-	(void)window;
-
-	const auto formulaEntityData = u"test-formula-like-object"_q;
+void test(not_null<Ui::RpWindow*>, not_null<Ui::RpWidget*> body) {
+	const auto formulaEntityData =
+		u"iv-markdown:inline-text-object;formula;copy;tex"_q;
 	const auto formulaReplacementText = u"$\\frac{a}{b}$"_q;
 	const auto controlEntityData = u"test-custom-emoji"_q;
 	const auto formulaImage = MakeObjectImage(
@@ -400,6 +434,13 @@ void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
 	Expects(formulaMime.expanded == expectedFormulaExport);
 	Expects(formulaMime.rich.text == expectedFormulaExport);
 	Expects(!HasEntityType(formulaMime.rich.entities, EntityType::CustomEmoji));
+	Expects(formulaMime.tags.size() == 1);
+	const auto expectedFormulaTag = TextForMimeDataTag{
+		.offset = int(formulaPosition),
+		.length = int(formulaReplacementText.size()),
+		.id = Ui::InputField::kTagIvMath,
+	};
+	Expects(formulaMime.tags.front() == expectedFormulaTag);
 	const auto formulaRich = formulaText->toTextWithEntities();
 	Expects(formulaRich.text == expectedFormulaExport);
 	Expects(!HasEntityType(formulaRich.entities, EntityType::CustomEmoji));
@@ -420,6 +461,46 @@ void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
 	Expects(!formulaText->hasCustomEmoji());
 	Expects(!formulaText->isOnlyCustomEmoji());
 	Expects(!formulaText->isIsolatedEmoji());
+
+	auto longFormulaSource = QString();
+	while (longFormulaSource.size() <= 4096) {
+		longFormulaSource.append(u"\\alpha+\\beta "_q);
+	}
+	auto longFormulaData = TextWithEntities();
+	longFormulaData.append(u"Before "_q);
+	const auto longFormulaPosition = longFormulaData.text.size();
+	longFormulaData.append(longFormulaSource);
+	longFormulaData.entities.push_back(EntityInText(
+		EntityType::CustomEmoji,
+		longFormulaPosition,
+		longFormulaSource.size(),
+		formulaEntityData));
+	longFormulaData.append(u" after"_q);
+	const auto longFormulaText = Ui::Text::String(
+		st::defaultTextStyle,
+		longFormulaData,
+		kMarkupTextOptions,
+		scale(64),
+		context);
+	Expects(longFormulaText.maxWidth() >= formulaImage.width());
+	Expects(longFormulaText.countHeight(scale(200)) > 0);
+	Expects(
+		longFormulaText.toString()
+			== u"Before "_q + formulaReplacementText + u" after"_q);
+	const auto longFormulaRender = RenderTextOffscreen(
+		longFormulaText,
+		scale(200));
+	Expects(HasPaintedPixels(longFormulaRender));
+
+	const auto longSpacedEmojiText = Ui::Text::String(
+		st::defaultTextStyle,
+		QString::fromUtf8("\xF0\x9F\x98\x80")
+			+ QString(4100, QChar(' '))
+			+ u"x"_q,
+		kDefaultTextOptions,
+		scale(64));
+	Expects(longSpacedEmojiText.maxWidth() > 0);
+	Expects(longSpacedEmojiText.countHeight(scale(200)) > 0);
 
 	auto controlData = TextWithEntities();
 	controlData.append(QChar::ObjectReplacementCharacter);
@@ -467,6 +548,93 @@ void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
 		Expects(formulaLine.baseline > controlLine.baseline);
 		Expects(formulaLine.baseline < formulaLine.bottom);
 		Expects(controlLine.baseline < controlLine.bottom);
+	}
+	{
+		auto fieldStyle = st::defaultMultiSelectSearchField;
+		fieldStyle.textMargins = QMargins(0, 0, 0, 0);
+		fieldStyle.placeholderMargins = QMargins(0, 0, 0, 0);
+		const auto placeholderText = u"bot query"_q;
+		const auto longPlaceholderText = u"bot query placeholder placeholder placeholder placeholder placeholder"_q;
+		const auto inlineBotPrefix = u"@bot "_q;
+		const auto field = std::make_unique<Ui::InputField>(
+			body,
+			fieldStyle,
+			Ui::InputField::Mode::MultiLine,
+			rpl::single(placeholderText),
+			QString());
+		field->resize(scale(320), fieldStyle.heightMin);
+		field->show();
+		field->setDocumentMargin(4.);
+		field->setAdditionalMargin(style::ConvertScale(4) - 4);
+		field->finishAnimating();
+		field->setPlaceholderHidden(true);
+		field->finishAnimating();
+		const auto emptyFieldImage = Ui::GrabWidgetToImage(field.get());
+		field->setPlaceholderHidden(false);
+		field->finishAnimating();
+		const auto placeholderImage = Ui::GrabWidgetToImage(field.get());
+		const auto placeholderPoint = FirstPaintedPoint(placeholderImage);
+		const auto placeholderBounds = ChangedBoundsInRect(
+			emptyFieldImage,
+			placeholderImage,
+			QRect(QPoint(), placeholderImage.size()));
+		Expects(placeholderPoint.has_value());
+		Expects(placeholderBounds.has_value());
+		field->setText(placeholderText);
+		field->finishAnimating();
+		const auto liveTextImage = Ui::GrabWidgetToImage(field.get());
+		const auto liveTextPoint = FirstPaintedPoint(liveTextImage);
+		const auto liveTextBounds = ChangedBoundsInRect(
+			emptyFieldImage,
+			liveTextImage,
+			QRect(QPoint(), liveTextImage.size()));
+		Expects(liveTextPoint.has_value());
+		Expects(liveTextBounds.has_value());
+		if (placeholderPoint && liveTextPoint) {
+			Expects(placeholderPoint->y() == liveTextPoint->y());
+			Expects(placeholderPoint->x() == liveTextPoint->x());
+		}
+		const auto expectedTextRect = ScaleRect(
+			field->rect().marginsRemoved(field->fullTextMargins()),
+			placeholderImage.devicePixelRatio());
+		field->clear();
+		field->setPlaceholder(rpl::single(longPlaceholderText));
+		field->finishAnimating();
+		const auto longPlaceholderImage = Ui::GrabWidgetToImage(field.get());
+		const auto longPlaceholderBounds = ChangedBoundsInRect(
+			emptyFieldImage,
+			longPlaceholderImage,
+			QRect(QPoint(), longPlaceholderImage.size()));
+		Expects(longPlaceholderBounds.has_value());
+		if (longPlaceholderBounds) {
+			Expects(expectedTextRect.contains(*longPlaceholderBounds));
+		}
+		field->clear();
+		field->setPlaceholder(
+			rpl::single(placeholderText),
+			inlineBotPrefix.size());
+		field->setText(inlineBotPrefix);
+		field->finishAnimating();
+		const auto inlinePlaceholderImage = Ui::GrabWidgetToImage(field.get());
+		const auto inlineSkipWidth = int(base::SafeRound(
+			fieldStyle.style.font->width(inlineBotPrefix)
+				* inlinePlaceholderImage.devicePixelRatio()));
+		const auto inlineScanLeft = placeholderPoint
+			? std::min(
+				placeholderPoint->x() + inlineSkipWidth,
+				inlinePlaceholderImage.width() - 1)
+			: 0;
+		const auto inlinePlaceholderPoint = FirstPaintedPoint(
+			inlinePlaceholderImage,
+			QRect(
+				inlineScanLeft,
+				0,
+				inlinePlaceholderImage.width() - inlineScanLeft,
+				inlinePlaceholderImage.height()));
+		Expects(inlinePlaceholderPoint.has_value());
+		if (placeholderPoint && inlinePlaceholderPoint) {
+			Expects(placeholderPoint->y() == inlinePlaceholderPoint->y());
+		}
 	}
 	const auto formulaSelection = TextSelection(
 		0,
