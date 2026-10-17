@@ -2905,6 +2905,7 @@ elseif (LINUX)
         target_link_libraries(Telegram PRIVATE Python3::Python)
     endif()
     target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-s>)
+    target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-Wl,-z,pack-relative-relocs>)
 
     include(${cmake_helpers_loc}/external/glib/generate_dbus.cmake)
     generate_dbus(Telegram org.freedesktop.portal. XdpBackground ${third_party_loc}/xdg-desktop-portal/data/org.freedesktop.portal.Background.xml)
@@ -3006,6 +3007,7 @@ else()
     )
 
     target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-s>)
+    target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-Wl,-z,pack-relative-relocs>)
 
     include(${cmake_helpers_loc}/external/glib/generate_dbus.cmake)
     generate_dbus(Telegram org.freedesktop.portal. XdpBackground ${third_party_loc}/xdg-desktop-portal/data/org.freedesktop.portal.Background.xml)
