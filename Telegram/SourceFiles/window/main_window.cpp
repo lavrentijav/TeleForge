@@ -190,8 +190,7 @@ QImage TrayIconRasterBase(int size, int unreadCount, bool muted) {
 		auto p = QPainter(&image);
 		auto hq = PainterHighQualityEnabler(p);
 		auto renderer = QSvgRenderer(content);
-		// WHY: the tray art spans 159..892 x 85..911 of its 1024 canvas, so a
-		// smaller box cuts its bottom edge off.
+		// WHY: the tray art occupies 159..892 x 85..911 of its 1024 canvas.
 		renderer.setViewBox(QRectF(106, 78, 840, 840));
 		renderer.render(&p, QRectF(0, 0, size, size));
 	}

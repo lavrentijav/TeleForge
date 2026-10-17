@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/win/tray_win.h"
 
-#include "base/flat_map.h"
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
@@ -61,8 +60,8 @@ bool DarkTasbarValueValid/* = false*/;
 	return (value == 0);
 }
 
-// WHY: the tray SVG is filled with dark paint, so it is repainted as a masked
-// silhouette; colorizing it by channel would keep it fully transparent.
+// WHY: the tray SVG is dark-filled, so it is repainted as a masked silhouette;
+// colorizing it by channel would leave it fully transparent.
 [[nodiscard]] QImage SolidIcon(const QImage &mask, QColor color) {
 	auto result = QImage(mask.size(), QImage::Format_ARGB32_Premultiplied);
 	result.fill(Qt::transparent);
@@ -109,28 +108,15 @@ bool DarkTasbarValueValid/* = false*/;
 		bool supportMode,
 		bool smallIcon,
 		bool monochrome) {
-	static auto ScaledLogo = base::flat_map<int, QImage>();
-	static auto ScaledLogoNoMargin = base::flat_map<int, QImage>();
-
 	const auto darkMode = IsDarkTaskbar();
 	const auto monochromeMode = (monochrome && darkMode);
 
-	auto result = [&] {
-		if (monochromeMode) {
-			return MonochromeIconFor(args.size, *darkMode);
-		}
-		auto &scaled = smallIcon ? ScaledLogoNoMargin : ScaledLogo;
-		if (const auto it = scaled.find(args.size); it != scaled.end()) {
-			return it->second;
-		}
-		return scaled.emplace(
-			args.size,
-			(smallIcon
-				? Window::LogoNoMargin()
-				: Window::Logo()
-			).scaledToWidth(args.size, Qt::SmoothTransformation)
-		).first->second;
-	}();
+	auto result = monochromeMode
+		? MonochromeIconFor(args.size, *darkMode)
+		: (smallIcon
+			? Window::LogoNoMargin()
+			: Window::Logo()
+		).scaledToWidth(args.size, Qt::SmoothTransformation);
 	if (!monochromeMode && supportMode) {
 		Window::ConvertIconToBlack(result);
 	}

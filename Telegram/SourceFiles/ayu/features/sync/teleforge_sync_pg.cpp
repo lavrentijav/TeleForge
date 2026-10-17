@@ -249,8 +249,7 @@ constexpr auto kEmbeddingUpsertSql =
 	auto material = QByteArray();
 	for (const auto &hash : hashes) {
 		material += hash;
-		material += '
-';
+		material += '\n';
 	}
 	const auto sha = QCryptographicHash::hash(
 		material,
