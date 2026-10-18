@@ -14,6 +14,14 @@ if [ ! -x "$BIN" ]; then
 	exit 1
 fi
 
+# бинарь должен быть новее всех объектников, иначе проверяем старый код
+STALE=$(find "$TF_DIR/out/Telegram/CMakeFiles" -name "*.o" -newer "$BIN" 2>/dev/null | wc -l)
+if [ "$STALE" -ne 0 ]; then
+	echo "бинарь устарел: $STALE объектников новее него"
+	echo "сначала завершите сборку"
+	exit 2
+fi
+
 say "бинарь"
 ls -l "$BIN" | awk '{print $5, $6, $7, $8, $9}'
 file "$BIN" | cut -c1-90
