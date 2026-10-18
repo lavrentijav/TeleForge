@@ -105,6 +105,26 @@ void MigrateToV6() {
 	// V6 adds chatModelPath / chatModelId on PersonalityCore (via sync_schema).
 }
 
+[[nodiscard]] bool ExecSqliteSkipMissing(sqlite3 *db, const char *sql) {
+	char *err = nullptr;
+	const auto rc = sqlite3_exec(db, sql, nullptr, nullptr, &err);
+	if (rc == SQLITE_OK) {
+		return true;
+	}
+	const auto message = err ? QString::fromUtf8(err) : QString();
+	if (err) {
+		sqlite3_free(err);
+	}
+	// WHY: an old AyuGram base lacks some of our tables, and one missing table
+	// must not abort the import of everything else it does contain.
+	if (message.contains(u"no such table"_q, Qt::CaseInsensitive)) {
+		LOG(("TeleForge: legacy import skipped a table: %1").arg(message));
+		return true;
+	}
+	LOG(("TeleForge SQL failed: %1").arg(message));
+	return false;
+}
+
 [[nodiscard]] bool ExecSqlite(sqlite3 *db, const char *sql) {
 	char *err = nullptr;
 	const auto rc = sqlite3_exec(db, sql, nullptr, nullptr, &err);
@@ -144,10 +164,7 @@ void MigrateToV8() {
 		return;
 	}
 	const auto queries = {
-		R"SQL(
-INSERT OR IGNORE INTO TfDataSchemaVersion (id, version)
-SELECT id, version FROM legacy.SchemaVersion WHERE id = 1;
-)SQL",
+
 		R"SQL(
 INSERT INTO DeletedMessage (
 	userId, dialogId, groupedId, peerId, fromId, topicId, messageId, date, flags,
@@ -220,7 +237,7 @@ WHERE NOT EXISTS (
 )SQL",
 	};
 	for (const auto *query : queries) {
-		if (!ExecSqlite(live, query)) {
+		if (!ExecSqliteSkipMissing(live, query)) {
 			LOG(("TeleForge: legacy import failed, keeping ayudata.db in place."));
 			(void)ExecSqlite(live, "DETACH legacy;");
 			sqlite3_close(live);
