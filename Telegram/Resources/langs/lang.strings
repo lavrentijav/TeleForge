@@ -9813,6 +9813,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "tf_SyncDatabasePlaceholder" = "database";
 "tf_SyncUserPlaceholder" = "user";
 "tf_SyncPasswordPlaceholder" = "password";
+"tf_SyncArchivePassphrase" = "Archive password (use the same on every device)";
+"tf_SyncArchivePassphraseSave" = "Save the archive password";
+"tf_SyncArchivePassphraseSaved" = "Archive password saved.";
+"tf_SyncArchivePassphraseHint" = "The password never leaves this device: the archive key is derived from it locally, so a database dump cannot be read. Type the same password on every device that should open this archive.";
+"tf_SyncReencryptArchive" = "Re-encrypt the cloud archive with this password";
+"tf_SyncReencryptStarted" = "Re-encryption started; existing bundles will be rewritten in the background.";
 "tf_SyncSaveConnection" = "Save connection";
 "tf_SyncConnectionSaved" = "Connection saved.";
 "tf_SyncTestConnection" = "Test the connection";
