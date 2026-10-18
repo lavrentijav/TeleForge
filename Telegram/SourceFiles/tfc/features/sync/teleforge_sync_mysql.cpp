@@ -346,8 +346,8 @@ void UploadEmbeddings(
 			+ MySqlQuote(conn, row.scopeType.toUtf8()) + ","
 			+ nullableH(row.chatId) + ","
 			+ nullableH(row.userId) + ","
-			+ MySqlQuote(conn, EncryptBundle(row.title.toUtf8(), key).toBase64()) + ","
-			+ MySqlQuote(conn, EncryptBundle(row.summary.toUtf8(), key).toBase64()) + ","
+			+ MySqlQuote(conn, EncryptBundleForWrite(row.title.toUtf8(), key).toBase64()) + ","
+			+ MySqlQuote(conn, EncryptBundleForWrite(row.summary.toUtf8(), key).toBase64()) + ","
 			+ QByteArray::number(row.updatedAt)
 			+ ") ON DUPLICATE KEY UPDATE"
 			" model_id=VALUES(model_id), dims=VALUES(dims),"

@@ -34,15 +34,19 @@ auto g_mutex = std::mutex();
 	if (!g_exportKey.isEmpty()) {
 		// An exported key always wins: it is the only way into data written by a
 		// build that predates the passphrase mode.
+		SetDefaultKeyMode(KeyMode::DeviceV2, {});
 		return DeriveSyncKey(DeviceSecret(), g_exportKey, binding);
 	} else if (!passphrase.isEmpty()) {
 		// Same key on every device that logs into this account: the passphrase is
-		// never uploaded, so the server cannot derive it.
+		// never uploaded, so the server cannot derive it. The salt is a pure
+		// function of the account binding, so both sides agree on it.
 		const auto key = DeriveAccountKey(passphrase.toUtf8(), binding);
 		if (key.size() == 32) {
+			SetDefaultKeyMode(KeyMode::AccountArgon2id, AccountSalt(binding));
 			return key;
 		}
 	}
+	SetDefaultKeyMode(KeyMode::DeviceV2, {});
 	return DeriveSyncKey(DeviceSecret(), g_exportKey, binding);
 }
 

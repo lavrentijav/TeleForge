@@ -36,6 +36,10 @@ enum class KeyMode {
 	AccountArgon2id,
 };
 [[nodiscard]] QByteArray KdfSalt();
+
+// Stable per-account salt: identical on every device that logs into the same
+// account, which is what makes the passphrase key reproducible elsewhere.
+[[nodiscard]] QByteArray AccountSalt(const QByteArray &accountBinding);
 [[nodiscard]] QByteArray DeriveForMode(
 	KeyMode mode,
 	const QByteArray &secret,
@@ -86,6 +90,15 @@ void MarkSyncMigrationComplete();
 	KeyMode mode,
 	const QByteArray &salt);
 
+// Write-side default: when a passphrase mode is active, every bundle written
+// through EncryptBundle records the mode and salt in its header, so another
+// device can rebuild the key. DeviceV2 keeps the short legacy header.
+void SetDefaultKeyMode(KeyMode mode, const QByteArray &salt);
+[[nodiscard]] QByteArray EncryptBundleForWrite(
+	const QByteArray &plain,
+	const QByteArray &key);
+[[nodiscard]] KeyMode DefaultKeyMode();
+[[nodiscard]] QByteArray DefaultKeySalt();
 // Reads the header of a bundle without decrypting it.
 [[nodiscard]] bool ReadBundleParams(
 	const QByteArray &encrypted,

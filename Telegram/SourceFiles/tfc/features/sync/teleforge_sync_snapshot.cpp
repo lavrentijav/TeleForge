@@ -191,7 +191,7 @@ std::optional<QString> DecompressToTemp(const QByteArray &compressed) {
 }
 
 QByteArray EncryptSnapshot(const QByteArray &compressed, const QByteArray &key) {
-	return EncryptBundle(compressed, key);
+	return EncryptBundleForWrite(compressed, key);
 }
 
 std::optional<QByteArray> DecryptSnapshot(

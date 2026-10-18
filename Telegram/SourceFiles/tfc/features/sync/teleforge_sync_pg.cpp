@@ -410,8 +410,8 @@ void UploadEmbeddings(
 		const auto userIdH = row.userId
 			? HmacId(*row.userId, key).toUtf8()
 			: QByteArray();
-		const auto titleEnc = EncryptBundle(row.title.toUtf8(), key).toBase64();
-		const auto summaryEnc = EncryptBundle(
+		const auto titleEnc = EncryptBundleForWrite(row.title.toUtf8(), key).toBase64();
+		const auto summaryEnc = EncryptBundleForWrite(
 			row.summary.toUtf8(), key).toBase64();
 		const auto updatedAt = QByteArray::number(row.updatedAt);
 		const char *values[11] = {

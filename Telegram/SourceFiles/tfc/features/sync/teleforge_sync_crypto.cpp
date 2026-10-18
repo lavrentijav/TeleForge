@@ -345,13 +345,19 @@ namespace {
 
 } // namespace
 
+QByteArray AccountSalt(const QByteArray &accountBinding) {
+	return QCryptographicHash::hash(
+		QByteArray("TeleForge-Archive-v1") + accountBinding,
+		QCryptographicHash::Sha256).left(kSaltSize);
+}
+
 QByteArray DeriveAccountKey(
 		const QByteArray &passphrase,
 		const QByteArray &accountBinding) {
 	if (passphrase.isEmpty()) {
 		return {};
 	}
-	return Argon2id(passphrase, KdfSalt() + accountBinding);
+	return Argon2id(passphrase, AccountSalt(accountBinding));
 }
 
 QByteArray KdfSalt() {
@@ -375,7 +381,9 @@ QByteArray DeriveForMode(
 	case KeyMode::LegacyV1:
 		return DeriveLegacySyncKey(accountBinding);
 	case KeyMode::AccountArgon2id:
-		return Argon2id(secret, salt.isEmpty() ? KdfSalt() + accountBinding : salt);
+		return Argon2id(
+			secret,
+			salt.size() == kSaltSize ? salt : AccountSalt(accountBinding));
 	case KeyMode::DeviceV2:
 	default:
 		return DeriveSyncKey(secret, {}, accountBinding);
@@ -549,6 +557,39 @@ QByteArray EncryptBundle(const QByteArray &plain, const QByteArray &key) {
 	return out;
 }
 
+namespace {
+
+auto g_writeMode = KeyMode::DeviceV2;
+auto g_writeSalt = QByteArray();
+auto g_writeMutex = std::mutex();
+
+} // namespace
+
+void SetDefaultKeyMode(KeyMode mode, const QByteArray &salt) {
+	auto lock = std::unique_lock(g_writeMutex);
+	g_writeMode = mode;
+	g_writeSalt = salt;
+}
+
+KeyMode DefaultKeyMode() {
+	auto lock = std::unique_lock(g_writeMutex);
+	return g_writeMode;
+}
+
+QByteArray DefaultKeySalt() {
+	auto lock = std::unique_lock(g_writeMutex);
+	return g_writeSalt;
+}
+
+QByteArray EncryptBundleForWrite(
+		const QByteArray &plain,
+		const QByteArray &key) {
+	const auto mode = DefaultKeyMode();
+	if (mode == KeyMode::DeviceV2) {
+		return EncryptBundle(plain, key);
+	}
+	return EncryptBundleEx(plain, key, mode, DefaultKeySalt());
+}
 QByteArray EncryptBundleEx(
 		const QByteArray &plain,
 		const QByteArray &key,
