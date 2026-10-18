@@ -54,7 +54,6 @@ void deleteAllExclusions();
 bool hasFilters();
 bool hasPerDialogFilters();
 
-void moveCurrentDatabase();
 
 void insertOnlineEvent(const OnlineEvent &event);
 [[nodiscard]] std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs);

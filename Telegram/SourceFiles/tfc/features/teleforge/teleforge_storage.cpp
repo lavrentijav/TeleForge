@@ -221,6 +221,7 @@ WHERE NOT EXISTS (
 	};
 	for (const auto *query : queries) {
 		if (!ExecSqlite(live, query)) {
+			LOG(("TeleForge: legacy import failed, keeping ayudata.db in place."));
 			(void)ExecSqlite(live, "DETACH legacy;");
 			sqlite3_close(live);
 			return;

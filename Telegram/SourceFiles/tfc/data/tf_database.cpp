@@ -133,22 +133,6 @@ void runMigrations(decltype(db()) &store) {
 
 namespace TfDatabase {
 
-void moveCurrentDatabase() {
-	const auto time = base::unixtime::now();
-
-	if (QFile::exists("./tdata/ayudata.db")) {
-		QFile::rename("./tdata/ayudata.db", QString("./tdata/ayudata_%1.db").arg(time));
-	}
-
-	if (QFile::exists("./tdata/ayudata.db-shm")) {
-		QFile::rename("./tdata/ayudata.db-shm", QString("./tdata/ayudata_%1.db-shm").arg(time));
-	}
-
-	if (QFile::exists("./tdata/ayudata.db-wal")) {
-		QFile::rename("./tdata/ayudata.db-wal", QString("./tdata/ayudata_%1.db-wal").arg(time));
-	}
-}
-
 void initialize() {
 	try {
 		runMigrations(db());
