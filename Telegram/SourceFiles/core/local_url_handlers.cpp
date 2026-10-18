@@ -1908,11 +1908,11 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 			TfUrlHandlers::ResolveChat
 		},
 		{
-			u"^ayusettings/?\\?(.+)(#|$)"_q,
+			u"^(?:ayusettings|tfsettings)/?\\?(.+)(#|$)"_q,
 			TfUrlHandlers::HandleAyuSettings
 		},
 		{
-			u"^ayusettings/?$"_q,
+			u"^(?:ayusettings|tfsettings)/?$"_q,
 			TfUrlHandlers::HandleAyuSettings
 		},
 		{
@@ -2145,7 +2145,7 @@ QString TryConvertUrlToLocal(QString url) {
 			}
 			return base + added + (params.isEmpty() ? QString() : '&' + params);
 		} else if (const auto ayuSettingsMatch = regex_match(
-			u"^(?:ayuSettings|exteraSettings)/?\\?(.+)$"_q, query, matchOptions)) {
+			u"^(?:ayuSettings|tfSettings|exteraSettings)/?\\?(.+)$"_q, query, matchOptions)) {
 			return u"tg://ayusettings?"_q + ayuSettingsMatch->captured(1);
 		} else if (const auto usernameMatch = regex_match(u"^"
 			"([a-zA-Z0-9\\.\\_]+)"
