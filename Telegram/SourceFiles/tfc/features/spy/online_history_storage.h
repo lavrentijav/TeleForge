@@ -36,6 +36,10 @@ void purgeOldEvents();
 [[nodiscard]] Data::LastseenStatus effectiveLastseen(
 	long long userId,
 	Data::LastseenStatus status);
+[[nodiscard]] Data::LastseenStatus effectiveLastseen(
+	long long userId,
+	Data::LastseenStatus status,
+	TimeId now);
 [[nodiscard]] std::optional<QString> spyOnlineText(
 	not_null<UserData*> user,
 	TimeId now);

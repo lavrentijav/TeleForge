@@ -117,14 +117,22 @@ std::vector<OnlineEvent> loadRecentForUser(long long userId, int sinceTs) {
 }
 
 std::optional<int> manualLastSeenForUser(long long userId) {
+	const auto cutoff = base::unixtime::now() - retentionDays() * 86400;
 	{
 		const auto lock = std::unique_lock(g_mutex);
 		const auto i = g_manualCache.find(userId);
 		if (i != end(g_manualCache)) {
-			return i->second;
+			if (i->second >= cutoff) {
+				return i->second;
+			}
+			g_manualCache.erase(i);
 		}
 	}
-	return TfDatabase::manualLastSeenForUser(userId);
+	const auto stored = TfDatabase::manualLastSeenForUser(userId);
+	if (stored && *stored >= cutoff) {
+		return stored;
+	}
+	return std::nullopt;
 }
 
 void setSpyTargetEnabled(long long userId, bool enabled) {
@@ -181,7 +189,18 @@ int retentionDays() {
 
 void purgeOldEvents() {
 	const auto now = base::unixtime::now();
-	TfDatabase::purgeOnlineEventsBefore(now - retentionDays() * 86400);
+	const auto cutoff = now - retentionDays() * 86400;
+	TfDatabase::purgeOnlineEventsBefore(cutoff);
+	{
+		const auto lock = std::unique_lock(g_mutex);
+		for (auto i = begin(g_manualCache); i != end(g_manualCache);) {
+			if (i->second < cutoff) {
+				i = g_manualCache.erase(i);
+			} else {
+				++i;
+			}
+		}
+	}
 	const auto ghostCutoff = now - kGhostReadRetentionDays * 86400;
 	TfDatabase::purgeGhostReadBefore(ghostCutoff);
 }
@@ -189,10 +208,16 @@ void purgeOldEvents() {
 Data::LastseenStatus effectiveLastseen(
 		long long userId,
 		Data::LastseenStatus status) {
+	return effectiveLastseen(userId, status, base::unixtime::now());
+}
+
+Data::LastseenStatus effectiveLastseen(
+		long long userId,
+		Data::LastseenStatus status,
+		TimeId now) {
 	if (!isSpyEnabledForUser(userId)) {
 		return status;
 	}
-	const auto now = base::unixtime::now();
 	if (status.isOnline(now)) {
 		{
 			const auto lock = std::unique_lock(g_mutex);

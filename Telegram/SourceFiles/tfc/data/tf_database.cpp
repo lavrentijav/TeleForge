@@ -475,7 +475,7 @@ std::optional<int> manualLastSeenForUser(ID userId) {
 			where(
 				column<OnlineEvent>(&OnlineEvent::userId) == userId
 				and column<OnlineEvent>(&OnlineEvent::manualLastSeen) > 0),
-			order_by(column<OnlineEvent>(&OnlineEvent::timestamp)).desc(),
+			order_by(column<OnlineEvent>(&OnlineEvent::manualLastSeen)).desc(),
 			limit(1));
 		if (rows.empty()) {
 			return std::nullopt;

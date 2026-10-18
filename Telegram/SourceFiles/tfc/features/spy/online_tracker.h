@@ -6,6 +6,8 @@
 namespace TeleForge::Spy {
 
 void recordUserStatus(not_null<UserData*> user, Data::LastseenStatus status);
+
+void flushPending();
 [[nodiscard]] Data::LastseenStatus applyLastseen(
 	not_null<UserData*> user,
 	Data::LastseenStatus status);
