@@ -63,7 +63,7 @@ TfLanguage::TfLanguage() = default;
 void TfLanguage::init() {
 	if (!instance) instance = new TfLanguage;
 	instance->loadCachedLanguage();
-	if (IsRussianUiLanguage()) {
+	if (false && IsRussianUiLanguage()) {
 		ApplyBundledRussianOverlay();
 	}
 }
