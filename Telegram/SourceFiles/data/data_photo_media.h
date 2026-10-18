@@ -59,7 +59,7 @@ private:
 		PhotoSize goodFor = PhotoSize();
 	};
 	struct DecodedEntry {
-		PhotoMedia *media = nullptr;
+		const PhotoMedia *media = nullptr;
 		int index = 0;
 		int size = 0;
 	};

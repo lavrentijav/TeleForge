@@ -14,6 +14,8 @@
 #include "dialogs/dialogs_main_list.h"
 #include "info/profile/info_profile_badge.h"
 
+class History;
+
 namespace Api {
 struct SendOptions;
 }
@@ -74,6 +76,8 @@ void MarkAsReadChatList(not_null<Dialogs::MainList*> list);
 void MarkAsReadThread(not_null<Data::Thread*> thread);
 
 void readHistory(not_null<HistoryItem*> message);
+
+void markGhostReadLocally(not_null<History*> history);
 
 QString formatTTL(int time, bool isDoc);
 QString formatDateTime(const QDateTime &date);

@@ -36,6 +36,7 @@
 #include "data/stickers/data_stickers.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "history/view/history_view_element.h"
 #include "history/history_item_components.h"
 #include "history/history_unread_things.h"
 #include "lang/lang_keys.h"
@@ -302,6 +303,37 @@ void MarkAsReadThread(not_null<Data::Thread*> thread) {
 	}
 
 	TfWorker::scheduleOfflinePacket(&thread->session());
+}
+
+void markGhostReadLocally(not_null<History*> history) {
+	const auto &ghost = TfSettings::ghost(&history->session());
+	if (!ghost.isGhostModeActive() || ghost.sendReadMessages()) {
+		return;
+	}
+
+	auto till = MsgId(0);
+	for (auto i = history->blocks.rbegin(); i != history->blocks.rend(); ++i) {
+		for (auto j = (*i)->messages.rbegin(); j != (*i)->messages.rend(); ++j) {
+			const auto item = (*j)->data();
+			if (!item->isRegular() || item->out()) {
+				continue;
+			}
+			till = item->id;
+			break;
+		}
+		if (till) {
+			break;
+		}
+	}
+	if (!till) {
+		return;
+	}
+
+	TeleForge::GhostRead::rememberShownTill(
+		history,
+		history->inboxReadTillId(),
+		till);
+	history->setInboxReadTill(till);
 }
 
 void readHistory(not_null<HistoryItem*> message) {
