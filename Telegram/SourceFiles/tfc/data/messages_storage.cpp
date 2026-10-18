@@ -20,7 +20,7 @@
 
 #include <algorithm>
 
-namespace AyuMessages {
+namespace TfMessages {
 
 namespace {
 
@@ -30,8 +30,8 @@ namespace {
 	return text.empty() ? label : (label + "\n" + text);
 }
 
-[[nodiscard]] AyuMessageBase WithStageLabel(
-		AyuMessageBase message,
+[[nodiscard]] TfMessageBase WithStageLabel(
+		TfMessageBase message,
 		const std::string &label) {
 	message.text = PrependStageLabel(label, message.text);
 	message.textEntities.clear();
@@ -41,16 +41,16 @@ namespace {
 } // namespace
 
 template<typename DerivedMessage>
-std::vector<AyuMessageBase> convertToBase(const std::vector<DerivedMessage> &messages) {
-	std::vector<AyuMessageBase> based;
+std::vector<TfMessageBase> convertToBase(const std::vector<DerivedMessage> &messages) {
+	std::vector<TfMessageBase> based;
 	based.reserve(messages.size());
 	for (const auto &msg : messages) {
-		based.push_back(static_cast<AyuMessageBase>(msg));
+		based.push_back(static_cast<TfMessageBase>(msg));
 	}
 	return based;
 }
 
-void map(not_null<HistoryItem*> item, AyuMessageBase &message) {
+void map(not_null<HistoryItem*> item, TfMessageBase &message) {
 	const ID userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
 
 	message.userId = userId;
@@ -65,7 +65,7 @@ void map(not_null<HistoryItem*> item, AyuMessageBase &message) {
 	}
 	message.messageId = item->id.bare;
 	message.date = item->date();
-	message.flags = AyuMapper::mapItemFlagsToMTPFlags(item);
+	message.flags = TfMapper::mapItemFlagsToMTPFlags(item);
 
 	if (const auto edited = item->Get<HistoryMessageEdited>()) {
 		message.editDate = edited->date;
@@ -91,7 +91,7 @@ void map(not_null<HistoryItem*> item, AyuMessageBase &message) {
 	// message.replyMarkupSerialized
 	message.entityCreateDate = base::unixtime::now();
 
-	auto serializedText = AyuMapper::serializeTextWithEntities(item);
+	auto serializedText = TfMapper::serializeTextWithEntities(item);
 	message.text = serializedText.first;
 	message.textEntities = serializedText.second;
 
@@ -113,15 +113,15 @@ void addEditedMessage(not_null<HistoryItem *> item) {
 		return;
 	}
 
-	AyuDatabase::addEditedMessage(message);
+	TfDatabase::addEditedMessage(message);
 }
 
-std::vector<AyuMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit) {
+std::vector<TfMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit) {
 	const ID userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
 	const auto dialogId = getDialogIdFromPeer(item->history()->peer);
 	const auto msgId = item->id.bare;
 
-	return convertToBase(AyuDatabase::getEditedMessages(userId, dialogId, msgId, minId, maxId, totalLimit));
+	return convertToBase(TfDatabase::getEditedMessages(userId, dialogId, msgId, minId, maxId, totalLimit));
 }
 
 bool hasRevisions(not_null<HistoryItem*> item) {
@@ -129,11 +129,11 @@ bool hasRevisions(not_null<HistoryItem*> item) {
 	const auto dialogId = getDialogIdFromPeer(item->history()->peer);
 	const auto msgId = item->id.bare;
 
-	return AyuDatabase::hasRevisions(userId, dialogId, msgId);
+	return TfDatabase::hasRevisions(userId, dialogId, msgId);
 }
 
 void snapshotEditsBeforeDelete(not_null<HistoryItem*> item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.saveMessagesHistory() || item->isLocal()) {
 		return;
 	}
@@ -166,28 +166,28 @@ void addDeletedMessage(not_null<HistoryItem*> item) {
 		message.editDate = fallback.editDate;
 	}
 
-	AyuDatabase::addDeletedMessage(message);
+	TfDatabase::addDeletedMessage(message);
 }
 
-std::vector<AyuMessageBase>
+std::vector<TfMessageBase>
 getDeletedMessages(not_null<PeerData*> peer, ID topicId, ID minId, ID maxId, int totalLimit, const QString &searchQuery) {
 	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
 	return convertToBase(
-		AyuDatabase::getDeletedMessages(userId, getDialogIdFromPeer(peer), topicId, minId, maxId, totalLimit, searchQuery.toStdString()));
+		TfDatabase::getDeletedMessages(userId, getDialogIdFromPeer(peer), topicId, minId, maxId, totalLimit, searchQuery.toStdString()));
 }
 
 bool hasDeletedMessages(not_null<PeerData*> peer, ID topicId) {
 	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
-	return AyuDatabase::hasDeletedMessages(userId, getDialogIdFromPeer(peer), topicId);
+	return TfDatabase::hasDeletedMessages(userId, getDialogIdFromPeer(peer), topicId);
 }
 
-std::vector<AyuMessageBase> buildDeletedMessageTimeline(
+std::vector<TfMessageBase> buildDeletedMessageTimeline(
 		not_null<PeerData*> peer,
-		const AyuMessageBase &deletedMessage,
+		const TfMessageBase &deletedMessage,
 		int totalLimit) {
 	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
 	const auto dialogId = getDialogIdFromPeer(peer);
-	auto revisions = AyuDatabase::getEditedMessages(
+	auto revisions = TfDatabase::getEditedMessages(
 		userId,
 		dialogId,
 		deletedMessage.messageId,
@@ -196,7 +196,7 @@ std::vector<AyuMessageBase> buildDeletedMessageTimeline(
 		totalLimit);
 	std::reverse(revisions.begin(), revisions.end());
 
-	auto result = std::vector<AyuMessageBase>();
+	auto result = std::vector<TfMessageBase>();
 	result.reserve(revisions.size() + 2);
 
 	for (auto i = 0; i != revisions.size(); ++i) {
@@ -204,7 +204,7 @@ std::vector<AyuMessageBase> buildDeletedMessageTimeline(
 			? std::string("[Original]")
 			: std::string("[Edit ") + std::to_string(i) + "]";
 		result.push_back(WithStageLabel(
-			static_cast<AyuMessageBase>(revisions[i]),
+			static_cast<TfMessageBase>(revisions[i]),
 			label));
 	}
 

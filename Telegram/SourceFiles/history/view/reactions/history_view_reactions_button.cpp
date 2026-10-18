@@ -637,7 +637,7 @@ void Manager::paintButton(
 	if (expanded) {
 		q->fillRect(QRect(QPoint(), size), context.st->windowBg());
 	} else {
-		const auto radius = AyuUserpic::ComputeRadiusF(_inner.height());
+		const auto radius = TfUserpic::ComputeRadiusF(_inner.height());
 		const auto frame = _cachedRound.validateFrame(
 			frameIndex,
 			scale,
@@ -710,8 +710,8 @@ void Manager::paintButton(
 	}
 
 	if (expanded) {
-		const auto radiusMin = AyuUserpic::ComputeRadiusF(_inner.height());
-		const auto radiusMax = AyuUserpic::ComputeRadiusF(_inner.width());
+		const auto radiusMin = TfUserpic::ComputeRadiusF(_inner.height());
+		const auto radiusMax = TfUserpic::ComputeRadiusF(_inner.width());
 		_cachedRound.overlayExpandedBorder(
 			*q,
 			size,

@@ -432,7 +432,7 @@ Session::Session(not_null<Main::Session*> session)
 		}, _lifetime);
 
 		// AyuGram disableStories
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		if (!settings.disableStories()) {
 			_stories->loadMore(Data::StorySourcesList::NotHidden);
 		}
@@ -1014,7 +1014,7 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 			| Flag::CallActive
 			| Flag::CallNotEmpty
 			| Flag::NoForwards
-			| Flag::AyuNoForwards;
+			| Flag::TfNoForwards;
 		const auto flagsSet = (data.is_left() ? Flag::Left : Flag())
 			| (data.is_creator() ? Flag::Creator : Flag())
 			| (data.is_deactivated() ? Flag::Deactivated : Flag())
@@ -1025,7 +1025,7 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 				? Flag::CallNotEmpty
 				: Flag())
 			| (data.is_noforwards() ? Flag::NoForwards : Flag())
-			| (data.is_noforwards() ? Flag::AyuNoForwards : Flag());
+			| (data.is_noforwards() ? Flag::TfNoForwards : Flag());
 		chat->setFlags((chat->flags() & ~flagsMask) | flagsSet);
 		chat->count = data.vparticipants_count().v;
 
@@ -1138,7 +1138,7 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 				? (Flag::Left | Flag::Creator)
 				: Flag())
 			| Flag::NoForwards
-			| Flag::AyuNoForwards
+			| Flag::TfNoForwards
 			| Flag::JoinToWrite
 			| Flag::RequestToJoin
 			| Flag::Forum
@@ -1189,7 +1189,7 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 					| (data.is_creator() ? Flag::Creator : Flag()))
 				: Flag())
 			| (data.is_noforwards() ? Flag::NoForwards : Flag())
-			| (data.is_noforwards() ? Flag::AyuNoForwards : Flag())
+			| (data.is_noforwards() ? Flag::TfNoForwards : Flag())
 			| (data.is_join_to_send() ? Flag::JoinToWrite : Flag())
 			| (data.is_join_request() ? Flag::RequestToJoin : Flag())
 			| ((data.is_forum() && data.is_megagroup())
@@ -3098,7 +3098,7 @@ void Session::updateEditedMessage(const MTPMessage &data) {
 	}
 
 	// AyuGram saveMessagesHistory
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	HistoryMessageEdition edit;
 
 	if (data.type() != mtpc_message) {
@@ -3112,7 +3112,7 @@ void Session::updateEditedMessage(const MTPMessage &data) {
 			goto proceed;
 		}
 
-		AyuMessages::addEditedMessage(existing);
+		TfMessages::addEditedMessage(existing);
 	}
 
 	FiltersController::invalidate(existing);
@@ -3261,7 +3261,7 @@ void Session::unregisterMessageTTL(
 }
 
 void Session::checkTTLs() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	_ttlCheckTimer.cancel();
 	const auto now = base::unixtime::now();

@@ -611,7 +611,7 @@ bool MainWidget::setForwardDraft(
 		});
 	// allow opening chat that
 	// already have some forward task
-	if (error && !AyuForward::isForwarding(history->peer->id)) {
+	if (error && !TfForward::isForwarding(history->peer->id)) {
 		Data::ShowSendErrorToast(_controller, history->peer, error);
 		return false;
 	}

@@ -12,7 +12,7 @@ namespace Main {
 class Session;
 } // namespace Main
 
-namespace AyuDelete {
+namespace TfDelete {
 
 [[nodiscard]] bool AnyMessageSupportsStubReplace(
 	not_null<Main::Session*> session,
@@ -24,4 +24,4 @@ void DeleteMessages(
 	bool revoke,
 	bool replaceWithStub);
 
-} // namespace AyuDelete
+} // namespace TfDelete

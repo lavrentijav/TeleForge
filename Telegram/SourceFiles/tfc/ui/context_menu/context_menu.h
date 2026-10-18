@@ -13,7 +13,7 @@
 
 #include "tfc/tf_settings.h"
 
-namespace AyuUi {
+namespace TfUi {
 
 bool needToShowItem(ContextMenuVisibility state);
 

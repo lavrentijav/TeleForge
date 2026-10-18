@@ -1616,7 +1616,7 @@ void LanguageBox::setupTop(not_null<Ui::VerticalLayout*> container) {
 	using namespace rpl::mappers;
 	auto premium = Data::AmPremiumValue(&_controller->session()) | rpl::map([=](bool val)
 	{
-		// const auto &settings = AyuSettings::getInstance();
+		// const auto &settings = TfSettings::getInstance();
 		// if (settings.translationProvider() != TranslationProvider::Telegram) {
 		// 	return true;
 		// }

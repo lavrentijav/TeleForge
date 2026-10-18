@@ -403,7 +403,7 @@ Document::Document(
 			const auto &data = &_parent->data()->history()->owner();
 			_parent->data()->removeFromSharedMediaIndex();
 			setDocumentLinks(_data, realParent, [=] {
-				const auto &settings = AyuSettings::getInstance();
+				const auto &settings = TfSettings::getInstance();
 				if (!settings.saveDeletedMessages()) {
 					_openl = nullptr;
 				}
@@ -780,7 +780,7 @@ void Document::draw(
 
 		if (!mediaEditor
 			&& (radial || (!loaded && !_data->loading()) || _data->waitingForAlbum())
-			&& !AyuFeatures::MessageShot::isTakingShot()) {
+			&& !TfFeatures::MessageShot::isTakingShot()) {
 			const auto backOpacity = (loaded && !_data->uploading()) ? radialOpacity : 1.;
 			p.setPen(Qt::NoPen);
 			p.setBrush(sti->msgDateImgBg);
@@ -1233,7 +1233,7 @@ void Document::drawCornerDownload(
 	if (dataLoaded()
 		|| _data->loadedInMediaCache()
 		|| !downloadInCorner()
-		|| AyuFeatures::MessageShot::isTakingShot()) {
+		|| TfFeatures::MessageShot::isTakingShot()) {
 		return;
 	}
 	auto topMinus = isBubbleTop() ? 0 : st::msgFileTopMinus;

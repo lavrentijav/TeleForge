@@ -33,7 +33,7 @@ constexpr auto postfixes = {
 	"other"
 };
 
-AyuLanguage *AyuLanguage::instance = nullptr;
+TfLanguage *TfLanguage::instance = nullptr;
 
 namespace {
 
@@ -52,35 +52,35 @@ void ApplyBundledRussianOverlay() {
 	}
 	const auto doc = QJsonDocument::fromJson(file.readAll());
 	if (doc.isObject()) {
-		AyuLanguage::currentInstance()->applyLanguageJson(doc);
+		TfLanguage::currentInstance()->applyLanguageJson(doc);
 	}
 }
 
 } // namespace
 
-AyuLanguage::AyuLanguage() = default;
+TfLanguage::TfLanguage() = default;
 
-void AyuLanguage::init() {
-	if (!instance) instance = new AyuLanguage;
+void TfLanguage::init() {
+	if (!instance) instance = new TfLanguage;
 	instance->loadCachedLanguage();
 	if (IsRussianUiLanguage()) {
 		ApplyBundledRussianOverlay();
 	}
 }
 
-AyuLanguage *AyuLanguage::currentInstance() {
+TfLanguage *TfLanguage::currentInstance() {
 	return instance;
 }
 
-QString AyuLanguage::getCacheDir() const {
+QString TfLanguage::getCacheDir() const {
 	return cWorkingDir() + u"tdata/teleforge/languages/"_q;
 }
 
-QString AyuLanguage::legacyCacheDir() const {
+QString TfLanguage::legacyCacheDir() const {
 	return cWorkingDir() + u"tdata/ayu/languages/"_q;
 }
 
-QString AyuLanguage::getCachePath(const QString &langId) const {
+QString TfLanguage::getCachePath(const QString &langId) const {
 	const auto primary = getCacheDir() + langId + u".json"_q;
 	if (QFile::exists(primary)) {
 		return primary;
@@ -88,7 +88,7 @@ QString AyuLanguage::getCachePath(const QString &langId) const {
 	return legacyCacheDir() + langId + u".json"_q;
 }
 
-void AyuLanguage::loadCachedLanguage() {
+void TfLanguage::loadCachedLanguage() {
 	const auto langPackId = Lang::GetInstance().id();
 	const auto langPackBaseId = Lang::GetInstance().baseId();
 	auto finalLangPackId = langMapping.contains(langPackId) ? langMapping[langPackId] : langPackId;
@@ -123,7 +123,7 @@ void AyuLanguage::loadCachedLanguage() {
 	}
 }
 
-void AyuLanguage::saveCachedLanguage(const QByteArray &json, const QString &langId) {
+void TfLanguage::saveCachedLanguage(const QByteArray &json, const QString &langId) {
 	const auto cacheDir = getCacheDir();
 	QDir().mkpath(cacheDir);
 
@@ -136,7 +136,7 @@ void AyuLanguage::saveCachedLanguage(const QByteArray &json, const QString &lang
 	}
 }
 
-void AyuLanguage::fetchLanguage(const QString &id, const QString &baseId) {
+void TfLanguage::fetchLanguage(const QString &id, const QString &baseId) {
 	auto finalLangPackId = langMapping.contains(id) ? langMapping[id] : id;
 	_currentLangId = finalLangPackId.isEmpty() ? baseId : finalLangPackId;
 
@@ -163,7 +163,7 @@ void AyuLanguage::fetchLanguage(const QString &id, const QString &baseId) {
 	connect(_chkReply, SIGNAL(finished()), this, SLOT(fetchFinished()));
 }
 
-void AyuLanguage::fetchFinished() {
+void TfLanguage::fetchFinished() {
 	if (!_chkReply) return;
 
 	QString langPackBaseId = Lang::GetInstance().baseId();
@@ -193,7 +193,7 @@ void AyuLanguage::fetchFinished() {
 	}
 }
 
-void AyuLanguage::fetchError(QNetworkReply::NetworkError e) {
+void TfLanguage::fetchError(QNetworkReply::NetworkError e) {
 	LOG(("Network error: %1").arg(e));
 
 	if (e == QNetworkReply::NetworkError::ContentNotFoundError) {
@@ -212,7 +212,7 @@ void AyuLanguage::fetchError(QNetworkReply::NetworkError e) {
 	}
 }
 
-void AyuLanguage::applyLanguageJson(QJsonDocument doc) {
+void TfLanguage::applyLanguageJson(QJsonDocument doc) {
 	const auto json = doc.object();
 	for (const QString &brokenKey : json.keys()) {
 		auto key = qsl("ayu_") + brokenKey;

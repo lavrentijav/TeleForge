@@ -139,7 +139,7 @@ public:
 	friend void from_json(const nlohmann::json &j, GhostModeAccountSettings &s);
 
 private:
-	friend class AyuSettings;
+	friend class TfSettings;
 
 	rpl::variable<bool> _sendReadMessages = true;
 	rpl::variable<bool> _sendReadStories = true;
@@ -190,7 +190,7 @@ public:
 	friend void from_json(const nlohmann::json &j, MessageShotSettings &s);
 
 private:
-	friend class AyuSettings;
+	friend class TfSettings;
 	[[nodiscard]] bool isCloudThemeEmpty() const;
 	void clearCloudThemeData();
 
@@ -214,14 +214,14 @@ private:
 void to_json(nlohmann::json &j, const MessageShotSettings &s);
 void from_json(const nlohmann::json &j, MessageShotSettings &s);
 
-class AyuSettings {
+class TfSettings {
 public:
-	AyuSettings(const AyuSettings &) = delete;
-	AyuSettings &operator=(const AyuSettings &) = delete;
-	AyuSettings(AyuSettings &&) noexcept = default;
-	AyuSettings &operator=(AyuSettings &&) noexcept = default;
+	TfSettings(const TfSettings &) = delete;
+	TfSettings &operator=(const TfSettings &) = delete;
+	TfSettings(TfSettings &&) noexcept = default;
+	TfSettings &operator=(TfSettings &&) noexcept = default;
 
-	[[nodiscard]] static AyuSettings &getInstance();
+	[[nodiscard]] static TfSettings &getInstance();
 
 	static void load();
 	static void save();
@@ -651,11 +651,11 @@ public:
 	[[nodiscard]] rpl::producer<bool> singleCornerRadiusValue() const { return _singleCornerRadius.value(); }
 	[[nodiscard]] rpl::producer<bool> singleCornerRadiusChanges() const { return _singleCornerRadius.changes(); }
 
-	friend void to_json(nlohmann::json &j, const AyuSettings &s);
-	friend void from_json(const nlohmann::json &j, AyuSettings &s);
+	friend void to_json(nlohmann::json &j, const TfSettings &s);
+	friend void from_json(const nlohmann::json &j, TfSettings &s);
 
 private:
-	AyuSettings();
+	TfSettings();
 
 	[[nodiscard]] uint64 getOverriddenGhostUserId(uint64 userId) const { return _useGlobalGhostMode.current() ? 0 : userId; }
 
@@ -771,5 +771,5 @@ private:
 	MessageShotSettings _messageShotSettings;
 };
 
-void to_json(nlohmann::json &j, const AyuSettings &s);
-void from_json(const nlohmann::json &j, AyuSettings &s);
+void to_json(nlohmann::json &j, const TfSettings &s);
+void from_json(const nlohmann::json &j, TfSettings &s);

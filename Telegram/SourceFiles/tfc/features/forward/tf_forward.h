@@ -9,7 +9,7 @@
 #include "history/history.h"
 #include "main/main_session.h"
 
-namespace AyuForward {
+namespace TfForward {
 bool isForwarding(const PeerId &id);
 void cancelForward(const PeerId &id, const Main::Session &session);
 std::pair<QString, QString> stateName(const PeerId &id);

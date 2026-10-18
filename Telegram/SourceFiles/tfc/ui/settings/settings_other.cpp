@@ -38,7 +38,7 @@ using namespace AyBuilder;
 
 namespace {
 
-void BuildCrashReporting(SectionBuilder &builder, AyuSectionBuilder &ayu) {
+void BuildCrashReporting(SectionBuilder &builder, TfSectionBuilder &ayu) {
 #ifndef TDESKTOP_DISABLE_AUTOUPDATE
 	builder.addSkip();
 	builder.addSubsectionTitle(tr::ayu_CategoryOther());
@@ -47,8 +47,8 @@ void BuildCrashReporting(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.id = u"ayu/crashReporting"_q,
 		.altIds = { u"ayu/crashlytics"_q },
 		.title = tr::ayu_CrashReporting(),
-		.getter = &AyuSettings::crashReporting,
-		.setter = &AyuSettings::setCrashReporting,
+		.getter = &TfSettings::crashReporting,
+		.setter = &TfSettings::setCrashReporting,
 		.icon = { &st::menuIconReport },
 	});
 	builder.addSkip();
@@ -77,7 +77,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 			controller->show(Ui::MakeConfirmBox({
 				.text = tr::ayu_ResetSettingsConfirmation(tr::rich),
 				.confirmed = [=](Fn<void()> &&close) {
-					AyuSettings::reset();
+					TfSettings::reset();
 					controller->showToast(tr::lng_box_done(tr::now));
 					close();
 				},
@@ -89,12 +89,12 @@ void BuildOtherThings(SectionBuilder &builder) {
 }
 
 const auto kMeta = BuildHelper({
-	.id = AyuOther::Id(),
-	.parentId = AyuMain::Id(),
+	.id = TfOther::Id(),
+	.parentId = TfMain::Id(),
 	.title = &tr::ayu_CategoryOther,
 	.icon = &st::menuIconFave,
 }, [](SectionBuilder &builder) {
-	auto ayu = AyuSectionBuilder(builder);
+	auto ayu = TfSectionBuilder(builder);
 
 	builder.addSkip();
 	BuildCrashReporting(builder, ayu);
@@ -103,25 +103,25 @@ const auto kMeta = BuildHelper({
 
 } // namespace
 
-rpl::producer<QString> AyuOther::title() {
+rpl::producer<QString> TfOther::title() {
 	return tr::ayu_CategoryOther();
 }
 
-AyuOther::AyuOther(
+TfOther::TfOther(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
 : Section(parent, controller) {
 	setupContent();
 }
 
-void AyuOther::setupContent() {
+void TfOther::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 	build(content, kMeta.build);
 	Ui::ResizeFitChild(this, content);
 }
 
-Type AyuOtherId() {
-	return AyuOther::Id();
+Type TfOtherId() {
+	return TfOther::Id();
 }
 
 } // namespace Settings

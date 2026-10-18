@@ -1410,11 +1410,11 @@ void AddMessageActions(
 		const ContextMenuRequest &request,
 		not_null<ListWidget*> list) {
 	if (request.item) {
-		AyuUi::AddHistoryAction(menu, request.item);
-		AyuUi::AddHideMessageAction(menu, request.item);
-		AyuUi::AddUserMessagesAction(menu, request.item);
-		AyuUi::AddRepeatMessageAction(menu, request.item);
-		AyuUi::AddMessageDetailsAction(menu, request.item);
+		TfUi::AddHistoryAction(menu, request.item);
+		TfUi::AddHideMessageAction(menu, request.item);
+		TfUi::AddUserMessagesAction(menu, request.item);
+		TfUi::AddRepeatMessageAction(menu, request.item);
+		TfUi::AddMessageDetailsAction(menu, request.item);
 	}
 
 	AddPostLinkAction(menu, request);
@@ -1439,8 +1439,8 @@ void AddMessageActions(
 	AddRescheduleAction(menu, request, list);
 
 	if (request.item) {
-		AyuUi::AddReadUntilAction(menu, request.item);
-		AyuUi::AddBurnAction(menu, request.item);
+		TfUi::AddReadUntilAction(menu, request.item);
+		TfUi::AddBurnAction(menu, request.item);
 	}
 }
 
@@ -1859,7 +1859,7 @@ void FillContextMenuItems(
 		&& !list->getSelectedText().empty()
 		&& view) {
 		if (const auto item = view->data()) {
-			AyuUi::AddForceTranslateSelectedActions(
+			TfUi::AddForceTranslateSelectedActions(
 				result,
 				item,
 				list->controller(),
@@ -1952,7 +1952,7 @@ void FillContextMenuItems(
 				}, &st::menuIconTranslate);
 			}
 			if (const auto item = owner->message(itemId)) {
-				AyuUi::AddForceTranslateMessageActions(
+				TfUi::AddForceTranslateMessageActions(
 					result,
 					item,
 					list->controller(),
@@ -2549,8 +2549,8 @@ void AddWhoReactedAction(
 		not_null<QWidget*> context,
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller) {
-	const auto &settings = AyuSettings::getInstance();
-	if (!AyuUi::needToShowItem(settings.showViewsPanelInContextMenu())) {
+	const auto &settings = TfSettings::getInstance();
+	if (!TfUi::needToShowItem(settings.showViewsPanelInContextMenu())) {
 		return;
 	}
 
@@ -3018,7 +3018,7 @@ void AddSelectRestrictionAction(
 		not_null<HistoryItem*> item,
 		bool addIcon) {
 	const auto peer = item->history()->peer;
-	if ((!peer->isAyuNoForwards() && !AyuForward::isAyuForwardNeeded(item))
+	if ((!peer->isAyuNoForwards() && !TfForward::isAyuForwardNeeded(item))
 		|| item->isSponsored()) {
 		return;
 	}

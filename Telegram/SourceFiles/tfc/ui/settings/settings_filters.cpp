@@ -42,7 +42,7 @@ using namespace AyBuilder;
 namespace {
 
 void BuildFiltersSettings(SectionBuilder &builder) {
-	auto *settings = &AyuSettings::getInstance();
+	auto *settings = &TfSettings::getInstance();
 
 	builder.addSkip();
 	builder.addSubsectionTitle(tr::ayu_RegexFilters());
@@ -58,7 +58,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 		) | rpl::filter([=](bool enabled) {
 			return (enabled != settings->filtersEnabled());
 		}) | on_next([=](bool enabled) {
-			AyuSettings::getInstance().setFiltersEnabled(enabled);
+			TfSettings::getInstance().setFiltersEnabled(enabled);
 			FiltersCacheController::rebuildCache();
 			FiltersCacheController::fireUpdate();
 		}, enabledButton->lifetime());
@@ -76,7 +76,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 		) | rpl::filter([=](bool enabled) {
 			return (enabled != settings->filtersEnabledInChats());
 		}) | on_next([=](bool enabled) {
-			AyuSettings::getInstance().setFiltersEnabledInChats(enabled);
+			TfSettings::getInstance().setFiltersEnabledInChats(enabled);
 			FiltersCacheController::rebuildCache();
 			FiltersCacheController::fireUpdate();
 		}, sharedButton->lifetime());
@@ -93,7 +93,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 		) | rpl::filter([=](bool enabled) {
 			return (enabled != settings->hideFromBlocked());
 		}) | on_next([=](bool enabled) {
-			AyuSettings::getInstance().setHideFromBlocked(enabled);
+			TfSettings::getInstance().setHideFromBlocked(enabled);
 			FiltersCacheController::rebuildCache();
 			FiltersCacheController::fireUpdate();
 		}, blockedButton->lifetime());
@@ -114,7 +114,7 @@ void BuildShared(SectionBuilder &builder) {
 		.onClick = [=] {
 			controller->dialogId = std::nullopt;
 			controller->showExclude = false;
-			controller->showSettings(AyuFiltersList::Id());
+			controller->showSettings(TfFiltersList::Id());
 		},
 	});
 }
@@ -131,7 +131,7 @@ void BuildShadowBan(SectionBuilder &builder) {
 			controller->dialogId = std::nullopt;
 			controller->showExclude = false;
 			controller->shadowBan = true;
-			controller->showSettings(AyuFiltersList::Id());
+			controller->showSettings(TfFiltersList::Id());
 		},
 	});
 }
@@ -139,7 +139,7 @@ void BuildShadowBan(SectionBuilder &builder) {
 void BuildPerDialog(SectionBuilder &builder) {
 	builder.add([](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			if (!AyuDatabase::hasPerDialogFilters()) {
+			if (!TfDatabase::hasPerDialogFilters()) {
 				return;
 			}
 
@@ -171,8 +171,8 @@ void BuildPerDialog(SectionBuilder &builder) {
 }
 
 const auto kMeta = BuildHelper({
-	.id = AyuFilters::Id(),
-	.parentId = AyuMain::Id(),
+	.id = TfFilters::Id(),
+	.parentId = TfMain::Id(),
 	.title = &tr::ayu_CategoryFilters,
 	.icon = &st::menuIconTagFilter,
 }, [](SectionBuilder &builder) {
@@ -184,11 +184,11 @@ const auto kMeta = BuildHelper({
 
 } // namespace
 
-rpl::producer<QString> AyuFilters::title() {
+rpl::producer<QString> TfFilters::title() {
 	return tr::ayu_CategoryFilters();
 }
 
-void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
+void TfFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	addAction(
 		tr::ayu_FiltersMenuSelectChat(tr::now),
 		[=] {
@@ -205,7 +205,7 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 							const auto peer = thread->peer();
 							controller->dialogId = getDialogIdFromPeer(peer);
 							controller->showExclude = true;
-							controller->showSettings(AyuFiltersList::Id());
+							controller->showSettings(TfFiltersList::Id());
 							return true;
 						},
 						tr::ayu_FiltersMenuSelectChat(),
@@ -223,7 +223,7 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 			Ui::show(std::move(box));
 		},
 		&st::menuIconArchive);
-	if (AyuDatabase::hasFilters()) {
+	if (TfDatabase::hasFilters()) {
 		addAction(
 			tr::ayu_FiltersMenuExport(tr::now),
 			[=] {
@@ -237,8 +237,8 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		tr::ayu_FiltersMenuClear(tr::now),
 		[=] {
 			auto callback = [=](Fn<void()> &&close) {
-				AyuDatabase::deleteAllFilters();
-				AyuDatabase::deleteAllExclusions();
+				TfDatabase::deleteAllFilters();
+				TfDatabase::deleteAllExclusions();
 				FiltersCacheController::rebuildCache();
 				FiltersCacheController::fireUpdate();
 				close();
@@ -253,21 +253,21 @@ void AyuFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		&st::menuIconClear);
 }
 
-AyuFilters::AyuFilters(
+TfFilters::TfFilters(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
 : Section(parent, controller) {
 	setupContent();
 }
 
-void AyuFilters::setupContent() {
+void TfFilters::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 	build(content, kMeta.build);
 	Ui::ResizeFitChild(this, content);
 }
 
-Type AyuFiltersId() {
-	return AyuFilters::Id();
+Type TfFiltersId() {
+	return TfFilters::Id();
 }
 
 } // namespace Settings

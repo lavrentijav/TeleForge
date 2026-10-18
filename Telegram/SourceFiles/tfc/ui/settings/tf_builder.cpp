@@ -36,21 +36,21 @@ namespace {
 
 } // namespace
 
-AyuSectionBuilder::AyuSectionBuilder(Builder::SectionBuilder &builder)
+TfSectionBuilder::TfSectionBuilder(Builder::SectionBuilder &builder)
 : _builder(builder) {
 }
 
-Builder::SectionBuilder &AyuSectionBuilder::base() {
+Builder::SectionBuilder &TfSectionBuilder::base() {
 	return _builder;
 }
 
-Ui::SettingsButton *AyuSectionBuilder::addSettingToggle(
+Ui::SettingsButton *TfSectionBuilder::addSettingToggle(
 		SettingToggleArgs &&args) {
 	auto getter = [g = args.getter] {
-		return (AyuSettings::getInstance().*g)();
+		return (TfSettings::getInstance().*g)();
 	};
 	auto setter = [s = args.setter](bool v) {
-		(AyuSettings::getInstance().*s)(v);
+		(TfSettings::getInstance().*s)(v);
 	};
 	return addToggle({
 		.id = std::move(args.id),
@@ -64,7 +64,7 @@ Ui::SettingsButton *AyuSectionBuilder::addSettingToggle(
 	});
 }
 
-Ui::SettingsButton *AyuSectionBuilder::addToggle(ToggleArgs &&args) {
+Ui::SettingsButton *TfSectionBuilder::addToggle(ToggleArgs &&args) {
 	auto getter = std::move(args.getter);
 	auto setter = std::move(args.setter);
 	const auto initialValue = getter();
@@ -94,7 +94,7 @@ Ui::SettingsButton *AyuSectionBuilder::addToggle(ToggleArgs &&args) {
 	return button;
 }
 
-Fn<void()> AyuSectionBuilder::addCollapsibleToggle(
+Fn<void()> TfSectionBuilder::addCollapsibleToggle(
 		CollapsibleToggleArgs &&args) {
 	auto resolvedTitle = ResolveTitle(rpl::duplicate(args.title));
 	auto checkboxes = std::move(args.checkboxes);
@@ -146,7 +146,7 @@ Fn<void()> AyuSectionBuilder::addCollapsibleToggle(
 	return result;
 }
 
-void AyuSectionBuilder::addChooseButton(ChooseButtonArgs &&args) {
+void TfSectionBuilder::addChooseButton(ChooseButtonArgs &&args) {
 	auto options = std::move(args.options);
 	auto setter = std::move(args.setter);
 	auto initialSelection = args.initialSelection;
@@ -182,7 +182,7 @@ void AyuSectionBuilder::addChooseButton(ChooseButtonArgs &&args) {
 	});
 }
 
-void AyuSectionBuilder::addCollapsibleSection(CollapsibleSectionArgs &&args) {
+void TfSectionBuilder::addCollapsibleSection(CollapsibleSectionArgs &&args) {
 	auto id = std::move(args.id);
 	auto altIds = std::move(args.altIds);
 	auto keywords = std::move(args.keywords);
@@ -219,7 +219,7 @@ void AyuSectionBuilder::addCollapsibleSection(CollapsibleSectionArgs &&args) {
 	});
 }
 
-void AyuSectionBuilder::addDropdown(DropdownArgs &&args) {
+void TfSectionBuilder::addDropdown(DropdownArgs &&args) {
 	auto id = std::move(args.id);
 	auto altIds = std::move(args.altIds);
 	auto keywords = std::move(args.keywords);
@@ -230,7 +230,7 @@ void AyuSectionBuilder::addDropdown(DropdownArgs &&args) {
 
 	_builder.add([&](const Builder::BuildContext &ctx) {
 		v::match(ctx, [&](const Builder::WidgetContext &wctx) {
-			const auto button = AyuUi::AddDropdownRow(
+			const auto button = TfUi::AddDropdownRow(
 				wctx.container,
 				std::move(args.title),
 				options,
@@ -256,7 +256,7 @@ void AyuSectionBuilder::addDropdown(DropdownArgs &&args) {
 	});
 }
 
-void AyuSectionBuilder::addSliderTo(
+void TfSectionBuilder::addSliderTo(
 		not_null<Ui::VerticalLayout*> container,
 		SliderArgs &&args) {
 	if (args.showTitle) {
@@ -314,7 +314,7 @@ void AyuSectionBuilder::addSliderTo(
 		});
 }
 
-void AyuSectionBuilder::addSlider(SliderArgs &&args) {
+void TfSectionBuilder::addSlider(SliderArgs &&args) {
 	auto id = std::move(args.id);
 	auto altIds = std::move(args.altIds);
 	auto keywords = std::move(args.keywords);
@@ -338,7 +338,7 @@ void AyuSectionBuilder::addSlider(SliderArgs &&args) {
 	});
 }
 
-Ui::SettingsButton *AyuSectionBuilder::addToggleTo(
+Ui::SettingsButton *TfSectionBuilder::addToggleTo(
 		not_null<Ui::VerticalLayout*> container,
 		ToggleArgs &&args) {
 	auto getter = std::move(args.getter);
@@ -360,11 +360,11 @@ Ui::SettingsButton *AyuSectionBuilder::addToggleTo(
 	return button;
 }
 
-void AyuSectionBuilder::addBetaBadge(not_null<Ui::SettingsButton*> button) {
+void TfSectionBuilder::addBetaBadge(not_null<Ui::SettingsButton*> button) {
 	AddBetaBadge(button);
 }
 
-void AyuSectionBuilder::addSectionDivider() {
+void TfSectionBuilder::addSectionDivider() {
 	_builder.addSkip();
 	_builder.addDivider();
 	_builder.addSkip();

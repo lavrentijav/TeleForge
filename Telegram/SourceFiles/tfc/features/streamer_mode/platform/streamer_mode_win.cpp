@@ -10,7 +10,7 @@
 #include "core/application.h"
 #include "window/window_controller.h"
 
-namespace AyuFeatures::StreamerMode::Impl {
+namespace TfFeatures::StreamerMode::Impl {
 
 void enableHook() {
 	Core::App().enumerateWindows([&](not_null<Window::Controller*> w) {

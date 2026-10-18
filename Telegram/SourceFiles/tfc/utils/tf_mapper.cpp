@@ -14,7 +14,7 @@
 #include "mtproto/connection_abstract.h"
 #include "mtproto/details/mtproto_dump_to_text.h"
 
-namespace AyuMapper {
+namespace TfMapper {
 
 constexpr auto kMessageFlagUnread = 0x00000001;
 constexpr auto kMessageFlagOut = 0x00000002;
@@ -64,7 +64,7 @@ MTPObject deserializeObject(std::vector<char> serialized) {
 
 	MTPObject data;
 	if (!data.read(from, end)) {
-		LOG(("AyuMapper: Failed to deserialize object"));
+		LOG(("TfMapper: Failed to deserialize object"));
 	}
 	return data;
 }

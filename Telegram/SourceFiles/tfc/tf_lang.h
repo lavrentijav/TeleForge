@@ -9,15 +9,15 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtXml/QDomDocument>
 
-class AyuLanguage : public QObject
+class TfLanguage : public QObject
 {
 	Q_OBJECT
-	Q_DISABLE_COPY(AyuLanguage)
+	Q_DISABLE_COPY(TfLanguage)
 
 public:
-	static AyuLanguage *currentInstance();
+	static TfLanguage *currentInstance();
 	static void init();
-	static AyuLanguage *instance;
+	static TfLanguage *instance;
 
 	void fetchLanguage(const QString &id, const QString &baseId);
 	void applyLanguageJson(QJsonDocument doc);
@@ -27,8 +27,8 @@ public Q_SLOTS:
 	void fetchError(QNetworkReply::NetworkError e);
 
 private:
-	AyuLanguage();
-	~AyuLanguage() override = default;
+	TfLanguage();
+	~TfLanguage() override = default;
 
 	void loadCachedLanguage();
 	void saveCachedLanguage(const QByteArray &json, const QString &langId);

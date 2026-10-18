@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-namespace AyuFeatures::StreamerMode {
+namespace TfFeatures::StreamerMode {
 
 bool isEnabled();
 void enable();

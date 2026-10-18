@@ -8,7 +8,7 @@
 
 #include <deque>
 
-namespace AyuState {
+namespace TfState {
 namespace {
 
 constexpr auto kMaxHiddenPeers = 64;

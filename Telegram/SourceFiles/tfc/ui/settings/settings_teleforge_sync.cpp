@@ -123,11 +123,11 @@ void ShowPickMenu(
 
 const auto kMeta = BuildHelper({
 	.id = TeleForgeSync::Id(),
-	.parentId = AyuMain::Id(),
+	.parentId = TfMain::Id(),
 	.title = &tr::ayu_CategoryTeleForgeSync,
 	.icon = &st::menuIconDownload,
 }, [](SectionBuilder &builder) {
-	auto ayu = AyuSectionBuilder(builder);
+	auto ayu = TfSectionBuilder(builder);
 	const auto controller = builder.controller();
 
 	builder.addSkip();

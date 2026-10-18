@@ -9,7 +9,7 @@
 
 #include "window/window_controller.h"
 
-namespace AyuFeatures::StreamerMode::Impl {
+namespace TfFeatures::StreamerMode::Impl {
 
 void enableHook() {
 

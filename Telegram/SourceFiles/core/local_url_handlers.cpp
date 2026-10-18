@@ -1901,27 +1901,27 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 		},
 		{
 			u"^user\\?(.+)(#|$)"_q,
-			AyuUrlHandlers::ResolveUser
+			TfUrlHandlers::ResolveUser
 		},
 		{
 			u"^chat\\?(.+)(#|$)"_q,
-			AyuUrlHandlers::ResolveChat
+			TfUrlHandlers::ResolveChat
 		},
 		{
 			u"^ayusettings/?\\?(.+)(#|$)"_q,
-			AyuUrlHandlers::HandleAyuSettings
+			TfUrlHandlers::HandleAyuSettings
 		},
 		{
 			u"^ayusettings/?$"_q,
-			AyuUrlHandlers::HandleAyuSettings
+			TfUrlHandlers::HandleAyuSettings
 		},
 		{
 			u"^ayu(/?.+)?(#|$)"_q,
-			AyuUrlHandlers::HandleAyu
+			TfUrlHandlers::HandleAyu
 		},
 		{
 			u"^(support)|(donate)$"_q,
-			AyuUrlHandlers::HandleSupport
+			TfUrlHandlers::HandleSupport
 		},
 		{
 			u"^([^\\?]+)(\\?|#|$)"_q,

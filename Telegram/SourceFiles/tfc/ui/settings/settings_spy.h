@@ -10,9 +10,9 @@ class SessionController;
 
 namespace Settings {
 
-class AyuSpy : public Section<AyuSpy> {
+class TfSpy : public Section<TfSpy> {
 public:
-	AyuSpy(QWidget *parent, not_null<Window::SessionController*> controller);
+	TfSpy(QWidget *parent, not_null<Window::SessionController*> controller);
 
 	[[nodiscard]] rpl::producer<QString> title() override;
 
@@ -22,6 +22,6 @@ private:
 	not_null<Window::SessionController*> _controller;
 };
 
-[[nodiscard]] Type AyuSpyId();
+[[nodiscard]] Type TfSpyId();
 
 } // namespace Settings

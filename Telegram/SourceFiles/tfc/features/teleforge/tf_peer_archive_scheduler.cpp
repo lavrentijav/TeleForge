@@ -228,7 +228,7 @@ void ProcessTick(not_null<Main::Session*> session) {
 	if (archiveApiWaitMs() > 0) {
 		return;
 	}
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto now = base::unixtime::now();
 	const auto chatInterval = settings.archiveChatRefreshSeconds();
 	const auto knownOnline = settings.archiveKnownUserOnlineSeconds();

@@ -12,7 +12,7 @@
 
 #include <QtCore/QString>
 
-namespace AyuUiSettings {
+namespace TfUiSettings {
 
 inline constexpr int kMaxAvatarCorners = 23;
 

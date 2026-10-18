@@ -123,7 +123,7 @@ void ThemeSelectorBox::setupContent() {
 
 	_controller->session().data().cloudThemes().refresh();
 
-	AyuFeatures::MessageShot::themeChosen(
+	TfFeatures::MessageShot::themeChosen(
 	) | rpl::on_next(
 		[=](Data::CloudTheme theme)
 		{
@@ -168,12 +168,12 @@ void ThemeSelectorBox::setupContent() {
 		},
 		lifetime());
 
-	AyuFeatures::MessageShot::paletteChosen(
+	TfFeatures::MessageShot::paletteChosen(
 	) | rpl::on_next([=](const auto &palette)
 							 {
-								 const auto type = AyuFeatures::MessageShot::getSelectedFromDefault();
+								 const auto type = TfFeatures::MessageShot::getSelectedFromDefault();
 								 const auto name = (type != Window::Theme::EmbeddedType(-1))
-									 ? AyuFeatures::MessageShot::embeddedThemeDisplayName(type)
+									 ? TfFeatures::MessageShot::embeddedThemeDisplayName(type)
 									 : tr::ayu_MessageShotThemeDefault(tr::now);
 								 _themeNames.fire(QString(name));
 								 _selectedPalette = palette;

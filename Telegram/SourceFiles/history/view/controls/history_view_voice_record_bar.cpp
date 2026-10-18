@@ -3055,7 +3055,7 @@ void VoiceRecordBar::stopRecording(StopType type, bool ttlBeforeHide) {
 					close();
 				});
 
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = TfSettings::getInstance();
 			if (settings.voiceConfirmation()) {
 				_show->showBox(Ui::MakeConfirmBox(
 					{
@@ -3148,7 +3148,7 @@ void VoiceRecordBar::requestToSendWithOptions(Api::SendOptions options) {
 				close();
 			});
 
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		if (settings.voiceConfirmation()) {
 			_show->showBox(Ui::MakeConfirmBox(
 				{

@@ -750,8 +750,8 @@ FillMenuResult FillSendMenu(
 
 	if (sending && type != Type::Reminder) {
 		const auto &ghost = maybeShow
-			? AyuSettings::ghost(&maybeShow->session())
-			: AyuSettings::ghost();
+			? TfSettings::ghost(&maybeShow->session())
+			: TfSettings::ghost();
 		const auto sendWithoutSound = ghost.sendWithoutSound();
 		menu->addAction(
 			sendWithoutSound ? tr::ayu_SendWithSound(tr::now) : tr::lng_send_silent_message(tr::now),

@@ -790,7 +790,7 @@ void UnreadBar::paint(
 		int y,
 		int w,
 		ElementChatMode mode) const {
-	if (AyuFeatures::MessageShot::isTakingShot()) {
+	if (TfFeatures::MessageShot::isTakingShot()) {
 		return;
 	}
 	const auto previousTranslation = p.transform().dx();
@@ -1477,7 +1477,7 @@ void Element::repaint(QRect r) const {
 }
 
 float64 Element::deletedOpacity() const {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.semiTransparentDeletedMessages()) {
 		return 1.;
 	}
@@ -1691,7 +1691,7 @@ bool Element::hasCommentsButton() const {
 }
 
 int Element::skipBlockWidth() const {
-	if (AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Date)) {
+	if (TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Date)) {
 		return st::msgDateDelta.x();
 	}
 
@@ -2612,7 +2612,7 @@ void Element::destroyUnreadBar() {
 }
 
 int Element::displayedDateHeight() const {
-	if (AyuFeatures::MessageShot::isTakingShot() || isMessageHidden(data())) {
+	if (TfFeatures::MessageShot::isTakingShot() || isMessageHidden(data())) {
 		return 0;
 	}
 

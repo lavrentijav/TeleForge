@@ -17,7 +17,7 @@
 #include "tfc/features/streamer_mode/platform/streamer_mode_linux.h"
 #endif // else for Q_OS_WINRT || Q_OS_WIN || Q_OS_MAC
 
-namespace AyuFeatures::StreamerMode
+namespace TfFeatures::StreamerMode
 {
 
 bool isEnabledVal;

@@ -735,7 +735,7 @@ void Histories::sendReadRequests() {
 	DEBUG_LOG(("Reading: send requests with count %1.").arg(_states.size()));
 
 	// AyuGram sendReadMessages
-	const auto &ghost = AyuSettings::ghost(&_owner->session());
+	const auto &ghost = TfSettings::ghost(&_owner->session());
 	if (!ghost.sendReadMessages()) {
 		DEBUG_LOG(("[AyuGram] Don't read messages"));
 		_states.clear();
@@ -1224,7 +1224,7 @@ int Histories::sendPreparedMessage(
 					const MTPUpdates &result,
 					const MTP::Response &response) {
 				api->applyUpdates(result, randomId);
-				AyuWorker::scheduleOfflinePacket(&history->owner().session());
+				TfWorker::scheduleOfflinePacket(&history->owner().session());
 				done(result, response);
 				finish();
 			}).fail([=](

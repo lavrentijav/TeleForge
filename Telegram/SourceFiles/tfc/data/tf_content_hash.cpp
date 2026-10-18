@@ -3,7 +3,7 @@
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QString>
 
-namespace AyuContentHash {
+namespace TfContentHash {
 namespace {
 
 [[nodiscard]] std::string Sha256Hex(const QByteArray &data) {
@@ -56,4 +56,4 @@ std::string ComputeDeleted(const DeletedMessage &message) {
 		message.date));
 }
 
-} // namespace AyuContentHash
+} // namespace TfContentHash

@@ -47,7 +47,7 @@
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 
-namespace AyuUi {
+namespace TfUi {
 
 namespace {
 
@@ -203,7 +203,7 @@ void AddDeletedMessagesActions(PeerData *peerData,
 	const auto topic = peerData->isForum() ? thread->asTopic() : nullptr;
 	const auto topicId = topic ? topic->rootId().bare : 0;
 
-	// const auto has = AyuMessages::hasDeletedMessages(peerData, topicId);
+	// const auto has = TfMessages::hasDeletedMessages(peerData, topicId);
 	// if (!has) {
 	// 	return;
 	// }
@@ -326,7 +326,7 @@ void AddOpenChannelAction(PeerData *peerData,
 
 void AddShadowBanAction(PeerData *peerData,
 						const Window::PeerMenuCallback &addCallback) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!peerData || !(peerData->isUser() || peerData->isBroadcast()) || !settings.filtersEnabled()) {
 		return;
 	}
@@ -338,13 +338,13 @@ void AddShadowBanAction(PeerData *peerData,
 	}
 
 	const auto realId = getDialogIdFromPeer(peerData);
-	const auto shadowBanned = AyuSettings::getInstance().isShadowBanned(realId);
+	const auto shadowBanned = TfSettings::getInstance().isShadowBanned(realId);
 	const auto toggleShadowBan = [=]
 	{
 		if (shadowBanned) {
-			AyuSettings::getInstance().removeShadowBan(realId);
+			TfSettings::getInstance().removeShadowBan(realId);
 		} else {
-			AyuSettings::getInstance().addShadowBan(realId);
+			TfSettings::getInstance().addShadowBan(realId);
 		}
 	};
 
@@ -489,7 +489,7 @@ void AddHistoryAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	// offline, and the section itself shows the current text as the only
 	// revision instead of an empty list.
 	const auto edited = (item->Get<HistoryMessageEdited>() != nullptr);
-	if (!edited && !AyuMessages::hasRevisions(item)) {
+	if (!edited && !TfMessages::hasRevisions(item)) {
 		return;
 	}
 
@@ -505,7 +505,7 @@ void AddHistoryAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 }
 
 void AddHideMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!needToShowItem(settings.showHideMessageInContextMenu())) {
 		return;
 	}
@@ -524,7 +524,7 @@ void AddHideMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 			for (const auto &fullId : ids) {
 				if (const auto current = owner->message(fullId)) {
 					current->destroy();
-					AyuState::hide(current);
+					TfState::hide(current);
 				}
 			}
 			history->requestChatListMessage();
@@ -533,7 +533,7 @@ void AddHideMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 }
 
 void AddUserMessagesAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!needToShowItem(settings.showUserMessagesInContextMenu())) {
 		return;
 	}
@@ -558,7 +558,7 @@ void AddUserMessagesAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 }
 
 void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!needToShowItem(settings.showMessageDetailsInContextMenu())) {
 		return;
 	}
@@ -769,7 +769,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 }
 
 void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!needToShowItem(settings.showRepeatMessageInContextMenu())) {
 		return;
 	}
@@ -818,15 +818,15 @@ void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 			};
 			auto resolvedDraft = history->resolveForwardDraft(forwardDraft);
 
-			if (AyuForward::isFullAyuForwardNeeded(item)) {
+			if (TfForward::isFullAyuForwardNeeded(item)) {
 				crl::async([=]
 				{
-					AyuForward::forwardMessages(session, action, false, resolvedDraft);
+					TfForward::forwardMessages(session, action, false, resolvedDraft);
 				});
-			} else if (AyuForward::isAyuForwardNeeded(item)) {
+			} else if (TfForward::isAyuForwardNeeded(item)) {
 				crl::async([=]
 				{
-					AyuForward::intelligentForward(session, action, resolvedDraft);
+					TfForward::intelligentForward(session, action, resolvedDraft);
 				});
 			} else {
 				session->api().forwardMessages(std::move(resolvedDraft), action, [] {});
@@ -840,7 +840,7 @@ void AddReadUntilAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 		return;
 	}
 
-	const auto &ghost = AyuSettings::ghost(&item->history()->session());
+	const auto &ghost = TfSettings::ghost(&item->history()->session());
 	if (ghost.sendReadMessages()) {
 		return;
 	}
@@ -902,7 +902,7 @@ void AddCreateFilterAction(not_null<Ui::PopupMenu*> menu,
 						   not_null<Window::SessionController*> controller,
 						   HistoryItem *item,
 						   const QString &selectedText) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!needToShowItem(settings.showAddFilterInContextMenu()) || !settings.filtersEnabled()) {
 		return;
 	}
@@ -924,4 +924,4 @@ void AddCreateFilterAction(not_null<Ui::PopupMenu*> menu,
 		&st::menuIconAddToFolder);
 }
 
-} // namespace AyuUi
+} // namespace TfUi

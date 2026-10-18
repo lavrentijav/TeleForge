@@ -20,7 +20,7 @@
 
 #include <unordered_set>
 
-namespace AyuFeatures::MessageShot {
+namespace TfFeatures::MessageShot {
 namespace {
 
 Window::Theme::EmbeddedType defaultSelected = Window::Theme::EmbeddedType(-1);
@@ -262,7 +262,7 @@ rpl::producer<style::palette> paletteChosen() {
 }
 
 void ensureChatThemesRefreshed() {
-	const auto accountId = AyuSettings::getInstance().messageShotSettings().cloudThemeAccountId();
+	const auto accountId = TfSettings::getInstance().messageShotSettings().cloudThemeAccountId();
 	if (!accountId) {
 		return;
 	}
@@ -297,7 +297,7 @@ QString embeddedThemeDisplayName(Window::Theme::EmbeddedType type) {
 }
 
 QString resolveThemeName() {
-	const auto &shot = AyuSettings::getInstance().messageShotSettings();
+	const auto &shot = TfSettings::getInstance().messageShotSettings();
 	if (shot.cloudThemeId() != 0) {
 		return shot.cloudThemeTitle();
 	}
@@ -319,7 +319,7 @@ void setPersistedPalette(std::shared_ptr<style::palette> palette) {
 SavedThemeApplyResult applySavedThemePalette(
 		std::shared_ptr<style::palette> palette,
 		Fn<void()> onApplied) {
-	const auto &shot = AyuSettings::getInstance().messageShotSettings();
+	const auto &shot = TfSettings::getInstance().messageShotSettings();
 
 	if (shot.embeddedThemeType() != -1) {
 		return tryApplyEmbeddedThemePalette(shot, std::move(palette), std::move(onApplied));
@@ -362,7 +362,7 @@ void subscribeToCloudThemeLoad(
 		not_null<Window::SessionController*> controller,
 		std::shared_ptr<style::palette> palette,
 		Fn<void()> onApplied) {
-	const auto &shot = AyuSettings::getInstance().messageShotSettings();
+	const auto &shot = TfSettings::getInstance().messageShotSettings();
 	if (shot.cloudThemeId() == 0) {
 		return;
 	}

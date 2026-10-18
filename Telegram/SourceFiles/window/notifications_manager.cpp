@@ -418,7 +418,7 @@ System::Timing System::countTiming(
 		delay = config.notifyDefaultDelay;
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (settings.disableNotificationsDelay()) {
 		delay = minimalDelay;
 	}

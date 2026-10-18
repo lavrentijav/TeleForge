@@ -441,7 +441,7 @@ void GroupedMedia::draw(Painter &p, const PaintContext &context) const {
 	const auto subpartHighlight = IsSubGroupSelection(highlight);
 
 	auto anyDeleted = false;
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto perItemOpacityEnabled = settings.semiTransparentDeletedMessages();
 	if (perItemOpacityEnabled) {
 		for (const auto &part : _parts) {
@@ -543,7 +543,7 @@ void GroupedMedia::draw(Painter &p, const PaintContext &context) const {
 	if (_parent->media() == this && (!_parent->hasBubble() || isBubbleBottom())) {
 		auto fullRight = width();
 		auto fullBottom = height();
-		if (needInfoDisplay() && !AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Date)) {
+		if (needInfoDisplay() && !TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Date)) {
 			_parent->drawInfo(
 				p,
 				context,
@@ -1009,7 +1009,7 @@ bool GroupedMedia::computeNeedBubble() const {
 }
 
 bool GroupedMedia::needInfoDisplay() const {
-	if (AyuFeatures::MessageShot::isTakingShot()) {
+	if (TfFeatures::MessageShot::isTakingShot()) {
 		return (_mode != Mode::Column);
 	}
 	const auto item = _parent->data();

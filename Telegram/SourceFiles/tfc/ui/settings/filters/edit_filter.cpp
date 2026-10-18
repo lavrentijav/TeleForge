@@ -207,7 +207,7 @@ void RegexEditBuilder(
 
 		crl::async([=]
 		{
-			AyuDatabase::addRegexFilter(newFilter);
+			TfDatabase::addRegexFilter(newFilter);
 			FiltersCacheController::rebuildCache();
 
 			crl::on_main([=]
@@ -222,7 +222,7 @@ void RegexEditBuilder(
 					{
 						newFilter.dialogId = dialogId;
 
-						AyuDatabase::updateRegexFilter(newFilter);
+						TfDatabase::updateRegexFilter(newFilter);
 						FiltersCacheController::rebuildCache();
 						FiltersCacheController::fireUpdate();
 

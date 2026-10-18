@@ -509,7 +509,7 @@ void ApiWrap::toggleHistoryArchived(
 		if (archived) {
 			history->setFolder(_session->data().folder(archiveId));
 		} else {
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = TfSettings::getInstance();
 			if (settings.hideAllChatsFolder()) {
 				if (const auto window = Core::App().activeWindow()) {
 					if (const auto controller = window->sessionController()) {
@@ -1458,7 +1458,7 @@ void ApiWrap::migrateFail(not_null<PeerData*> peer, const QString &error) {
 
 void ApiWrap::markContentsRead(
 		const base::flat_set<not_null<HistoryItem*>> &items) {
-	const auto &ghost = AyuSettings::ghost(&session());
+	const auto &ghost = TfSettings::ghost(&session());
 
 	auto markedIds = QVector<MTPint>();
 	auto channelMarkedIds = base::flat_map<
@@ -1466,7 +1466,7 @@ void ApiWrap::markContentsRead(
 		QVector<MTPint>>();
 	markedIds.reserve(items.size());
 	const auto passthroughAllowed
-		= AyuSettings::getInstance().ghostPassthroughMentions();
+		= TfSettings::getInstance().ghostPassthroughMentions();
 	for (const auto &item : items) {
 		const auto passthrough = passthroughAllowed
 			&& (item->isUnreadMention() || item->hasUnreadReaction())
@@ -1509,7 +1509,7 @@ void ApiWrap::markContentsRead(
 
 void ApiWrap::markContentsRead(not_null<HistoryItem*> item) {
 	const auto passthrough
-		= AyuSettings::getInstance().ghostPassthroughMentions()
+		= TfSettings::getInstance().ghostPassthroughMentions()
 		&& (item->isUnreadMention() || item->hasUnreadReaction())
 		&& !item->isUnreadMedia();
 
@@ -1517,7 +1517,7 @@ void ApiWrap::markContentsRead(not_null<HistoryItem*> item) {
 		return;
 	}
 
-	const auto &ghost = AyuSettings::ghost(&session());
+	const auto &ghost = TfSettings::ghost(&session());
 	if (!ghost.sendReadMessages() && !passthrough) {
 		return;
 	}
@@ -2003,7 +2003,7 @@ void ApiWrap::joinChannel(not_null<ChannelData*> channel) {
 		using Flag = ChannelDataFlag;
 		chatParticipants().loadSimilarPeers(channel);
 
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		if (!settings.collapseSimilarChannels()) {
 			channel->setFlags(channel->flags() | Flag::SimilarExpanded);
 		}
@@ -3961,18 +3961,18 @@ void ApiWrap::forwardMessages(
 
 	applyGhostScheduling(_session, action.options);
 
-	const auto fullAyuForward = AyuForward::isFullAyuForwardNeeded(draft.items.front());
+	const auto fullAyuForward = TfForward::isFullAyuForwardNeeded(draft.items.front());
 	if (fullAyuForward) {
 		crl::async([=] {
-			AyuForward::forwardMessages(_session, action, false, draft);
+			TfForward::forwardMessages(_session, action, false, draft);
 		});
 		return;
 	}
 
-	const auto ayuIntelligentForwardNeeded = AyuForward::isAyuForwardNeeded(draft.items);
+	const auto ayuIntelligentForwardNeeded = TfForward::isAyuForwardNeeded(draft.items);
 	if (ayuIntelligentForwardNeeded) {
 		crl::async([=] {
-			AyuForward::intelligentForward(_session, action, draft);
+			TfForward::intelligentForward(_session, action, draft);
 		});
 		return;
 	}
@@ -4163,7 +4163,7 @@ void ApiWrap::forwardMessages(
 					shared->callback();
 				}
 
-				const auto &ghost = AyuSettings::ghost(_session);
+				const auto &ghost = TfSettings::ghost(_session);
 				if (!ghost.sendReadMessages() && ghost.markReadAfterAction() && history->lastMessage())
 				{
 					readHistory(history->lastMessage());
@@ -4853,7 +4853,7 @@ void ApiWrap::sendMessage(
 		MessageToSend &&message,
 		std::optional<MsgId> localMessageId) {
 	applyGhostScheduling(_session, message.action.options);
-	const auto &ghost = AyuSettings::ghost(_session);
+	const auto &ghost = TfSettings::ghost(_session);
 	if (ghost.isGhostModeActive() && !message.action.options.scheduled) {
 		if (const auto controller = _session->tryResolveWindow()) {
 			Ayu::GhostOnlineWarn::warnController(
@@ -4888,7 +4888,7 @@ void ApiWrap::sendMessage(
 		? Data::CanSendTexts(topic)
 		: Data::CanSendTexts(peer);
 
-	if (!ephemeral && !canSendTexts && !AyuForward::isForwarding(peer->id)) {
+	if (!ephemeral && !canSendTexts && !TfForward::isForwarding(peer->id)) {
 		return;
 	}
 
@@ -5229,7 +5229,7 @@ void ApiWrap::sendBotStart(
 	)).done([=](const MTPUpdates &result) {
 		applyUpdates(result);
 
-		AyuWorker::scheduleOfflinePacket(_session);
+		TfWorker::scheduleOfflinePacket(_session);
 	}).fail([=](const MTP::Error &error) {
 		if (chat) {
 			const auto type = error.type();

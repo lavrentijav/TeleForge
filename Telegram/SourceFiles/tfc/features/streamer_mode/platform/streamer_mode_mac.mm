@@ -12,7 +12,7 @@
 
 #include <Cocoa/Cocoa.h>
 
-namespace AyuFeatures::StreamerMode::Impl {
+namespace TfFeatures::StreamerMode::Impl {
 
 namespace {
 

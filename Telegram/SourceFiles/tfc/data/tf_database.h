@@ -10,14 +10,14 @@
 
 #include <functional>
 
-class AyuDataSchemaVersion
+class TfDataSchemaVersion
 {
 public:
 	int id;
 	int version;
 };
 
-namespace AyuDatabase {
+namespace TfDatabase {
 
 void initialize();
 

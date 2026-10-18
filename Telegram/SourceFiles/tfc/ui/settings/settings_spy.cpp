@@ -64,8 +64,8 @@ namespace {
 	return (value - minValue) / step;
 }
 
-void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
-	const auto &settings = AyuSettings::getInstance();
+void BuildPollIntervalSettings(TfSectionBuilder &ayu) {
+	const auto &settings = TfSettings::getInstance();
 
 	ayu.addCollapsibleSection({
 		.id = u"teleforge/archivePollIntervals"_q,
@@ -81,7 +81,7 @@ void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
 					60),
 				.indexToValue = [](int index) { return 60 + index * 60; },
 				.onFinalChanged = [](int seconds) {
-					AyuSettings::getInstance().setArchiveChatRefreshSeconds(seconds);
+					TfSettings::getInstance().setArchiveChatRefreshSeconds(seconds);
 				},
 				.formatLabel = FormatDurationLabel,
 			});
@@ -95,7 +95,7 @@ void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
 					15),
 				.indexToValue = [](int index) { return 15 + index * 15; },
 				.onFinalChanged = [](int seconds) {
-					AyuSettings::getInstance().setArchiveKnownUserOnlineSeconds(seconds);
+					TfSettings::getInstance().setArchiveKnownUserOnlineSeconds(seconds);
 				},
 				.formatLabel = FormatDurationLabel,
 			});
@@ -109,7 +109,7 @@ void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
 					5),
 				.indexToValue = [](int index) { return 5 + index * 5; },
 				.onFinalChanged = [](int seconds) {
-					AyuSettings::getInstance().setArchivePrivateOnlineSeconds(seconds);
+					TfSettings::getInstance().setArchivePrivateOnlineSeconds(seconds);
 				},
 				.formatLabel = FormatDurationLabel,
 			});
@@ -123,7 +123,7 @@ void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
 					60),
 				.indexToValue = [](int index) { return 60 + index * 60; },
 				.onFinalChanged = [](int seconds) {
-					AyuSettings::getInstance().setArchivePrivateProfileSeconds(seconds);
+					TfSettings::getInstance().setArchivePrivateProfileSeconds(seconds);
 				},
 				.formatLabel = FormatDurationLabel,
 			});
@@ -137,7 +137,7 @@ void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
 					300),
 				.indexToValue = [](int index) { return 300 + index * 300; },
 				.onFinalChanged = [](int seconds) {
-					AyuSettings::getInstance().setArchiveOtherProfileSeconds(seconds);
+					TfSettings::getInstance().setArchiveOtherProfileSeconds(seconds);
 				},
 				.formatLabel = FormatDurationLabel,
 			});
@@ -148,8 +148,8 @@ void BuildPollIntervalSettings(AyuSectionBuilder &ayu) {
 	ayu.base().addDividerText(tr::ayu_SpyPollIntervalsHint());
 }
 
-void BuildArchiveScanSettings(AyuSectionBuilder &ayu) {
-	const auto &settings = AyuSettings::getInstance();
+void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
+	const auto &settings = TfSettings::getInstance();
 
 	ayu.addCollapsibleSection({
 		.id = u"teleforge/archiveScan"_q,
@@ -159,50 +159,50 @@ void BuildArchiveScanSettings(AyuSectionBuilder &ayu) {
 				.id = u"teleforge/archiveBackgroundCrawl"_q,
 				.title = tr::ayu_SpyBackgroundCrawl(),
 				.getter = [] {
-					return AyuSettings::getInstance().archiveBackgroundCrawl();
+					return TfSettings::getInstance().archiveBackgroundCrawl();
 				},
 				.setter = [](bool v) {
-					AyuSettings::getInstance().setArchiveBackgroundCrawl(v);
+					TfSettings::getInstance().setArchiveBackgroundCrawl(v);
 				},
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveScanParticipants"_q,
 				.title = tr::ayu_SpyScanParticipants(),
 				.getter = [] {
-					return AyuSettings::getInstance().archiveScanParticipants();
+					return TfSettings::getInstance().archiveScanParticipants();
 				},
 				.setter = [](bool v) {
-					AyuSettings::getInstance().setArchiveScanParticipants(v);
+					TfSettings::getInstance().setArchiveScanParticipants(v);
 				},
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveScanBroadcasts"_q,
 				.title = tr::ayu_SpyScanBroadcasts(),
 				.getter = [] {
-					return AyuSettings::getInstance().archiveScanBroadcasts();
+					return TfSettings::getInstance().archiveScanBroadcasts();
 				},
 				.setter = [](bool v) {
-					AyuSettings::getInstance().setArchiveScanBroadcasts(v);
+					TfSettings::getInstance().setArchiveScanBroadcasts(v);
 				},
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveSaveUserpics"_q,
 				.title = tr::ayu_SpySaveUserpics(),
 				.getter = [] {
-					return AyuSettings::getInstance().archiveSaveUserpics();
+					return TfSettings::getInstance().archiveSaveUserpics();
 				},
 				.setter = [](bool v) {
-					AyuSettings::getInstance().setArchiveSaveUserpics(v);
+					TfSettings::getInstance().setArchiveSaveUserpics(v);
 				},
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveFollowLinks"_q,
 				.title = tr::ayu_SpyFollowLinks(),
 				.getter = [] {
-					return AyuSettings::getInstance().archiveFollowLinks();
+					return TfSettings::getInstance().archiveFollowLinks();
 				},
 				.setter = [](bool v) {
-					AyuSettings::getInstance().setArchiveFollowLinks(v);
+					TfSettings::getInstance().setArchiveFollowLinks(v);
 				},
 			});
 			ayu.addSliderTo(inner, {
@@ -215,7 +215,7 @@ void BuildArchiveScanSettings(AyuSectionBuilder &ayu) {
 					100),
 				.indexToValue = [](int index) { return index * 100; },
 				.onFinalChanged = [](int value) {
-					AyuSettings::getInstance().setArchiveHistoryScanLimit(value);
+					TfSettings::getInstance().setArchiveHistoryScanLimit(value);
 				},
 				.formatLabel = [](int x) {
 					return x ? QString::number(x) : tr::ayu_SpyLimitNone(tr::now);
@@ -231,7 +231,7 @@ void BuildArchiveScanSettings(AyuSectionBuilder &ayu) {
 					4),
 				.indexToValue = [](int index) { return 4 + index * 4; },
 				.onFinalChanged = [](int value) {
-					AyuSettings::getInstance().setArchiveCrawlBatchSize(value);
+					TfSettings::getInstance().setArchiveCrawlBatchSize(value);
 				},
 				.formatLabel = [](int x) { return QString::number(x); },
 			});
@@ -245,7 +245,7 @@ void BuildArchiveScanSettings(AyuSectionBuilder &ayu) {
 					500),
 				.indexToValue = [](int index) { return index * 500; },
 				.onFinalChanged = [](int value) {
-					AyuSettings::getInstance().setArchiveMaxParticipants(value);
+					TfSettings::getInstance().setArchiveMaxParticipants(value);
 				},
 				.formatLabel = [](int x) {
 					return x ? QString::number(x) : tr::ayu_SpyLimitNone(tr::now);
@@ -258,7 +258,7 @@ void BuildArchiveScanSettings(AyuSectionBuilder &ayu) {
 	ayu.base().addDividerText(tr::ayu_SpyArchiveScanHint());
 }
 
-void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
+void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 
 	builder.addSubsectionTitle(tr::ayu_SpyEssentialsHeader());
@@ -295,7 +295,7 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.id = u"teleforge/peerArchive"_q,
 		.title = tr::ayu_SpyPeerArchive(),
 		.getter = [] {
-			return AyuSettings::getInstance().peerArchiveEnabled();
+			return TfSettings::getInstance().peerArchiveEnabled();
 		},
 		.setter = [](bool v) {
 			TeleForge::PeerArchive::setArchiveEnabled(v);
@@ -322,29 +322,29 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	ayu.addSettingToggle({
 		.id = u"ayu/saveDeletedMessages"_q,
 		.title = tr::ayu_SaveDeletedMessages(),
-		.getter = &AyuSettings::saveDeletedMessages,
-		.setter = &AyuSettings::setSaveDeletedMessages,
+		.getter = &TfSettings::saveDeletedMessages,
+		.setter = &TfSettings::setSaveDeletedMessages,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/saveMessagesHistory"_q,
 		.title = tr::ayu_SaveMessagesHistory(),
-		.getter = &AyuSettings::saveMessagesHistory,
-		.setter = &AyuSettings::setSaveMessagesHistory,
+		.getter = &TfSettings::saveMessagesHistory,
+		.setter = &TfSettings::setSaveMessagesHistory,
 	});
 	ayu.addSettingToggle({
 		.id = u"teleforge/showDeletedInChat"_q,
 		.title = tr::ayu_SpyShowDeletedInChat(),
-		.getter = &AyuSettings::showDeletedInChat,
-		.setter = &AyuSettings::setShowDeletedInChat,
+		.getter = &TfSettings::showDeletedInChat,
+		.setter = &TfSettings::setShowDeletedInChat,
 	});
 	ayu.addSlider({
 		.id = u"teleforge/deletedRestoreLimit"_q,
 		.title = tr::ayu_SpyDeletedRestoreLimit(),
 		.steps = 40,
-		.current = AyuSettings::getInstance().deletedRestoreLimit() / 50,
+		.current = TfSettings::getInstance().deletedRestoreLimit() / 50,
 		.indexToValue = [](int index) { return index * 50; },
 		.onFinalChanged = [](int value) {
-			AyuSettings::getInstance().setDeletedRestoreLimit(value);
+			TfSettings::getInstance().setDeletedRestoreLimit(value);
 		},
 		.formatLabel = [](int x) {
 			return x ? QString::number(x) : tr::ayu_SpyOff(tr::now);
@@ -360,8 +360,8 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	ayu.addSettingToggle({
 		.id = u"teleforge/ghostPassthroughMentions"_q,
 		.title = tr::ayu_SpyPassthroughMentions(),
-		.getter = &AyuSettings::ghostPassthroughMentions,
-		.setter = &AyuSettings::setGhostPassthroughMentions,
+		.getter = &TfSettings::ghostPassthroughMentions,
+		.setter = &TfSettings::setGhostPassthroughMentions,
 	});
 
 	builder.addButton({
@@ -389,8 +389,8 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	ayu.addSettingToggle({
 		.id = u"ayu/saveForBots"_q,
 		.title = tr::ayu_MessageSavingSaveForBots(),
-		.getter = &AyuSettings::saveForBots,
-		.setter = &AyuSettings::setSaveForBots,
+		.getter = &TfSettings::saveForBots,
+		.setter = &TfSettings::setSaveForBots,
 	});
 
 	builder.addSkip();
@@ -405,12 +405,12 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 					Ui::InputField::Mode::SingleLine,
 					tr::ayu_DeleteStubText(),
 					TextWithTags{
-						AyuSettings::getInstance().deleteStubText(),
+						TfSettings::getInstance().deleteStubText(),
 					}),
 				st::boxRowPadding);
 			field->changes(
 			) | rpl::on_next([=] {
-				AyuSettings::getInstance().setDeleteStubText(
+				TfSettings::getInstance().setDeleteStubText(
 					field->getLastText().trimmed());
 			}, field->lifetime());
 		}, [](const SearchContext &) {});
@@ -418,12 +418,12 @@ void BuildSpyEssentials(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 }
 
 const auto kMeta = BuildHelper({
-	.id = AyuSpy::Id(),
-	.parentId = AyuMain::Id(),
+	.id = TfSpy::Id(),
+	.parentId = TfMain::Id(),
 	.title = &tr::ayu_CategorySpy,
 	.icon = &st::menuIconShowAll,
 }, [](SectionBuilder &builder) {
-	auto ayu = AyuSectionBuilder(builder);
+	auto ayu = TfSectionBuilder(builder);
 	builder.addSkip();
 	BuildSpyEssentials(builder, ayu);
 	builder.addSkip();
@@ -431,11 +431,11 @@ const auto kMeta = BuildHelper({
 
 } // namespace
 
-rpl::producer<QString> AyuSpy::title() {
+rpl::producer<QString> TfSpy::title() {
 	return tr::ayu_CategorySpy();
 }
 
-AyuSpy::AyuSpy(
+TfSpy::TfSpy(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
 : Section(parent, controller)
@@ -443,14 +443,14 @@ AyuSpy::AyuSpy(
 	setupContent();
 }
 
-void AyuSpy::setupContent() {
+void TfSpy::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 	build(content, kMeta.build);
 	Ui::ResizeFitChild(this, content);
 }
 
-Type AyuSpyId() {
-	return AyuSpy::Id();
+Type TfSpyId() {
+	return TfSpy::Id();
 }
 
 } // namespace Settings

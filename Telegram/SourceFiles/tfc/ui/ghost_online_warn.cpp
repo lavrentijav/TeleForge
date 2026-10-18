@@ -39,7 +39,7 @@ constexpr auto kToastDuration = crl::time(4500);
 } // namespace
 
 bool shouldWarn(not_null<Main::Session*> session) {
-	return AyuSettings::ghost(session).isGhostModeActive();
+	return TfSettings::ghost(session).isGhostModeActive();
 }
 
 void warn(

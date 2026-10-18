@@ -1417,14 +1417,14 @@ std::unique_ptr<Ui::AbstractButton> BoostsToLiftWriteRestriction(
 	return result;
 }
 
-std::unique_ptr<Ui::AbstractButton> AyuForwardWriteRestriction(
+std::unique_ptr<Ui::AbstractButton> TfForwardWriteRestriction(
 	not_null<QWidget *> parent,
 	const PeerId &peer,
 	const Main::Session &session) {
 	using namespace Ui;
 
 	// status and part
-	const auto pair = AyuForward::stateName(peer);
+	const auto pair = TfForward::stateName(peer);
 
 	auto result = std::make_unique<FlatButton>(
 		parent,
@@ -1474,7 +1474,7 @@ std::unique_ptr<Ui::AbstractButton> AyuForwardWriteRestriction(
 	}, title->lifetime());
 
 	raw->setClickedCallback([&] {
-		AyuForward::cancelForward(peer, session);
+		TfForward::cancelForward(peer, session);
 	});
 
 	return result;

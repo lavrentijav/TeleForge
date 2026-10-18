@@ -82,9 +82,9 @@ void SetupSavedMusic(
 			if (const auto document = item->media()
 					? item->media()->document()
 					: nullptr) {
-				auto musicButton = divider->entity()->add(object_ptr<Ui::SlideWrap<Profile::AyuMusicButton>>(
+				auto musicButton = divider->entity()->add(object_ptr<Ui::SlideWrap<Profile::TfMusicButton>>(
 					divider->entity(),
-					object_ptr<Profile::AyuMusicButton>(
+					object_ptr<Profile::TfMusicButton>(
 						divider->entity(),
 						DocumentMusicButtonData(document, item),
 						color,
@@ -101,7 +101,7 @@ void SetupSavedMusic(
 					return mouseButton == Qt::RightButton;
 				}) | rpl::on_next([=]
 										  {
-											  const auto &settings = AyuSettings::getInstance();
+											  const auto &settings = TfSettings::getInstance();
 
 											  const auto contextMenu = new Ui::PopupMenu(
 												  nullptr,
@@ -114,7 +114,7 @@ void SetupSavedMusic(
 													  : tr::ayu_EnableColorfulCover(tr::now),
 												  [=]
 												  {
-													  AyuSettings::getInstance().setAdaptiveCoverColor(!AyuSettings::getInstance().adaptiveCoverColor());
+													  TfSettings::getInstance().setAdaptiveCoverColor(!TfSettings::getInstance().adaptiveCoverColor());
 
 													  const auto mediaRefreshed = item ? item->media() : nullptr;
 													  const auto documentRefreshed = mediaRefreshed

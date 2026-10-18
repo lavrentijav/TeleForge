@@ -22,7 +22,7 @@ class OwnedItem;
 void GenerateItems(
 	not_null<HistoryView::ElementDelegate*> delegate,
 	not_null<History*> history,
-	AyuMessageBase message,
+	TfMessageBase message,
 	bool deletedView,
 	Fn<void(OwnedItem item, TimeId sentDate, MsgId)> callback);
 

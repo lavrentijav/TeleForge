@@ -8,16 +8,16 @@
 
 #include "tfc/data/entities.h"
 
-namespace AyuMessages {
+namespace TfMessages {
 
 void addEditedMessage(not_null<HistoryItem *> item);
 void snapshotEditsBeforeDelete(not_null<HistoryItem*> item);
-std::vector<AyuMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit);
+std::vector<TfMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit);
 bool hasRevisions(not_null<HistoryItem*> item);
 
 void addDeletedMessage(not_null<HistoryItem*> item);
-std::vector<AyuMessageBase> getDeletedMessages(not_null<PeerData*> peer, ID topicId, ID minId, ID maxId, int totalLimit, const QString &searchQuery = QString());
+std::vector<TfMessageBase> getDeletedMessages(not_null<PeerData*> peer, ID topicId, ID minId, ID maxId, int totalLimit, const QString &searchQuery = QString());
 bool hasDeletedMessages(not_null<PeerData*> peer, ID topicId);
-std::vector<AyuMessageBase> buildDeletedMessageTimeline(not_null<PeerData*> peer, const AyuMessageBase &deletedMessage, int totalLimit = 128);
+std::vector<TfMessageBase> buildDeletedMessageTimeline(not_null<PeerData*> peer, const TfMessageBase &deletedMessage, int totalLimit = 128);
 
 }

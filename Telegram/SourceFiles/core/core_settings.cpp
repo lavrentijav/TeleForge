@@ -540,7 +540,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 		return;
 	}
 
-    AyuSettings::load();
+    TfSettings::load();
 
 	QDataStream stream(serialized);
 	stream.setVersion(QDataStream::Qt_5_1);

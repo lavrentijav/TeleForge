@@ -10,7 +10,7 @@
 
 #define ID long long
 
-class AyuMessageBase
+class TfMessageBase
 {
 public:
 	ID fakeId;
@@ -52,11 +52,11 @@ public:
 	std::string contentHash;
 };
 
-class DeletedMessage : public AyuMessageBase
+class DeletedMessage : public TfMessageBase
 {
 };
 
-class EditedMessage : public AyuMessageBase
+class EditedMessage : public TfMessageBase
 {
 };
 

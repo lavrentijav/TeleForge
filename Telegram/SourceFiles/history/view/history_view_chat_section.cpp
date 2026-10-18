@@ -505,7 +505,7 @@ ChatWidget::ChatWidget(
 	}, _topBar->lifetime());
 	_topBar->messageShotSelectionRequest(
 	) | rpl::on_next([=] {
-		AyuFeatures::MessageShot::Wrapper(_inner, [=] { clearSelected(); });
+		TfFeatures::MessageShot::Wrapper(_inner, [=] { clearSelected(); });
 	}, _topBar->lifetime());
 	_topBar->forwardSelectionRequest(
 	) | rpl::on_next([=] {
@@ -2375,7 +2375,7 @@ void ChatWidget::sendVoice(const ComposeControls::VoiceToSend &data) {
 }
 
 void ChatWidget::send(Api::SendOptions options) {
-	const auto &ghost = AyuSettings::ghost(&controller()->session());
+	const auto &ghost = TfSettings::ghost(&controller()->session());
 
 	auto lastMessage = _history->lastMessage();
 	if (!ghost.sendReadMessages() && ghost.markReadAfterAction() && lastMessage) {

@@ -19,7 +19,7 @@ class VerticalLayout;
 class SettingsButton;
 } // namespace Ui
 
-namespace AyuUi {
+namespace TfUi {
 
 // A settings-style row showing the current value on the right that opens a
 // classic dropdown (Ui::PopupMenu) with the given options when clicked.
@@ -31,4 +31,4 @@ not_null<Ui::SettingsButton*> AddDropdownRow(
 	Fn<void(int)> onPick,
 	const style::SettingsButton *stOverride = nullptr);
 
-} // namespace AyuUi
+} // namespace TfUi

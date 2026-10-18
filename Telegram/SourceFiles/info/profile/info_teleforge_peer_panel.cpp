@@ -160,7 +160,7 @@ object_ptr<Ui::RpWidget> SetupTeleForgePeerPanel(
 			Fn<bool()> initial,
 			Fn<void(bool)> onChange) {
 		auto change = std::move(onChange);
-		AyuUi::AddDropdownRow(
+		TfUi::AddDropdownRow(
 			container,
 			rpl::single(label),
 			{ u"Включено"_q, u"Выключено"_q },

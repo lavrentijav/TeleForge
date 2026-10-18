@@ -3060,15 +3060,15 @@ void ComposeControls::init() {
 	}, _wrap->lifetime());
 
 	rpl::merge(
-		AyuSettings::getInstance().showAttachButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showCommandsButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showEmojiButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showMicrophoneButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showAutoDeleteButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showAttachPopupChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showEmojiPopupChanges() | rpl::to_empty,
-		AyuSettings::getInstance().channelBottomButtonChanges() | rpl::to_empty,
-		AyuSettings::getInstance().removeMessageTailChanges() | rpl::to_empty
+		TfSettings::getInstance().showAttachButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showCommandsButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showEmojiButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showMicrophoneButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showAutoDeleteButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showAttachPopupChanges() | rpl::to_empty,
+		TfSettings::getInstance().showEmojiPopupChanges() | rpl::to_empty,
+		TfSettings::getInstance().channelBottomButtonChanges() | rpl::to_empty,
+		TfSettings::getInstance().removeMessageTailChanges() | rpl::to_empty
 	) | rpl::on_next([=] {
 		updateSendButtonType();
 		updateControlsVisibility();
@@ -3076,7 +3076,7 @@ void ComposeControls::init() {
 		orderControls();
 	}, _wrap->lifetime());
 
-	AyuSettings::getInstance().translationProviderChanges(
+	TfSettings::getInstance().translationProviderChanges(
 	) | rpl::on_next([=](TranslationProvider) {
 		if (_history) {
 			for (const auto &block : _history->blocks) {
@@ -3100,7 +3100,7 @@ void ComposeControls::orderControls() {
 }
 
 bool ComposeControls::showRecordButton() const {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.showMicrophoneButtonInMessageField()) {
 		return false;
 	}
@@ -5072,7 +5072,7 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 	// (_commentsShown) (_attachToggle|_replaceMedia) (_sendAs) -- _inlineResults ------ _tabbedPanel -- _fieldBarCancel (_starsReaction)
 	// (_attachDocument|_attachPhoto) _field (_ttlInfo) (_scheduled) (_silent|_botCommandStart) _tabbedSelectorToggle _send
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto oldComposeHeight = composeFieldHeight();
 	const auto commentsShown = _commentsShown
 		&& !_commentsShown->isHidden();
@@ -5249,7 +5249,7 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 }
 
 void ComposeControls::updateControlsVisibility() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto hide = hideExtraButtons()
 		|| isEditingMessage()
 		|| textExceedsMaxSize();

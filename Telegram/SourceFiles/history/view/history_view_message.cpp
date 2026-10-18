@@ -1756,7 +1756,7 @@ int Message::marginTop() const {
 	}
 	result += displayedDateHeight();
 	if (const auto bar = Get<UnreadBar>()) {
-		if (!AyuFeatures::MessageShot::isTakingShot()) {
+		if (!TfFeatures::MessageShot::isTakingShot()) {
 			result += bar->height();
 		}
 	}
@@ -1764,7 +1764,7 @@ int Message::marginTop() const {
 		result += bar->height();
 	}
 	if (const auto service = Get<ServicePreMessage>()) {
-		if (!service->below && !AyuFeatures::MessageShot::isTakingShot()) {
+		if (!service->below && !TfFeatures::MessageShot::isTakingShot()) {
 			result += service->height;
 		}
 	}
@@ -1853,7 +1853,7 @@ void Message::draw(Painter &p, const PaintContext &context) const {
 	auto mediaOnBottom = (mediaDisplayed && media->isBubbleBottom()) || check || (entry/* && entry->isBubbleBottom()*/);
 	auto mediaOnTop = (mediaDisplayed && media->isBubbleTop()) || (entry && entry->isBubbleTop());
 
-	const auto displayInfo = needInfoDisplay() && !AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Date);
+	const auto displayInfo = needInfoDisplay() && !TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Date);
 	const auto reactionsInBubble = _reactions && embedReactionsInBubble();
 
 	// We need to count geometry without keyboard and reactions
@@ -2389,7 +2389,7 @@ void Message::paintCommentsButton(
 		Painter &p,
 		QRect &g,
 		const PaintContext &context) const {
-	if (AyuFeatures::MessageShot::isTakingShot()) {
+	if (TfFeatures::MessageShot::isTakingShot()) {
 		return;
 	}
 
@@ -2523,7 +2523,7 @@ void Message::paintFromName(
 	if (!displayFromName()) {
 		return;
 	}
-	const auto hidePremiumStatuses = AyuSettings::getInstance().hidePremiumStatuses();
+	const auto hidePremiumStatuses = TfSettings::getInstance().hidePremiumStatuses();
 	const auto badgeWidth = rightBadgeWidth();
 	auto availableLeft = trect.left();
 	auto availableWidth = trect.width();
@@ -5988,7 +5988,7 @@ bool Message::displayRightActionComments() const {
 }
 
 std::optional<QSize> Message::rightActionSize() const {
-	if (AyuFeatures::MessageShot::isTakingShot()) {
+	if (TfFeatures::MessageShot::isTakingShot()) {
 		return {};
 	}
 
@@ -6015,7 +6015,7 @@ std::optional<QSize> Message::rightActionSize() const {
 }
 
 bool Message::displayFastShare() const {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (settings.hideFastShare()) {
 		return false;
 	}
@@ -6895,7 +6895,7 @@ int Message::resizeContentGetHeight(int newWidth) {
 			newHeight += (bottomInfoHeight - st::msgDateFont->height);
 		}
 
-		if (hasCommentsButton() && !AyuFeatures::MessageShot::isTakingShot()) {
+		if (hasCommentsButton() && !TfFeatures::MessageShot::isTakingShot()) {
 			newHeight += st::historyCommentsButtonHeight;
 		} else if (_comments) {
 			_comments = nullptr;

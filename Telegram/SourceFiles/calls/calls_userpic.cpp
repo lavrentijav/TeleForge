@@ -105,7 +105,7 @@ void Userpic::paint() {
 		pen.setWidth(_muteStroke);
 		p.setPen(pen);
 		p.setBrush(st::callHangupBg);
-		const auto pos = AyuUserpic::OnlineBadgePosition(
+		const auto pos = TfUserpic::OnlineBadgePosition(
 			size(),
 			_muteSize);
 		const auto rect = QRect(
@@ -113,7 +113,7 @@ void Userpic::paint() {
 			int(std::round(pos.y())),
 			_muteSize,
 			_muteSize);
-		AyuUserpic::PaintShape(p, QRectF(rect));
+		TfUserpic::PaintShape(p, QRectF(rect));
 		st::callMutedPeerIcon.paintInCenter(p, rect);
 	}
 }
@@ -199,7 +199,7 @@ void Userpic::createCache(Image *image) {
 			{
 				.outer = { size, size },
 			}).toImage();
-		result = AyuUserpic::RoundImage(std::move(result));
+		result = TfUserpic::RoundImage(std::move(result));
 		_userPhoto = Images::PixmapFast(std::move(result));
 		_userPhoto.setDevicePixelRatio(style::DevicePixelRatio());
 	} else {

@@ -35,7 +35,7 @@ void noteWakeSignal(
 	if (!session) {
 		return;
 	}
-	const auto &ghost = AyuSettings::ghost(session);
+	const auto &ghost = TfSettings::ghost(session);
 	if (!ghost.isGhostModeActive()) {
 		return;
 	}

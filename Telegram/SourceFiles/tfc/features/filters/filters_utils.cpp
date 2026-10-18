@@ -213,7 +213,7 @@ QString FilterUtils::exportFilters() {
 	QJsonArray filtersArray;
 	QJsonObject jsonObject;
 	jsonObject["version"] = BACKUP_VERSION;
-	const auto filters = AyuDatabase::getAllRegexFilters();
+	const auto filters = TfDatabase::getAllRegexFilters();
 
 	for (const auto &item : filters) {
 		QJsonObject filterJson;
@@ -240,7 +240,7 @@ QString FilterUtils::exportFilters() {
 	}
 	jsonObject["filters"] = filtersArray;
 
-	const auto excl = AyuDatabase::getAllFiltersExclusions();
+	const auto excl = TfDatabase::getAllFiltersExclusions();
 
 
 	std::vector<BackupExclusion> exclusions;
@@ -471,8 +471,8 @@ ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 	}
 
 
-	const auto existingFilters = AyuDatabase::getAllRegexFilters();
-	const auto existingExclusions = AyuDatabase::getAllFiltersExclusions();
+	const auto existingFilters = TfDatabase::getAllRegexFilters();
+	const auto existingExclusions = TfDatabase::getAllFiltersExclusions();
 
 	std::vector<RegexFilter> filtersOverrides;
 	std::map<std::vector<char>, RegexFilter> newFilters;
@@ -632,7 +632,7 @@ ApplyChanges FilterUtils::prepareChanges(const QJsonObject &root) {
 void FilterUtils::applyChanges(const ApplyChanges &changes) {
 	if (!changes.newFilters.empty()) {
 		for (const auto &filter : changes.newFilters) {
-			AyuDatabase::addRegexFilter(filter);
+			TfDatabase::addRegexFilter(filter);
 		}
 	}
 
@@ -640,26 +640,26 @@ void FilterUtils::applyChanges(const ApplyChanges &changes) {
 		for (const auto &id : changes.removeFiltersById) {
 			const auto byteArray = QByteArray::fromHex(id.toLatin1());
 			const auto filterId = std::vector<char>(byteArray.constData(), byteArray.constData() + byteArray.size());
-			AyuDatabase::deleteExclusionsByFilterId(filterId);
-			AyuDatabase::deleteFilter(filterId);
+			TfDatabase::deleteExclusionsByFilterId(filterId);
+			TfDatabase::deleteFilter(filterId);
 		}
 	}
 
 	if (!changes.filtersOverrides.empty()) {
 		for (const auto &filter : changes.filtersOverrides) {
-			AyuDatabase::updateRegexFilter(filter);
+			TfDatabase::updateRegexFilter(filter);
 		}
 	}
 
 	if (!changes.newExclusions.empty()) {
 		for (const auto &exclusion : changes.newExclusions) {
-			AyuDatabase::addRegexExclusion(exclusion);
+			TfDatabase::addRegexExclusion(exclusion);
 		}
 	}
 
 	if (!changes.removeExclusions.empty()) {
 		for (const auto &exclusion : changes.removeExclusions) {
-			AyuDatabase::deleteExclusion(exclusion.dialogId, exclusion.filterId);
+			TfDatabase::deleteExclusion(exclusion.dialogId, exclusion.filterId);
 		}
 	}
 

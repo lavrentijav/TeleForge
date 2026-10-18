@@ -99,32 +99,32 @@ void BuildCategories(SectionBuilder &builder) {
 
 	builder.addSectionButton({
 		.title = tr::ayu_GhostModeToggle(),
-		.targetSection = AyuGhost::Id(),
+		.targetSection = TfGhost::Id(),
 		.icon = { &st::menuIconGroupReactions },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategorySpy(),
-		.targetSection = AyuSpy::Id(),
+		.targetSection = TfSpy::Id(),
 		.icon = { &st::menuIconShowAll },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryGeneral(),
-		.targetSection = AyuGeneral::Id(),
+		.targetSection = TfGeneral::Id(),
 		.icon = { &st::menuIconShowAll },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryChats(),
-		.targetSection = AyuChats::Id(),
+		.targetSection = TfChats::Id(),
 		.icon = { &st::menuIconChatBubble },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryAppearance(),
-		.targetSection = AyuAppearance::Id(),
+		.targetSection = TfAppearance::Id(),
 		.icon = { &st::menuIconPalette },
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryFilters(),
-		.targetSection = AyuFilters::Id(),
+		.targetSection = TfFilters::Id(),
 		.icon = { &st::menuIconTagFilter },
 	});
 	builder.addSectionButton({
@@ -144,7 +144,7 @@ void BuildCategories(SectionBuilder &builder) {
 	});
 	builder.addSectionButton({
 		.title = tr::ayu_CategoryOther(),
-		.targetSection = AyuOther::Id(),
+		.targetSection = TfOther::Id(),
 		.icon = { &st::menuIconFave },
 	});
 }
@@ -198,7 +198,7 @@ void BuildLinks(SectionBuilder &builder) {
 }
 
 const auto kMeta = BuildHelper({
-	.id = AyuMain::Id(),
+	.id = TfMain::Id(),
 	.parentId = MainId(),
 	.title = &tr::ayu_AyuPreferences,
 	.icon = &st::menuIconPremium,
@@ -212,25 +212,25 @@ const auto kMeta = BuildHelper({
 
 } // namespace
 
-rpl::producer<QString> AyuMain::title() {
+rpl::producer<QString> TfMain::title() {
 	return tr::ayu_AyuPreferences();
 }
 
-AyuMain::AyuMain(
+TfMain::TfMain(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
 : Section(parent, controller) {
 	setupContent();
 }
 
-void AyuMain::setupContent() {
+void TfMain::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 	build(content, kMeta.build);
 	Ui::ResizeFitChild(this, content);
 }
 
-Type AyuMainId() {
-	return AyuMain::Id();
+Type TfMainId() {
+	return TfMain::Id();
 }
 
 } // namespace Settings

@@ -9,7 +9,7 @@
 #include "history/history.h"
 #include "history/history_item.h"
 
-namespace AyuState {
+namespace TfState {
 
 void hide(PeerId peerId, MsgId messageId);
 void hide(not_null<HistoryItem*> item);

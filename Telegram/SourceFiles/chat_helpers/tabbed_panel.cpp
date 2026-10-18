@@ -490,7 +490,7 @@ void TabbedPanel::showStarted() {
 }
 
 bool TabbedPanel::eventFilter(QObject *obj, QEvent *e) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	if (TabbedPanelShowOnClick.value() || !settings.showEmojiPopup()) {
 		return false;

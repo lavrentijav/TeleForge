@@ -2902,7 +2902,7 @@ Dialogs::BadgesState History::adjustBadgesStateByFolder(
 Dialogs::UnreadState History::computeUnreadState() const {
 	auto result = Dialogs::UnreadState();
 	const auto peer = this->peer.get();
-	if (AyuSettings::getInstance().isUnreadBadgeExcluded(peer->id.value)) {
+	if (TfSettings::getInstance().isUnreadBadgeExcluded(peer->id.value)) {
 		result.known = _unreadCount.has_value();
 		return result;
 	}

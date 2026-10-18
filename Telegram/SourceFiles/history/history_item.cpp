@@ -2346,7 +2346,7 @@ bool HistoryItem::isSponsored() const {
 }
 
 bool HistoryItem::isAyuNoForwards() const {
-	return _flags & MessageFlag::AyuNoForwards;
+	return _flags & MessageFlag::TfNoForwards;
 }
 
 bool HistoryItem::canLookupMessageAuthor() const {
@@ -3107,7 +3107,7 @@ void HistoryItem::clearMediaAsExpired() {
 	if (!media || !media->ttlSeconds()) {
 		return;
 	}
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (settings.saveDeletedMessages()) {
 		return;
 	}
@@ -3950,11 +3950,11 @@ void HistoryItem::updateReactionsUnknown() {
 
 const std::vector<Data::MessageReaction> &HistoryItem::reactions() const {
 	static const auto kEmpty = std::vector<Data::MessageReaction>();
-	return _reactions && !AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Reactions) ? _reactions->list() : kEmpty;
+	return _reactions && !TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Reactions) ? _reactions->list() : kEmpty;
 }
 
 std::vector<Data::MessageReaction> HistoryItem::reactionsWithLocal() const {
-	if (!_reactions || AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Reactions)) {
+	if (!_reactions || TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Reactions)) {
 		return {};
 	}
 	auto result = _reactions->list();
@@ -4383,7 +4383,7 @@ void HistoryItem::setDeleted() {
 	}
 
 	if (isService()) {
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		setAyuHint(settings.deletedMark());
 	} else {
 		history()->owner().requestItemViewRefresh(this);

@@ -536,7 +536,7 @@ void GifsListWidget::selectInlineResult(
 					});
 				});
 
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = TfSettings::getInstance();
 			if (settings.gifConfirmation()) {
 				Ui::show(Ui::MakeConfirmBox({
 					.text = tr::ayu_ConfirmationGIF(),

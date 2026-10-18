@@ -115,12 +115,12 @@ void Tray::rebuildMenu() {
 			[=] { toggleSoundNotifications(); });
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	if (settings.showGhostToggleInTray()) {
-		auto ghostActiveChanges = AyuSettings::getInstance().useGlobalGhostModeValue()
+		auto ghostActiveChanges = TfSettings::getInstance().useGlobalGhostModeValue()
 			| rpl::map([](bool) {
-				return AyuSettings::ghost().ghostModeActiveValue();
+				return TfSettings::ghost().ghostModeActiveValue();
 			})
 			| rpl::flatten_latest();
 
@@ -136,7 +136,7 @@ void Tray::rebuildMenu() {
 			std::move(turnGhostModeText),
 			[=]
 			{
-				auto &ghost = AyuSettings::ghost();
+				auto &ghost = TfSettings::ghost();
 				ghost.setGhostModeEnabled(!ghost.isGhostModeActive());
 			});
 	}
@@ -146,7 +146,7 @@ void Tray::rebuildMenu() {
 		) | rpl::map(
 			[=]
 			{
-				bool streamerModeEnabled = AyuFeatures::StreamerMode::isEnabled();
+				bool streamerModeEnabled = TfFeatures::StreamerMode::isEnabled();
 
 				return streamerModeEnabled
 						   ? tr::ayu_DisableStreamerModeTray(tr::now)
@@ -156,10 +156,10 @@ void Tray::rebuildMenu() {
 			std::move(turnStreamerModeText),
 			[=]
 			{
-				if (AyuFeatures::StreamerMode::isEnabled()) {
-					AyuFeatures::StreamerMode::disable();
+				if (TfFeatures::StreamerMode::isEnabled()) {
+					TfFeatures::StreamerMode::disable();
 				} else {
-					AyuFeatures::StreamerMode::enable();
+					TfFeatures::StreamerMode::enable();
 				}
 			});
 	}

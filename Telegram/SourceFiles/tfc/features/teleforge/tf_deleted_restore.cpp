@@ -59,12 +59,12 @@ constexpr auto kRestoreDelayMs = crl::time(400);
 
 void RestoreOne(
 		not_null<History*> history,
-		const AyuMessageBase &stored) {
+		const TfMessageBase &stored) {
 	auto text = Ui::Text::WithEntities(QString::fromStdString(stored.text));
 	if (text.text.isEmpty()) {
 		return;
 	}
-	const auto entities = AyuMapper::deserializeTextWithEntities(
+	const auto entities = TfMapper::deserializeTextWithEntities(
 		stored.textEntities);
 	text.entities = Api::EntitiesFromMTP(&history->session(), entities.v);
 
@@ -94,7 +94,7 @@ void RestoreOne(
 } // namespace
 
 void restoreForHistory(not_null<History*> history) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.saveDeletedMessages() || !settings.showDeletedInChat()) {
 		return;
 	}
@@ -103,7 +103,7 @@ void restoreForHistory(not_null<History*> history) {
 	if (limit <= 0) {
 		return;
 	}
-	auto stored = AyuMessages::getDeletedMessages(peer, 0, 0, 0, limit);
+	auto stored = TfMessages::getDeletedMessages(peer, 0, 0, 0, limit);
 	if (stored.empty()) {
 		return;
 	}

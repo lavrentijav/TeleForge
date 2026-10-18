@@ -631,7 +631,7 @@ QString NewMessagePostAuthor(const Api::SendAction &action) {
 bool ShouldSendSilent(
 		not_null<PeerData*> peer,
 		const Api::SendOptions &options) {
-	const auto &ghost = AyuSettings::ghost(&peer->session());
+	const auto &ghost = TfSettings::ghost(&peer->session());
 	if (ghost.sendWithoutSound()) {
 		return !options.silent;
 	}
@@ -987,7 +987,7 @@ MessageFlags FlagsFromMTP(
 		| ((flags & MTP::f_views) ? Flag::HasViews : Flag())
 		// AyuGram: removed
 		// | ((flags & MTP::f_noforwards) ? Flag::NoForwards : Flag())
-		| (flags & MTP::f_noforwards ? Flag::AyuNoForwards : Flag())
+		| (flags & MTP::f_noforwards ? Flag::TfNoForwards : Flag())
 		| ((flags & MTP::f_invert_media) ? Flag::InvertMedia : Flag())
 		| ((flags & MTP::f_video_processing_pending)
 			? Flag::EstimatedDate

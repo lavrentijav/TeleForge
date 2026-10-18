@@ -16,7 +16,7 @@ bool maySendStatus(
 		// account "online" on the server forever once an online packet was sent.
 		return true;
 	}
-	return AyuSettings::ghost(session).sendOnlinePackets();
+	return TfSettings::ghost(session).sendOnlinePackets();
 }
 
 void sendStatus(not_null<Main::Session*> session, bool offline) {

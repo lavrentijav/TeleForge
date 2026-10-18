@@ -837,7 +837,7 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 			|| (!streamingMode
 				&& ((!loaded && !_data->loading()) || !autoplay))
 			|| ttlCovered);
-	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
+	if (paintInCenter && !TfFeatures::MessageShot::isTakingShot()) {
 		const auto radialRevealed = 1.;
 		const auto opacity = (item->isSending() || _data->uploading())
 			? 1.
@@ -916,7 +916,7 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 			return spoilerTagBackground();
 		});
 	}
-	if (displayMute && !AyuFeatures::MessageShot::isTakingShot()) {
+	if (displayMute && !TfFeatures::MessageShot::isTakingShot()) {
 		auto muteRect = style::rtlrect(rthumb.x() + (rthumb.width() - st::historyVideoMessageMuteSize) / 2, rthumb.y() + st::msgDateImgDelta, st::historyVideoMessageMuteSize, st::historyVideoMessageMuteSize, width());
 		p.setPen(Qt::NoPen);
 		p.setBrush(sti->msgDateImgBg);
@@ -932,7 +932,7 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 		drawPurchasedTag(p, rthumb, context);
 	}
 
-	if (!unwrapped && !skipDrawingSurrounding && !AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Date)) {
+	if (!unwrapped && !skipDrawingSurrounding && !TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Date)) {
 		const auto sponsoredSkip = !_data->isVideoFile()
 			&& _realParent->isSponsored();
 		if ((!isRound || !inWebPage) && !sponsoredSkip && !mediaEditor) {
@@ -945,8 +945,8 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 	} else if (!skipDrawingSurrounding) {
 		if (isRound
 			&& !mediaEditor
-			&& !AyuFeatures::MessageShot::ignoreRender(
-				AyuFeatures::MessageShot::RenderPart::Date)) {
+			&& !TfFeatures::MessageShot::ignoreRender(
+				TfFeatures::MessageShot::RenderPart::Date)) {
 			const auto mediaUnread = item->hasUnreadMediaFlag();
 			const auto statusText = _seeking
 				? Ui::FormatDurationText(1 + int64(base::SafeRound(
@@ -1065,7 +1065,7 @@ void Gif::draw(Painter &p, const PaintContext &context) const {
 			}
 		}
 	}
-	if (!inWebPage && !skipDrawingSurrounding && !AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Date)) {
+	if (!inWebPage && !skipDrawingSurrounding && !TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Date)) {
 		auto fullRight = paintx + usex + usew;
 		auto fullBottom = painty + painth;
 		auto maxRight = _parent->width() - st::msgMargin.left();
@@ -1363,7 +1363,7 @@ void Gif::drawCornerStatus(
 	const auto download = downloadInCorner()
 		&& !dataLoaded()
 		&& !_data->loadedInMediaCache();
-	const auto takingShot = AyuFeatures::MessageShot::isTakingShot();
+	const auto takingShot = TfFeatures::MessageShot::isTakingShot();
 	PaintVideoCornerStatus(p, context, {
 		.text = ((own && !own->frozenStatusText.isEmpty())
 			? own->frozenStatusText
@@ -1921,7 +1921,7 @@ void Gif::drawGrouped(
 		&& (radial
 			|| (!streamingMode
 				&& ((!loaded && !_data->loading()) || !autoplay)));
-	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
+	if (paintInCenter && !TfFeatures::MessageShot::isTakingShot()) {
 		const auto radialRevealed = 1.;
 		const auto opacity = (item->isSending() || _data->uploading())
 			? 1.
@@ -2741,7 +2741,7 @@ bool Gif::needInfoDisplay() const {
 }
 
 bool Gif::needCornerStatusDisplay() const {
-	if (AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Date)) {
+	if (TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Date)) {
 		return false;
 	}
 
@@ -2750,7 +2750,7 @@ bool Gif::needCornerStatusDisplay() const {
 }
 
 void Gif::ensureTranscribeButton() const {
-	if (AyuFeatures::MessageShot::isTakingShot()) {
+	if (TfFeatures::MessageShot::isTakingShot()) {
 		_transcribe = nullptr;
 		return;
 	}

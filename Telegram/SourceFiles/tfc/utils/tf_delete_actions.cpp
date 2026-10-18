@@ -17,7 +17,7 @@
 #include "history/history_item.h"
 #include "main/main_session.h"
 
-namespace AyuDelete {
+namespace TfDelete {
 namespace {
 
 [[nodiscard]] bool CanReplaceWithStub(not_null<HistoryItem*> item) {
@@ -30,7 +30,7 @@ namespace {
 }
 
 [[nodiscard]] TextWithEntities StubText() {
-	const auto stub = AyuSettings::getInstance().deleteStubText().trimmed();
+	const auto stub = TfSettings::getInstance().deleteStubText().trimmed();
 	return TextWithEntities{
 		.text = stub.isEmpty() ? QStringLiteral(".") : stub,
 	};
@@ -127,4 +127,4 @@ void DeleteMessages(
 		std::move(toReplace));
 }
 
-} // namespace AyuDelete
+} // namespace TfDelete

@@ -65,7 +65,7 @@ Main::Session &PerDialogFiltersListController::session() const {
 }
 
 void PerDialogFiltersListController::prepareShadowBan() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto &shadowBanned = settings.shadowBanIds();
 
 	for (const auto id : shadowBanned) {
@@ -82,8 +82,8 @@ void PerDialogFiltersListController::prepare() {
 		prepareShadowBan();
 		return;
 	}
-	const auto filters = AyuDatabase::getAllRegexFilters();
-	const auto exclusions = AyuDatabase::getAllFiltersExclusions();
+	const auto filters = TfDatabase::getAllRegexFilters();
+	const auto exclusions = TfDatabase::getAllFiltersExclusions();
 
 	if (filters.empty() && exclusions.empty()) {
 		return;
@@ -145,10 +145,10 @@ void PerDialogFiltersListController::rowClicked(not_null<PeerListRow*> peer) {
 			tr::ayu_Delete(tr::now),
 			[=]
 			{
-				if (AyuSettings::getInstance().isShadowBanned(did)) {
-					AyuSettings::getInstance().removeShadowBan(did);
+				if (TfSettings::getInstance().isShadowBanned(did)) {
+					TfSettings::getInstance().removeShadowBan(did);
 				} else {
-					AyuSettings::getInstance().addShadowBan(did);
+					TfSettings::getInstance().addShadowBan(did);
 				}
 			},
 			&st::menuIconDelete);
@@ -158,7 +158,7 @@ void PerDialogFiltersListController::rowClicked(not_null<PeerListRow*> peer) {
 	}
 	_controller->dialogId = did;
 	_controller->showExclude = true;
-	_controller->showSettings(AyuFiltersList::Id());
+	_controller->showSettings(TfFiltersList::Id());
 }
 
 }

@@ -242,7 +242,7 @@ mtpRequestId TranslateManager::performTranslation(Builder &req) {
 	};
 
 	if (const auto it = _pending.find(id); it != _pending.end()) {
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		it->second.cancel = translatorForProvider(settings.translationProvider()).startTranslation(args);
 	}
 

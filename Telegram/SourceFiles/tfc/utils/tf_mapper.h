@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-namespace AyuMapper {
+namespace TfMapper {
 
 template<typename MTPObject>
 [[nodiscard]] MTPObject deserializeObject(std::vector<char> serialized);
@@ -18,4 +18,4 @@ std::pair<std::string, std::vector<char>> serializeTextWithEntities(not_null<His
 [[nodiscard]] MTPVector<MTPMessageEntity> deserializeTextWithEntities(std::vector<char> serialized);
 int mapItemFlagsToMTPFlags(not_null<HistoryItem*> item);
 
-} // namespace AyuMapper
+} // namespace TfMapper

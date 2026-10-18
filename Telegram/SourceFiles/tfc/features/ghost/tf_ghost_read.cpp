@@ -78,7 +78,7 @@ void runBatch();
 }
 
 [[nodiscard]] bool Recording(not_null<Main::Session*> session) {
-	const auto &ghost = AyuSettings::ghost(session);
+	const auto &ghost = TfSettings::ghost(session);
 	return ghost.isGhostModeActive() && !ghost.sendReadMessages();
 }
 
@@ -91,7 +91,7 @@ void runBatch();
 	if (!checked.emplace(accountId).second) {
 		return false;
 	}
-	if (AyuDatabase::hasGhostRead(accountId)) {
+	if (TfDatabase::hasGhostRead(accountId)) {
 		withRows.emplace(accountId);
 		return true;
 	}
@@ -102,7 +102,7 @@ void RefreshPending(ID accountId) {
 	if (!AccountsWithRows().contains(accountId)) {
 		return;
 	}
-	if (!AyuDatabase::hasGhostRead(accountId)) {
+	if (!TfDatabase::hasGhostRead(accountId)) {
 		AccountsWithRows().remove(accountId);
 	}
 }
@@ -120,7 +120,7 @@ void RefreshPending(ID accountId) {
 
 [[nodiscard]] std::map<ID, int> MaxTillsForAccount(ID accountId) {
 	auto result = std::map<ID, int>();
-	for (const auto &row : AyuDatabase::loadGhostReadForAccount(accountId)) {
+	for (const auto &row : TfDatabase::loadGhostReadForAccount(accountId)) {
 		if (row.msgId <= 0) {
 			continue;
 		}
@@ -167,7 +167,7 @@ void runBatch() {
 			return;
 		}
 		for (const auto &target : state.issued) {
-			AyuDatabase::eraseGhostReadUpTo(
+			TfDatabase::eraseGhostReadUpTo(
 				target.accountId,
 				ID(target.peerId.value),
 				int(target.till.bare));
@@ -199,7 +199,7 @@ void runBatch() {
 		if (!session) {
 			continue;
 		}
-		const auto &ghost = AyuSettings::ghost(session);
+		const auto &ghost = TfSettings::ghost(session);
 		if (ghost.isGhostModeActive() || !ghost.sendReadMessages()) {
 			state.queue.push_back(target);
 			stopped = true;
@@ -281,7 +281,7 @@ void rememberShownTill(
 			.flags = kFlagRange,
 		});
 	}
-	AyuDatabase::insertGhostReadBatch(rows);
+	TfDatabase::insertGhostReadBatch(rows);
 	AccountsWithRows().emplace(accountId);
 }
 
@@ -290,7 +290,7 @@ void applyServerEntry(
 		int serverUnread,
 		MsgId serverMaxInboxRead) {
 	const auto session = &history->session();
-	const auto &ghost = AyuSettings::ghost(session);
+	const auto &ghost = TfSettings::ghost(session);
 	if (!ghost.isGhostModeActive()) {
 		return;
 	}
@@ -301,7 +301,7 @@ void applyServerEntry(
 	const auto peerId = ID(history->peer->id.value);
 	auto till = MsgId(0);
 	auto consumed = 0;
-	for (const auto &row : AyuDatabase::loadGhostReadForPeer(accountId, peerId)) {
+	for (const auto &row : TfDatabase::loadGhostReadForPeer(accountId, peerId)) {
 		if (row.msgId <= serverMaxInboxRead.bare) {
 			continue;
 		}
@@ -319,7 +319,7 @@ void applyServerEntry(
 }
 
 void scheduleFlush(not_null<Main::Session*> session) {
-	const auto &ghost = AyuSettings::ghost(session);
+	const auto &ghost = TfSettings::ghost(session);
 	if (ghost.isGhostModeActive() || !ghost.sendReadMessages()) {
 		return;
 	}
@@ -353,13 +353,13 @@ bool hasPending(not_null<Main::Session*> session) {
 
 void forgetPeer(not_null<Main::Session*> session, PeerId peerId) {
 	const auto accountId = AccountOf(session);
-	AyuDatabase::eraseGhostReadForPeer(accountId, ID(peerId.value));
+	TfDatabase::eraseGhostReadForPeer(accountId, ID(peerId.value));
 	RefreshPending(accountId);
 }
 
 void forgetAccount(not_null<Main::Session*> session) {
 	const auto accountId = AccountOf(session);
-	AyuDatabase::eraseGhostReadForAccount(accountId);
+	TfDatabase::eraseGhostReadForAccount(accountId);
 	AccountsWithRows().remove(accountId);
 	AccountsChecked().emplace(accountId);
 	auto &state = State();

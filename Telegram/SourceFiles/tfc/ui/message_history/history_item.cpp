@@ -67,7 +67,7 @@ void OwnedItem::clearView() {
 void GenerateItems(
 	not_null<HistoryView::ElementDelegate*> delegate,
 	not_null<History*> history,
-	AyuMessageBase message,
+	TfMessageBase message,
 	bool deletedView,
 	Fn<void(OwnedItem item, TimeId sentDate, MsgId)> callback) {
 	const auto addPart = [&](
@@ -78,7 +78,7 @@ void GenerateItems(
 	};
 
 	const auto addSimpleTextMessage = [&](
-		const AyuMessageBase &sourceMessage) {
+		const TfMessageBase &sourceMessage) {
 		PeerData *from = history->owner().userLoaded(sourceMessage.fromId);
 		if (!from) {
 			from = history->owner().channelLoaded(sourceMessage.fromId);
@@ -98,7 +98,7 @@ void GenerateItems(
 		}
 
 		auto text = Ui::Text::WithEntities(QString::fromStdString(sourceMessage.text));
-		const auto entities = AyuMapper::deserializeTextWithEntities(sourceMessage.textEntities);
+		const auto entities = TfMapper::deserializeTextWithEntities(sourceMessage.textEntities);
 		text.entities = Api::EntitiesFromMTP(&history->session(), entities.v);
 
 		addPart(history->makeMessage({
@@ -120,7 +120,7 @@ void GenerateItems(
 	};
 
 	if (deletedView) {
-		const auto timeline = AyuMessages::buildDeletedMessageTimeline(
+		const auto timeline = TfMessages::buildDeletedMessageTimeline(
 			history->peer,
 			message);
 		if (!timeline.empty()) {

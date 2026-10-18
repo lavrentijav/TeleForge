@@ -184,7 +184,7 @@ private:
 			});
 			p.setPen(Qt::NoPen);
 			p.setBrush(gradient);
-			AyuUserpic::PaintShape(p, rect);
+			TfUserpic::PaintShape(p, rect);
 		}
 		{
 			const auto fontsize = (photoSize * 13) / 33;
@@ -238,7 +238,7 @@ void selectGhostProfile(GhostPickerState *state, uint64 userId) {
 	auto wasGlobal = (state->selectedUserId.current() == 0);
 	auto nowGlobal = (userId == 0);
 
-	AyuSettings::getInstance().setUseGlobalGhostMode(nowGlobal);
+	TfSettings::getInstance().setUseGlobalGhostMode(nowGlobal);
 
 	state->selectedUserId = userId;
 
@@ -266,10 +266,10 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				}
 			}
 
-			if (activeCount <= 1 && !AyuSettings::getInstance().useGlobalGhostMode()) {
+			if (activeCount <= 1 && !TfSettings::getInstance().useGlobalGhostMode()) {
 				auto userId = controller->session().userId().bare;
-				auto &src = AyuSettings::ghost(userId);
-				auto &dst = AyuSettings::ghost(0);
+				auto &src = TfSettings::ghost(userId);
+				auto &dst = TfSettings::ghost(0);
 				dst.setSendReadMessages(src.sendReadMessages());
 				dst.setSendReadStories(src.sendReadStories());
 				dst.setSendOnlinePackets(src.sendOnlinePackets());
@@ -283,10 +283,10 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				dst.setSendOnlinePacketsLocked(src.sendOnlinePacketsLocked());
 				dst.setSendUploadProgressLocked(src.sendUploadProgressLocked());
 				dst.setSendOfflinePacketAfterOnlineLocked(src.sendOfflinePacketAfterOnlineLocked());
-				AyuSettings::getInstance().setUseGlobalGhostMode(true);
+				TfSettings::getInstance().setUseGlobalGhostMode(true);
 			}
 
-			const auto isGlobal = AyuSettings::getInstance().useGlobalGhostMode();
+			const auto isGlobal = TfSettings::getInstance().useGlobalGhostMode();
 			auto initialUserId = isGlobal
 				? uint64(0)
 				: controller->session().userId().bare;
@@ -336,38 +336,38 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			std::vector checkboxes{
 				NestedEntry{
 					tr::ayu_DontReadMessages(tr::now),
-					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendReadMessages(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadMessages(!v); },
-					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendReadMessagesLocked(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadMessagesLocked(v); }
+					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendReadMessages(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadMessages(!v); },
+					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendReadMessagesLocked(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadMessagesLocked(v); }
 				},
 				NestedEntry{
 					tr::ayu_DontReadStories(tr::now),
-					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendReadStories(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadStories(!v); },
-					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendReadStoriesLocked(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendReadStoriesLocked(v); }
+					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendReadStories(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadStories(!v); },
+					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendReadStoriesLocked(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadStoriesLocked(v); }
 				},
 				NestedEntry{
 					tr::ayu_DontSendOnlinePackets(tr::now),
-					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendOnlinePackets(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendOnlinePackets(!v); },
-					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendOnlinePacketsLocked(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendOnlinePacketsLocked(v); }
+					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendOnlinePackets(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendOnlinePackets(!v); },
+					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendOnlinePacketsLocked(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendOnlinePacketsLocked(v); }
 				},
 				NestedEntry{
 					tr::ayu_DontSendUploadProgress(tr::now),
-					[state] { return !AyuSettings::ghost(state->selectedUserId.current()).sendUploadProgress(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendUploadProgress(!v); },
-					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendUploadProgressLocked(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendUploadProgressLocked(v); }
+					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendUploadProgress(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendUploadProgress(!v); },
+					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendUploadProgressLocked(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendUploadProgressLocked(v); }
 				},
 				NestedEntry{
 					tr::ayu_SendOfflinePacketAfterOnline(tr::now),
-					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnline(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendOfflinePacketAfterOnline(v); },
-					[state] { return AyuSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnlineLocked(); },
-					[state](bool v) { AyuSettings::ghost(state->selectedUserId.current()).setSendOfflinePacketAfterOnlineLocked(v); }
+					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnline(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendOfflinePacketAfterOnline(v); },
+					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnlineLocked(); },
+					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendOfflinePacketAfterOnlineLocked(v); }
 				},
 			};
 
@@ -395,16 +395,16 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			markReadButton->toggleOn(
 				state->selectedUserId.value()
 				| rpl::map([](uint64 id) {
-					return AyuSettings::ghost(id).markReadAfterActionValue();
+					return TfSettings::ghost(id).markReadAfterActionValue();
 				}) | rpl::flatten_latest()
 			)->toggledValue(
 			) | rpl::filter(
 				[=](bool enabled) {
-					return enabled != AyuSettings::ghost(state->selectedUserId.current()).markReadAfterAction();
+					return enabled != TfSettings::ghost(state->selectedUserId.current()).markReadAfterAction();
 				}
 			) | on_next(
 				[=](bool enabled) {
-					auto &ghost = AyuSettings::ghost(state->selectedUserId.current());
+					auto &ghost = TfSettings::ghost(state->selectedUserId.current());
 					ghost.setMarkReadAfterAction(enabled);
 					if (enabled) {
 						ghost.setUseScheduledMessages(false);
@@ -428,16 +428,16 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			scheduleButton->toggleOn(
 				state->selectedUserId.value()
 				| rpl::map([](uint64 id) {
-					return AyuSettings::ghost(id).useScheduledMessagesValue();
+					return TfSettings::ghost(id).useScheduledMessagesValue();
 				}) | rpl::flatten_latest()
 			)->toggledValue(
 			) | rpl::filter(
 				[=](bool enabled) {
-					return enabled != AyuSettings::ghost(state->selectedUserId.current()).useScheduledMessages();
+					return enabled != TfSettings::ghost(state->selectedUserId.current()).useScheduledMessages();
 				}
 			) | on_next(
 				[=](bool enabled) {
-					auto &ghost = AyuSettings::ghost(state->selectedUserId.current());
+					auto &ghost = TfSettings::ghost(state->selectedUserId.current());
 					ghost.setUseScheduledMessages(enabled);
 					if (enabled) {
 						ghost.setMarkReadAfterAction(false);
@@ -461,16 +461,16 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			silentButton->toggleOn(
 				state->selectedUserId.value()
 				| rpl::map([](uint64 id) {
-					return AyuSettings::ghost(id).sendWithoutSoundValue();
+					return TfSettings::ghost(id).sendWithoutSoundValue();
 				}) | rpl::flatten_latest()
 			)->toggledValue(
 			) | rpl::filter(
 				[=](bool enabled) {
-					return enabled != AyuSettings::ghost(state->selectedUserId.current()).sendWithoutSound();
+					return enabled != TfSettings::ghost(state->selectedUserId.current()).sendWithoutSound();
 				}
 			) | on_next(
 				[=](bool enabled) {
-					AyuSettings::ghost(state->selectedUserId.current()).setSendWithoutSound(enabled);
+					TfSettings::ghost(state->selectedUserId.current()).setSendWithoutSound(enabled);
 				},
 				container->lifetime());
 			AddSkip(container);
@@ -534,8 +534,8 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 }
 
 const auto kMeta = BuildHelper({
-	.id = AyuGhost::Id(),
-	.parentId = AyuMain::Id(),
+	.id = TfGhost::Id(),
+	.parentId = TfMain::Id(),
 	.title = &tr::ayu_GhostModeToggle,
 	.icon = &st::menuIconGroupReactions,
 }, [](SectionBuilder &builder) {
@@ -546,11 +546,11 @@ const auto kMeta = BuildHelper({
 
 } // namespace
 
-rpl::producer<QString> AyuGhost::title() {
+rpl::producer<QString> TfGhost::title() {
 	return tr::ayu_GhostModeToggle();
 }
 
-AyuGhost::AyuGhost(
+TfGhost::TfGhost(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
 : Section(parent, controller)
@@ -558,14 +558,14 @@ AyuGhost::AyuGhost(
 	setupContent();
 }
 
-void AyuGhost::setupContent() {
+void TfGhost::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 	build(content, kMeta.build);
 	Ui::ResizeFitChild(this, content);
 }
 
-Type AyuGhostId() {
-	return AyuGhost::Id();
+Type TfGhostId() {
+	return TfGhost::Id();
 }
 
 } // namespace Settings

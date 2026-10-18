@@ -345,9 +345,9 @@ void Application::run() {
 	_translator = std::make_unique<Lang::Translator>();
 	QCoreApplication::instance()->installTranslator(_translator.get());
 
-	DEBUG_LOG(("Application::run: AyuInfra::init next (cWorkingDir=%1)").arg(cWorkingDir()));
-	AyuInfra::init();
-	LOG(("Application::run: after AyuInfra::init (TeleForge + Ayu subsystems); starting style/UI"));
+	DEBUG_LOG(("Application::run: TfInfra::init next (cWorkingDir=%1)").arg(cWorkingDir()));
+	TfInfra::init();
+	LOG(("Application::run: after TfInfra::init (TeleForge + Ayu subsystems); starting style/UI"));
 	style::StartManager(cScale());
 	Ui::Accessible::Init();
 	Ui::InitTextOptions();
@@ -629,9 +629,9 @@ void Application::processCreatedWindow(
 	window->openInMediaViewRequests(
 	) | rpl::start_to_stream(_openInMediaViewRequests, window->lifetime());
 
-	if (AyuFeatures::StreamerMode::isEnabled()) {
+	if (TfFeatures::StreamerMode::isEnabled()) {
 		LOG(("Application::processCreatedWindow: StreamerMode hides window from capture — UI may look \"not started\""));
-		AyuFeatures::StreamerMode::hideWidgetWindow(window->widget());
+		TfFeatures::StreamerMode::hideWidgetWindow(window->widget());
 	}
 }
 

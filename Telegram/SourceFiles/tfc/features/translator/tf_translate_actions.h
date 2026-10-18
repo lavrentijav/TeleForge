@@ -61,7 +61,7 @@ void ShowAiCompressBox(
 
 } // namespace Ayu::Translator
 
-namespace AyuUi {
+namespace TfUi {
 
 void AddForceTranslateChatAction(
 	PeerData *peerData,
@@ -81,4 +81,4 @@ void AddForceTranslateSelectedActions(
 	const TextWithEntities &selectedText,
 	bool hasCopyRestriction);
 
-} // namespace AyuUi
+} // namespace TfUi

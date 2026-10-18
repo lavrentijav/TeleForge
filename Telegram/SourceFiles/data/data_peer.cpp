@@ -492,8 +492,8 @@ QImage PeerData::GenerateUserpicImage(
 		const auto shape = peer->isForum()
 			? Ui::PeerUserpicShape::Forum
 			: Ui::PeerUserpicShape::Circle;
-		if (AyuUserpic::ShouldOverrideShape(shape)) {
-			radius = AyuUserpic::ComputeRadius(size);
+		if (TfUserpic::ShouldOverrideShape(shape)) {
+			radius = TfUserpic::ComputeRadius(size);
 		}
 	}
 	if (const auto userpic = peer->userpicCloudImage(view)) {

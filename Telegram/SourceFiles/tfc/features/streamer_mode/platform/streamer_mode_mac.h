@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-namespace AyuFeatures::StreamerMode::Impl {
+namespace TfFeatures::StreamerMode::Impl {
 
 void enableHook();
 void disableHook();

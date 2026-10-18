@@ -189,12 +189,12 @@ TopBarWidget::TopBarWidget(
 		);
 	});
 
-	AyuSettings::getInstance().quickAdminShortcutsChanges(
+	TfSettings::getInstance().quickAdminShortcutsChanges(
 	) | rpl::on_next([=](bool) {
 		updateControlsVisibility();
 	}, lifetime());
 
-	AyuSettings::ghost(&session()).ghostModeActiveValue(
+	TfSettings::ghost(&session()).ghostModeActiveValue(
 	) | rpl::on_next([=](bool) {
 		update();
 	}, lifetime());
@@ -783,7 +783,7 @@ std::optional<QRect> TopBarWidget::ghostChipRect(
 		int right,
 		int top,
 		int availableWidth) {
-	if (!AyuSettings::ghost(&session()).isGhostModeActive()) {
+	if (!TfSettings::ghost(&session()).isGhostModeActive()) {
 		return std::nullopt;
 	}
 	const auto &font = st::tfGhostChipFont;
@@ -959,7 +959,7 @@ void TopBarWidget::infoClicked() {
 
 void TopBarWidget::backClicked() {
 	if (_activeChat.key.folder()) {
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		if (settings.hideAllChatsFolder()) {
 			const auto filters = &_controller->session().data().chatsFilters();
 			const auto lookupId = filters->lookupId(_controller->session().premium() ? 0 : 1);
@@ -1447,7 +1447,7 @@ void TopBarWidget::updateControlsVisibility() {
 		hideChildren();
 		return;
 	}
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto visible = showSelectedState() || _selectedShown.animating();
 	_clear->setVisible(visible);
 	_delete->setVisible(_canDelete && visible);
@@ -1534,7 +1534,7 @@ void TopBarWidget::updateControlsVisibility() {
 
 	const auto showRecentActions = [&]
 	{
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		if (!settings.quickAdminShortcuts()) {
 			return false;
 		}
@@ -1552,7 +1552,7 @@ void TopBarWidget::updateControlsVisibility() {
 	_recentActions->setVisible(showRecentActions);
 	const auto showAdmins = [&]
 	{
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		if (!settings.quickAdminShortcuts()) {
 			return false;
 		}
@@ -1640,14 +1640,14 @@ void TopBarWidget::updateMembersShowArea() {
 }
 
 bool TopBarWidget::showSelectedState() const {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	return (_selectedCount > 0)
 		&& (_canDelete || _canForward || _canSendNow || settings.showMessageShot());
 }
 
 void TopBarWidget::showSelected(SelectedState state) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	auto canDelete = (state.count > 0 && state.count == state.canDeleteCount);
 	auto canForward = (state.count > 0 && state.count == state.canForwardCount);

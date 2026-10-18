@@ -26,7 +26,7 @@
 #include "ui/chat/attach/attach_prepare.h"
 #include "ui/text/text_utilities.h"
 
-namespace AyuForward {
+namespace TfForward {
 
 std::unordered_map<PeerId, std::shared_ptr<ForwardState>> forwardStates;
 
@@ -165,7 +165,7 @@ static Ui::PreparedList prepareMedia(not_null<Main::Session*> session,
 	const auto prepare = [&](not_null<Data::Media*> media)
 	{
 		groupMedia.emplace_back(media);
-		auto prepared = Ui::PreparedFile(AyuSync::filePath(session, media));
+		auto prepared = Ui::PreparedFile(TfSync::filePath(session, media));
 		if (prepared.path.isEmpty()) {
 			// otherwise will fail assertion in PrepareDetails
 			return prepared;
@@ -209,7 +209,7 @@ void sendMedia(
 	Api::MessageToSend &&message,
 	bool sendImagesAsPhotos) {
 	if (const auto document = primaryMedia->document(); document && document->sticker()) {
-		AyuSync::sendStickerSync(session, message, document);
+		TfSync::sendStickerSync(session, message, document);
 		return;
 	}
 
@@ -243,7 +243,7 @@ void sendMedia(
 
 		if (!failed && data.size()) {
 			file.close();
-			AyuSync::sendVoiceSync(session,
+			TfSync::sendVoiceSync(session,
 								   data,
 								   primaryMedia->document()->duration(),
 								   mediaType == SendMediaType::Round,
@@ -259,7 +259,7 @@ void sendMedia(
 	}
 
 	for (auto &group : bundle->groups) {
-		AyuSync::sendDocumentSync(
+		TfSync::sendDocumentSync(
 			session,
 			group,
 			mediaType,
@@ -346,7 +346,7 @@ void intelligentForward(
 			state->sentMessages = 0;
 			state->updateBottomBar(*session, &peer->id, ForwardState::State::Sending);
 
-			AyuSync::forwardMessagesSync(session, chunk.items, action, draft.options);
+			TfSync::forwardMessagesSync(session, chunk.items, action, draft.options);
 
 			state->sentMessages = state->totalMessages;
 
@@ -406,7 +406,7 @@ void forwardMessages(
 	if (!toBeDownloaded.empty()) {
 		state->state = ForwardState::State::Downloading;
 		state->updateBottomBar(*session, &peer->id, ForwardState::State::Downloading);
-		AyuSync::loadDocuments(session, toBeDownloaded);
+		TfSync::loadDocuments(session, toBeDownloaded);
 	}
 
 
@@ -435,10 +435,10 @@ void forwardMessages(
 		}
 
 		if (!mediaDownloadable(item->media())) {
-			AyuSync::sendMessageSync(session, message);
+			TfSync::sendMessageSync(session, message);
 		} else if (const auto media = item->media()) {
 			if (media->poll()) {
-				AyuSync::sendMessageSync(session, message);
+				TfSync::sendMessageSync(session, message);
 				continue;
 			}
 
@@ -492,4 +492,4 @@ void forwardMessages(
 	state->updateBottomBar(*session, &peer->id, ForwardState::State::Finished);
 }
 
-} // namespace AyuFeatures::AyuForward
+} // namespace TfFeatures::TfForward

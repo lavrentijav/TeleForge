@@ -12,7 +12,7 @@
 #include <cmath>
 #include <utility>
 
-namespace AyuUiSettings {
+namespace TfUiSettings {
 
 QString monoFont;
 double wideMultiplier = 1.0;

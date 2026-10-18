@@ -81,12 +81,12 @@ std::optional<bool> isFiltered(const QString &str, uint64 dialogId) {
 }
 
 bool isEnabled(not_null<PeerData*> peer) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	return settings.filtersEnabled() && (settings.filtersEnabledInChats() || peer->isBroadcast());
 }
 
 bool isBlocked(const not_null<HistoryItem*> item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto blocked = [&]() -> bool
 	{
@@ -114,7 +114,7 @@ bool isBlocked(const not_null<HistoryItem*> item) {
 }
 
 bool isBlocked(const not_null<PeerData*> peer) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	return settings.filtersEnabled() &&
 	(
 		(peer->isUser() && peer->asUser()->isBlocked() && settings.hideFromBlocked()) ||
@@ -123,7 +123,7 @@ bool isBlocked(const not_null<PeerData*> peer) {
 }
 
 bool filtered(const not_null<HistoryItem*> item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.filtersEnabled()) {
 		return false;
 	}
@@ -154,7 +154,7 @@ bool filtered(const not_null<HistoryItem*> item) {
 }
 
 void invalidate(not_null<HistoryItem*> item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.filtersEnabled()) {
 		return;
 	}

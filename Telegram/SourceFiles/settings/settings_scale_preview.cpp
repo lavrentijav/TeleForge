@@ -754,10 +754,10 @@ void Preview::validateUserpicCache() {
 		_userpic.size() * _ratio,
 		Qt::IgnoreAspectRatio,
 		Qt::SmoothTransformation);
-	if (AyuUserpic::IsCircle()) {
+	if (TfUserpic::IsCircle()) {
 		_userpicImage = Images::Circle(std::move(scaled));
 	} else {
-		const auto r = AyuUserpic::ComputeRadius(
+		const auto r = TfUserpic::ComputeRadius(
 			std::min(scaled.width(), scaled.height()));
 		_userpicImage = Images::Round(
 			std::move(scaled),

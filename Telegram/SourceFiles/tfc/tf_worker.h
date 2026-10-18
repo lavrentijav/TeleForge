@@ -8,7 +8,7 @@
 
 #include "window/window_session_controller.h"
 
-namespace AyuWorker {
+namespace TfWorker {
 
 void scheduleOfflinePacket(not_null<Main::Session*> session);
 void initialize();

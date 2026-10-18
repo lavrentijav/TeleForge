@@ -1902,10 +1902,10 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 			}
 		};
 
-		if (AyuForward::isFullAyuForwardNeeded(items.front())) {
+		if (TfForward::isFullAyuForwardNeeded(items.front())) {
 			crl::async([=]{
 				for (const auto thread : result) {
-					AyuForward::forwardMessages(
+					TfForward::forwardMessages(
 					&history->owner().session(),
 					Api::SendAction(thread, options),
 					false,
@@ -1915,11 +1915,11 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 
 			dismiss();
 			return;
-		} else if (AyuForward::isAyuForwardNeeded(items)) {
+		} else if (TfForward::isAyuForwardNeeded(items)) {
 			crl::async([=]
 			{
 				for (const auto thread : result) {
-					AyuForward::intelligentForward(
+					TfForward::intelligentForward(
 						&history->owner().session(),
 						Api::SendAction(thread, options),
 						Data::ResolvedForwardDraft(items, forwardOptions));
@@ -1964,7 +1964,7 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 			const auto requestDone = [=](
 					const MTPUpdates &updates,
 					mtpRequestId requestKey) {
-				const auto &ghost = AyuSettings::ghost(&history->owner().session());
+				const auto &ghost = TfSettings::ghost(&history->owner().session());
 				if (!ghost.sendReadMessages() && ghost.markReadAfterAction() && history->lastMessage())
 				{
 					readHistory(history->lastMessage());

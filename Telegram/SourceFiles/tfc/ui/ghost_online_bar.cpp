@@ -54,7 +54,7 @@ GhostOnlineBar::GhostOnlineBar(
 		updateGeometry();
 	}, lifetime());
 
-	AyuSettings::ghost(session).ghostModeActiveValue(
+	TfSettings::ghost(session).ghostModeActiveValue(
 	) | rpl::on_next([=](bool active) {
 		if (active) {
 			_wrap.show(anim::type::normal);

@@ -73,10 +73,10 @@ using namespace sqlite_orm;
 			"SchemaVersion",
 			make_column("singletonId", &SchemaVersionRecord::singletonId, primary_key()),
 			make_column("version", &SchemaVersionRecord::version)),
-		make_table<AyuDataSchemaVersion>(
-			"AyuDataSchemaVersion",
-			make_column("id", &AyuDataSchemaVersion::id, primary_key()),
-			make_column("version", &AyuDataSchemaVersion::version)),
+		make_table<TfDataSchemaVersion>(
+			"TfDataSchemaVersion",
+			make_column("id", &TfDataSchemaVersion::id, primary_key()),
+			make_column("version", &TfDataSchemaVersion::version)),
 		make_table<PersonalityCoreRecord>(
 			"PersonalityCore",
 			make_column("singletonId", &PersonalityCoreRecord::singletonId, primary_key()),

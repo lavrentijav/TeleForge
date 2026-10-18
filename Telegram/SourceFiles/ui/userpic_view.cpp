@@ -145,7 +145,7 @@ void ValidateUserpicCache(
 	const auto full = QSize(size, size);
 	const auto version = style::PaletteVersion();
 	const auto shapeValue = static_cast<uint32>(shape) & 3;
-	const auto ayuState = AyuUserpic::PackedState();
+	const auto ayuState = TfUserpic::PackedState();
 	const auto regenerate = (view.cached.size() != QSize(size, size))
 		|| (view.shape != shapeValue)
 		|| (view.ayuState != ayuState)
@@ -160,7 +160,7 @@ void ValidateUserpicCache(
 	view.paletteVersion = version;
 	view.ayuState = ayuState;
 
-	const auto ayuOverride = AyuUserpic::ShouldOverrideShape(shape);
+	const auto ayuOverride = TfUserpic::ShouldOverrideShape(shape);
 
 	if (cloud) {
 		view.cached = cloud->scaled(
@@ -168,7 +168,7 @@ void ValidateUserpicCache(
 			Qt::IgnoreAspectRatio,
 			Qt::SmoothTransformation);
 		if (ayuOverride) {
-			view.cached = AyuUserpic::RoundImage(std::move(view.cached));
+			view.cached = TfUserpic::RoundImage(std::move(view.cached));
 		} else if (shape == PeerUserpicShape::Monoforum) {
 			view.cached = Ui::ApplyMonoforumShape(std::move(view.cached));
 		} else if (shape == PeerUserpicShape::Forum) {

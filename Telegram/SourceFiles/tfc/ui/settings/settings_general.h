@@ -15,9 +15,9 @@ class SessionController;
 
 namespace Settings {
 
-class AyuGeneral : public Section<AyuGeneral> {
+class TfGeneral : public Section<TfGeneral> {
 public:
-	AyuGeneral(QWidget *parent, not_null<Window::SessionController*> controller);
+	TfGeneral(QWidget *parent, not_null<Window::SessionController*> controller);
 
 	[[nodiscard]] rpl::producer<QString> title() override;
 
@@ -25,6 +25,6 @@ private:
 	void setupContent();
 };
 
-[[nodiscard]] Type AyuGeneralId();
+[[nodiscard]] Type TfGeneralId();
 
 } // namespace Settings

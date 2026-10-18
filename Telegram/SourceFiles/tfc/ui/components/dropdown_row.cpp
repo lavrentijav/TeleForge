@@ -15,7 +15,7 @@
 
 #include <algorithm>
 
-namespace AyuUi {
+namespace TfUi {
 
 not_null<Ui::SettingsButton*> AddDropdownRow(
 		not_null<Ui::VerticalLayout*> container,
@@ -59,4 +59,4 @@ not_null<Ui::SettingsButton*> AddDropdownRow(
 	return button;
 }
 
-} // namespace AyuUi
+} // namespace TfUi

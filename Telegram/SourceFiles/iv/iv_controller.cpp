@@ -296,8 +296,8 @@ void Controller::createWebview(const Webview::StorageId &storageId) {
 
 	const auto window = _window.get();
 
-	if (AyuFeatures::StreamerMode::isEnabled()) {
-		AyuFeatures::StreamerMode::hideWidgetWindow(window);
+	if (TfFeatures::StreamerMode::isEnabled()) {
+		TfFeatures::StreamerMode::hideWidgetWindow(window);
 	}
 
 	_webview = std::make_unique<Webview::Window>(

@@ -125,19 +125,19 @@ MessagePreview::MessagePreview(
 	}, lifetime());
 
 	rpl::merge(
-		AyuSettings::getInstance().replaceBottomInfoWithIconsChanges()
+		TfSettings::getInstance().replaceBottomInfoWithIconsChanges()
 			| rpl::to_empty,
-		AyuSettings::getInstance().deletedMarkChanges()
+		TfSettings::getInstance().deletedMarkChanges()
 			| rpl::to_empty,
-		AyuSettings::getInstance().editedMarkChanges()
+		TfSettings::getInstance().editedMarkChanges()
 			| rpl::to_empty,
-		AyuSettings::getInstance().removeMessageTailChanges()
+		TfSettings::getInstance().removeMessageTailChanges()
 			| rpl::to_empty,
-		AyuSettings::getInstance().hideFastShareChanges()
+		TfSettings::getInstance().hideFastShareChanges()
 			| rpl::to_empty,
-		AyuSettings::getInstance().simpleQuotesAndRepliesChanges()
+		TfSettings::getInstance().simpleQuotesAndRepliesChanges()
 			| rpl::to_empty,
-		AyuSettings::getInstance().semiTransparentDeletedMessagesChanges()
+		TfSettings::getInstance().semiTransparentDeletedMessagesChanges()
 			| rpl::to_empty
 	) | rpl::on_next([=] {
 		refresh();
@@ -173,7 +173,7 @@ void MessagePreview::paintEvent(QPaintEvent *e) {
 	p.translate(padding / 2, padding + view->marginBottom());
 	view->draw(p, context);
 
-	if (!AyuSettings::getInstance().hideFastShare()) {
+	if (!TfSettings::getInstance().hideFastShare()) {
 		const auto size = st::historyFastShareSize;
 		const auto g = view->innerGeometry();
 		const auto shareLeft = g.x() + g.width()

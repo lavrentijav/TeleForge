@@ -70,7 +70,7 @@ ChatAdminRightsInfo ChatData::defaultAdminRights(not_null<UserData*> user) {
 }
 
 bool ChatData::isAyuNoForwards() const {
-	return flags() & Flag::AyuNoForwards;
+	return flags() & Flag::TfNoForwards;
 }
 
 bool ChatData::allowsForwarding() const {
@@ -119,7 +119,7 @@ bool ChatData::anyoneCanAddMembers() const {
 
 void ChatData::setName(const QString &newName) {
 	auto filteredName = newName;
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (settings.filterZalgo()) {
 		filteredName = filterZalgo(filteredName);
 	}

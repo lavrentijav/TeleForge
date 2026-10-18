@@ -36,7 +36,7 @@
 #include "ui/layers/box_content.h"
 #include "window/themes/window_theme.h"
 
-namespace AyuFeatures::MessageShot {
+namespace TfFeatures::MessageShot {
 
 ShotConfig *config = nullptr;
 
@@ -60,7 +60,7 @@ bool ignoreRender(RenderPart part) {
 		return false;
 	}
 
-	const auto &s = AyuSettings::getInstance().messageShotSettings();
+	const auto &s = TfSettings::getInstance().messageShotSettings();
 	return isTakingShot()
 		&& ((part == RenderPart::Date && !s.showDate())
 			|| (part == RenderPart::Reactions && !s.showReactions()));
@@ -300,7 +300,7 @@ void Make(not_null<QWidget*> box, const ShotConfig &config, const Fn<void(QImage
 		}
 	}
 
-	const auto showBackground = AyuSettings::getInstance().messageShotSettings().showBackground();
+	const auto showBackground = TfSettings::getInstance().messageShotSettings().showBackground();
 	auto render = [=, messages = std::move(messages), delegate = std::move(delegate)](bool final)
 	{
 		takingShot = true;
@@ -315,7 +315,7 @@ void Make(not_null<QWidget*> box, const ShotConfig &config, const Fn<void(QImage
 
 			view->itemDataChanged(); // refresh reactions
 			height += view->resizeGetHeight(width);
-			if (AyuSettings::getInstance().messageShotSettings().revealSpoilers()) {
+			if (TfSettings::getInstance().messageShotSettings().revealSpoilers()) {
 				view->revealSpoilers();
 			}
 		}
@@ -446,7 +446,7 @@ namespace {
 
 std::shared_ptr<Ui::ChatStyle> BuildShotChatStyle(
 		not_null<Window::SessionController*> controller) {
-	const auto &shot = AyuSettings::getInstance().messageShotSettings();
+	const auto &shot = TfSettings::getInstance().messageShotSettings();
 	const auto hasSavedTheme = shot.embeddedThemeType() != -1
 		|| shot.cloudThemeId() != 0;
 	const auto persistedPalette = getPersistedPalette();
@@ -469,7 +469,7 @@ void ShowMessageShotBox(
 		})
 		| ranges::to_vector;
 
-	const AyuFeatures::MessageShot::ShotConfig config = {
+	const TfFeatures::MessageShot::ShotConfig config = {
 		controller,
 		BuildShotChatStyle(controller),
 		messages,

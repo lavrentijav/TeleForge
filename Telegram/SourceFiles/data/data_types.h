@@ -295,7 +295,7 @@ enum class MessageFlag : uint64 {
 	ClientSideUnread      = (1ULL << 24),
 
 	// AyuGram: message-level no-forwards (MTP::f_noforwards).
-	AyuNoForwards         = (1ULL << 25),
+	TfNoForwards         = (1ULL << 25),
 
 	// Outgoing message that is being sent.
 	BeingSent             = (1ULL << 26),

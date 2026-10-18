@@ -23,7 +23,7 @@
 #include "tfc/utils/windows_utils.h"
 #endif
 
-namespace AyuInfra {
+namespace TfInfra {
 
 void initLang() {
 	QString id = Lang::GetInstance().id();
@@ -32,32 +32,32 @@ void initLang() {
 		LOG(("Language is not loaded"));
 		return;
 	}
-	AyuLanguage::init();
-	AyuLanguage::currentInstance()->fetchLanguage(id, baseId);
+	TfLanguage::init();
+	TfLanguage::currentInstance()->fetchLanguage(id, baseId);
 }
 
 void initUiSettings() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
-	AyuUiSettings::setMonoFont(settings.monoFont());
-	AyuUiSettings::setWideMultiplier(settings.wideMultiplier());
-	AyuUiSettings::setMaterialSwitches(settings.materialSwitches());
-	AyuUiSettings::setAvatarCorners(settings.avatarCorners());
+	TfUiSettings::setMonoFont(settings.monoFont());
+	TfUiSettings::setWideMultiplier(settings.wideMultiplier());
+	TfUiSettings::setMaterialSwitches(settings.materialSwitches());
+	TfUiSettings::setAvatarCorners(settings.avatarCorners());
 }
 
 void initDatabase() {
 	TeleForge::Storage::initialize();
-	AyuDatabase::initialize();
+	TfDatabase::initialize();
 }
 
 void initTeleForge() {
-	LOG(("AyuInfra::initTeleForge — after unified teleforge.db init + Ayu message-store migrations"));
+	LOG(("TfInfra::initTeleForge — after unified teleforge.db init + Ayu message-store migrations"));
 	TeleForge::initialize();
-	LOG(("AyuInfra::initTeleForge done"));
+	LOG(("TfInfra::initTeleForge done"));
 }
 
 void initWorker() {
-	AyuWorker::initialize();
+	TfWorker::initialize();
 }
 
 void initRCManager() {

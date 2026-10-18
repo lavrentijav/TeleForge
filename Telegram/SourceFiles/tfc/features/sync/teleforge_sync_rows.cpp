@@ -85,7 +85,7 @@ constexpr auto kPayloadCompressionLevel = 6;
 // Full, self-describing JSON serialization of a captured message. 64-bit ids
 // are stored as strings so JSON's double numbers never truncate them; binary
 // blobs are base64. The result is encrypted before it leaves the device.
-[[nodiscard]] QByteArray SerializeMessage(const AyuMessageBase &m) {
+[[nodiscard]] QByteArray SerializeMessage(const TfMessageBase &m) {
 	auto o = QJsonObject{
 		{ u"userId"_q, QString::number(m.userId) },
 		{ u"dialogId"_q, QString::number(m.dialogId) },
@@ -126,13 +126,13 @@ constexpr auto kPayloadCompressionLevel = 6;
 	return QJsonDocument(o).toJson(QJsonDocument::Compact);
 }
 
-[[nodiscard]] std::optional<AyuMessageBase> DeserializeMessage(
+[[nodiscard]] std::optional<TfMessageBase> DeserializeMessage(
 		const QByteArray &json) {
 	const auto o = QJsonDocument::fromJson(json).object();
 	if (o.isEmpty()) {
 		return std::nullopt;
 	}
-	auto m = AyuMessageBase();
+	auto m = TfMessageBase();
 	m.fakeId = 0;
 	auto ok = true;
 	ok = JsonId(o.value(u"userId"_q), &m.userId) && ok;
@@ -178,7 +178,7 @@ constexpr auto kPayloadCompressionLevel = 6;
 }
 
 [[nodiscard]] SyncMessageRow BuildRow(
-		const AyuMessageBase &m,
+		const TfMessageBase &m,
 		bool deleted,
 		bool edited,
 		const QByteArray &key) {
@@ -250,13 +250,13 @@ int ApplyMessageRows(
 			const auto &m = *parsed;
 			if (row.deleted && seenDeleted.find(m.contentHash) == seenDeleted.end()) {
 				auto stored = DeletedMessage();
-				static_cast<AyuMessageBase&>(stored) = m;
+				static_cast<TfMessageBase&>(stored) = m;
 				Storage::Db().insert(stored);
 				seenDeleted.insert(m.contentHash);
 				++inserted;
 			} else if (row.edited && seenEdited.find(m.contentHash) == seenEdited.end()) {
 				auto stored = EditedMessage();
-				static_cast<AyuMessageBase&>(stored) = m;
+				static_cast<TfMessageBase&>(stored) = m;
 				Storage::Db().insert(stored);
 				seenEdited.insert(m.contentHash);
 				++inserted;

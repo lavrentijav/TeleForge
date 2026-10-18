@@ -26,7 +26,7 @@ class SessionController;
 
 } // namespace Window
 
-namespace AyuUi {
+namespace TfUi {
 
 class FontSelectorBox : public Ui::BoxContent
 {

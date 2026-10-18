@@ -206,8 +206,8 @@ style::colorizer ColorizerForTheme(const QString &absolutePath) {
 		return {};
 	}
 	const auto &settings = Core::App().settings();
-	if (AyuFeatures::MessageShot::isChoosingTheme()) {
-		if (const auto accent = AyuFeatures::MessageShot::getSelectedColorFromDefault()) {
+	if (TfFeatures::MessageShot::isChoosingTheme()) {
+		if (const auto accent = TfFeatures::MessageShot::getSelectedColorFromDefault()) {
 			return ColorizerFrom(*i, *accent);
 		}
 	}

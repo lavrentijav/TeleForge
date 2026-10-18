@@ -103,13 +103,13 @@ Media::Clip::FrameRequest VideoUserpic::request(int size) const {
 		.frame = { size, size },
 		.outer = { size, size },
 	};
-	if (AyuUserpic::ShouldOverrideShape(Ui::PeerUserpicShape::Circle)) {
-		if (AyuUserpic::IsCircle()) {
+	if (TfUserpic::ShouldOverrideShape(Ui::PeerUserpicShape::Circle)) {
+		if (TfUserpic::IsCircle()) {
 			result.radius = ImageRoundRadius::Ellipse;
-		} else if (AyuUserpic::ComputeRadius(size) <= 0) {
+		} else if (TfUserpic::ComputeRadius(size) <= 0) {
 			result.radius = ImageRoundRadius::None;
 		} else {
-			result.radius = (AyuUserpic::ComputeRadius(size) >= size / 4)
+			result.radius = (TfUserpic::ComputeRadius(size) >= size / 4)
 				? ImageRoundRadius::Large
 				: ImageRoundRadius::Small;
 		}

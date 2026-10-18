@@ -15,9 +15,9 @@ class SessionController;
 
 namespace Settings {
 
-class AyuFilters : public Section<AyuFilters> {
+class TfFilters : public Section<TfFilters> {
 public:
-	AyuFilters(QWidget *parent, not_null<Window::SessionController*> controller);
+	TfFilters(QWidget *parent, not_null<Window::SessionController*> controller);
 
 	[[nodiscard]] rpl::producer<QString> title() override;
 	void fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) override;
@@ -26,6 +26,6 @@ private:
 	void setupContent();
 };
 
-[[nodiscard]] Type AyuFiltersId();
+[[nodiscard]] Type TfFiltersId();
 
 } // namespace Settings

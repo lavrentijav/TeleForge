@@ -4502,10 +4502,10 @@ void OverlayWidget::activate() {
 	QApplication::setActiveWindow(_window);
 	setFocus();
 
-	if (AyuFeatures::StreamerMode::isEnabled()) {
-		AyuFeatures::StreamerMode::hideWidgetWindow(_window);
+	if (TfFeatures::StreamerMode::isEnabled()) {
+		TfFeatures::StreamerMode::hideWidgetWindow(_window);
 	} else {
-		AyuFeatures::StreamerMode::showWidgetWindow(_window);
+		TfFeatures::StreamerMode::showWidgetWindow(_window);
 	}
 }
 

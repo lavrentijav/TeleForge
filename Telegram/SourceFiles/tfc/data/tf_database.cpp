@@ -50,7 +50,7 @@ struct Tx {
 };
 }
 
-namespace AyuMigrations {
+namespace TfMigrations {
 
 void migrateToV1(decltype(db()) &store) {
 	// drop RegexFilter table as we've added primary_key()
@@ -66,13 +66,13 @@ void migrateToV2(decltype(db()) &store) {
 	try {
 		for (auto &row : store.get_all<EditedMessage>()) {
 			if (row.contentHash.empty()) {
-				row.contentHash = AyuContentHash::ComputeEdited(row);
+				row.contentHash = TfContentHash::ComputeEdited(row);
 				store.update(row);
 			}
 		}
 		for (auto &row : store.get_all<DeletedMessage>()) {
 			if (row.contentHash.empty()) {
-				row.contentHash = AyuContentHash::ComputeDeleted(row);
+				row.contentHash = TfContentHash::ComputeDeleted(row);
 				store.update(row);
 			}
 		}
@@ -88,20 +88,20 @@ void runMigrations(decltype(db()) &store) {
 	constexpr int kLatestVersion = 2;
 
 	const std::map<int, Fn<void(decltype(db()) &)>> migrations = {
-		{1, AyuMigrations::migrateToV1},
-		{2, AyuMigrations::migrateToV2},
+		{1, TfMigrations::migrateToV1},
+		{2, TfMigrations::migrateToV2},
 	};
 
 	int currentVersion = 0;
 	try {
-		if (auto versionRow = store.get_pointer<AyuDataSchemaVersion>(1)) {
+		if (auto versionRow = store.get_pointer<TfDataSchemaVersion>(1)) {
 			currentVersion = versionRow->version;
 		} else {
-			store.insert(AyuDataSchemaVersion{1, 0});
+			store.insert(TfDataSchemaVersion{1, 0});
 		}
 	} catch (...) {
-		LOG(("No AyuDataSchemaVersion, assuming 0"));
-		store.insert(AyuDataSchemaVersion{1, 0});
+		LOG(("No TfDataSchemaVersion, assuming 0"));
+		store.insert(TfDataSchemaVersion{1, 0});
 	}
 
 	if (currentVersion >= kLatestVersion) {
@@ -119,7 +119,7 @@ void runMigrations(decltype(db()) &store) {
 
 				migrations.at(v)(store);
 
-				store.update_all(set(c(&AyuDataSchemaVersion::version) = v), where(c(&AyuDataSchemaVersion::id) == 1));
+				store.update_all(set(c(&TfDataSchemaVersion::version) = v), where(c(&TfDataSchemaVersion::id) == 1));
 				store.commit();
 				LOG(("Applied Ayu migration for version: %1.").arg(v));
 			} catch (...) {
@@ -131,7 +131,7 @@ void runMigrations(decltype(db()) &store) {
 	}
 }
 
-namespace AyuDatabase {
+namespace TfDatabase {
 
 void moveCurrentDatabase() {
 	const auto time = base::unixtime::now();
@@ -161,7 +161,7 @@ void addEditedMessage(const EditedMessage &message) {
 	try {
 		auto row = message;
 		if (row.contentHash.empty()) {
-			row.contentHash = AyuContentHash::ComputeEdited(row);
+			row.contentHash = TfContentHash::ComputeEdited(row);
 		}
 		auto tx = Tx(db());
 		db().insert(row);
@@ -206,7 +206,7 @@ void addDeletedMessage(const DeletedMessage &message) {
 	try {
 		auto row = message;
 		if (row.contentHash.empty()) {
-			row.contentHash = AyuContentHash::ComputeDeleted(row);
+			row.contentHash = TfContentHash::ComputeDeleted(row);
 		}
 		auto tx = Tx(db());
 		db().insert(row);

@@ -35,7 +35,7 @@
 namespace TeleForge {
 
 void initialize() {
-	LOG(("TeleForge::initialize — chain: Application::run -> AyuInfra::init -> "
+	LOG(("TeleForge::initialize — chain: Application::run -> TfInfra::init -> "
 		"initDatabase (Ayu) then initTeleForge; opening teleforge.db under cWorkingDir"));
 	Storage::initialize();
 

@@ -126,7 +126,7 @@ void SaveImageAsync(QImage image, QString path, Fn<void(bool)> done) {
 }
 
 void saveChatUserpicToDisk(not_null<PeerData*> peer) {
-	if (peer->isUser() || !AyuSettings::getInstance().archiveSaveUserpics()) {
+	if (peer->isUser() || !TfSettings::getInstance().archiveSaveUserpics()) {
 		return;
 	}
 	peer->loadUserpic();
@@ -338,7 +338,7 @@ void saveUserpicToDisk(
 		int now,
 		long long accountId,
 		long long peerId) {
-	if (!AyuSettings::getInstance().archiveSaveUserpics()) {
+	if (!TfSettings::getInstance().archiveSaveUserpics()) {
 		return;
 	}
 	user->loadUserpic();
@@ -416,7 +416,7 @@ constexpr auto kObservationFlushDelayMs = crl::time(250);
 
 [[nodiscard]] int MaxObservationsPerFlush() {
 	return std::clamp(
-		AyuSettings::getInstance().archiveCrawlBatchSize(),
+		TfSettings::getInstance().archiveCrawlBatchSize(),
 		1,
 		200);
 }
@@ -606,11 +606,11 @@ void archiveNoteApiFailure(const QString &errorType) {
 
 void setArchiveEnabled(bool enabled) {
 	ArchiveEnabledCache() = enabled;
-	AyuSettings::getInstance().setPeerArchiveEnabled(enabled);
+	TfSettings::getInstance().setPeerArchiveEnabled(enabled);
 }
 
 void attachSession(not_null<Main::Session*> session) {
-	ArchiveEnabledCache() = AyuSettings::getInstance().peerArchiveEnabled();
+	ArchiveEnabledCache() = TfSettings::getInstance().peerArchiveEnabled();
 	CurrentAccountId() = AccountId(session);
 	try {
 		AdoptLegacyRows(CurrentAccountId());
@@ -618,7 +618,7 @@ void attachSession(not_null<Main::Session*> session) {
 		LOG(("PeerArchive: legacy row adoption failed: %1").arg(ex.what()));
 	}
 
-	AyuSettings::getInstance().peerArchiveEnabledChanges(
+	TfSettings::getInstance().peerArchiveEnabledChanges(
 	) | rpl::on_next([=](bool enabled) {
 		ArchiveEnabledCache() = enabled;
 	}, session->lifetime());

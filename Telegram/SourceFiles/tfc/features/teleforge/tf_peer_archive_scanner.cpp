@@ -27,14 +27,14 @@ namespace TeleForge::PeerArchive {
 namespace {
 
 [[nodiscard]] int ScanCooldownSeconds() {
-	return AyuSettings::getInstance().archiveChatRefreshSeconds();
+	return TfSettings::getInstance().archiveChatRefreshSeconds();
 }
 constexpr auto kParticipantsPerPage = 200;
 constexpr auto kParticipantsFirstPage = 50;
 constexpr auto kMaxFloodRetries = 3;
 
 [[nodiscard]] int MaxParticipants() {
-	return AyuSettings::getInstance().archiveMaxParticipants();
+	return TfSettings::getInstance().archiveMaxParticipants();
 }
 
 auto &LastChatScan() {
@@ -46,7 +46,7 @@ void ScanHistoryAuthors(
 		not_null<Main::Session*> session,
 		not_null<History*> history) {
 	const auto chatPeer = history->peer;
-	const auto limit = AyuSettings::getInstance().archiveHistoryScanLimit();
+	const auto limit = TfSettings::getInstance().archiveHistoryScanLimit();
 	auto seen = 0;
 	for (auto i = history->blocks.rbegin(); i != history->blocks.rend(); ++i) {
 		const auto &block = *i;
@@ -245,7 +245,7 @@ void scanOpenedChat(
 		ScanHistoryAuthors(session, history);
 	}
 
-	if (!AyuSettings::getInstance().archiveScanParticipants()) {
+	if (!TfSettings::getInstance().archiveScanParticipants()) {
 		return;
 	}
 	if (const auto chat = chatPeer->asChat()) {
@@ -256,7 +256,7 @@ void scanOpenedChat(
 		}
 	} else if (const auto channel = chatPeer->asChannel()) {
 		const auto broadcastsAllowed
-			= AyuSettings::getInstance().archiveScanBroadcasts();
+			= TfSettings::getInstance().archiveScanBroadcasts();
 		if (channel->isMegagroup()
 			|| (channel->isBroadcast() && broadcastsAllowed)) {
 			RequestChannelParticipantsPage(session, channel, chatPeer, 0, nullptr);

@@ -677,7 +677,7 @@ void MainMenu::setupAccountsToggle() {
 
 void MainMenu::setupSetEmojiStatus() {
 	_setEmojiStatus->overrideLinkClickHandler([=] {
-		_controller->showSettings(Settings::AyuMain::Id());
+		_controller->showSettings(Settings::TfMain::Id());
 	});
 }
 
@@ -700,7 +700,7 @@ void MainMenu::showFinished() {
 void MainMenu::setupMenu() {
 	using namespace Settings;
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto controller = _controller;
 	const auto addAction = [&](
@@ -780,7 +780,7 @@ void MainMenu::setupMenu() {
 				{&st::tfLReadMenuIcon}
 			)->setClickedCallback([=]() mutable
 			{
-				auto &ghost = AyuSettings::ghost(&controller->session());
+				auto &ghost = TfSettings::ghost(&controller->session());
 				const auto prev = ghost.sendReadMessages();
 				ghost.setSendReadMessages(false);
 
@@ -793,7 +793,7 @@ void MainMenu::setupMenu() {
 
 		if (settings.showSReadToggleInDrawer()) {
 			auto callback = [=](Fn<void()> &&close) mutable {
-				auto &ghost = AyuSettings::ghost(&controller->session());
+				auto &ghost = TfSettings::ghost(&controller->session());
 				const auto prev = ghost.sendReadMessages();
 				ghost.setSendReadMessages(true);
 
@@ -803,7 +803,7 @@ void MainMenu::setupMenu() {
 				// slight delay for forums to send packets
 				dispatchToMainThread([=]() mutable
 				{
-					auto &ghost = AyuSettings::ghost(&controller->session());
+					auto &ghost = TfSettings::ghost(&controller->session());
 					ghost.setSendReadMessages(prev);
 				}, 200);
 				close();
@@ -919,9 +919,9 @@ void MainMenu::setupMenu() {
 	}
 
 	if (settings.showGhostToggleInDrawer()) {
-		auto ghostActiveChanges = AyuSettings::getInstance().useGlobalGhostModeValue()
+		auto ghostActiveChanges = TfSettings::getInstance().useGlobalGhostModeValue()
 			| rpl::map([controller = _controller](bool) {
-				return AyuSettings::ghost(&controller->session()).ghostModeActiveValue();
+				return TfSettings::ghost(&controller->session()).ghostModeActiveValue();
 			})
 			| rpl::flatten_latest();
 
@@ -934,7 +934,7 @@ void MainMenu::setupMenu() {
 		) | rpl::on_next(
 			[controller = _controller](bool ghostMode)
 			{
-				auto &ghost = AyuSettings::ghost(&controller->session());
+				auto &ghost = TfSettings::ghost(&controller->session());
 				ghost.setGhostModeEnabled(ghostMode);
 			},
 			ghostModeToggle->lifetime());
@@ -944,16 +944,16 @@ void MainMenu::setupMenu() {
 		const auto streamerModeToggle = addAction(
 			tr::ayu_StreamerModeToggle(),
 			{&st::tfStreamerModeMenuIcon}
-		)->toggleOn(rpl::single(AyuFeatures::StreamerMode::isEnabled()));
+		)->toggleOn(rpl::single(TfFeatures::StreamerMode::isEnabled()));
 
 		streamerModeToggle->toggledChanges(
 		) | rpl::on_next(
 			[=](bool enabled)
 			{
 				if (enabled) {
-					AyuFeatures::StreamerMode::enable();
+					TfFeatures::StreamerMode::enable();
 				} else {
-					AyuFeatures::StreamerMode::disable();
+					TfFeatures::StreamerMode::disable();
 				}
 			},
 			streamerModeToggle->lifetime());

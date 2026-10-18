@@ -156,7 +156,7 @@ void syncNow(not_null<Main::Session*> session, Fn<void(QString message)> done) {
 			return;
 		}
 		BackendDownload(session, key, [=](bool applied, QString derr) {
-			AyuSettings::load();
+			TfSettings::load();
 			ApplyEndpointsFromStorage();
 			if (done) {
 				done(applied && derr.isEmpty()
@@ -230,7 +230,7 @@ void tryDownloadOnStartup(not_null<Main::Session*> session) {
 		return;
 	}
 	BackendDownload(session, SyncKey(session), [=](bool, QString) {
-		AyuSettings::load();
+		TfSettings::load();
 		ApplyEndpointsFromStorage();
 	});
 }

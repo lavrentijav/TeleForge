@@ -1595,7 +1595,7 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 			}
 			if (markingAsViewed && item->hasUnwatchedEffect()) {
 				const auto peer = item->history()->peer;
-				const auto &settings = AyuSettings::getInstance();
+				const auto &settings = TfSettings::getInstance();
 				const auto hide = (!settings.showChannelReactions() && peer->isChannel() && !peer->isMegagroup()) ||
 					(!settings.showGroupReactions() && peer->isMegagroup()) ||
 					(!settings.showPrivateChatReactions() && peer->isUser());
@@ -3295,11 +3295,11 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				Element::Moused())
 		) != HistoryView::PointState::GroupPart);
 	const auto addSelectMessageAction = [&](not_null<HistoryItem*> item) {
-		AyuUi::AddHistoryAction(_menu, item);
-		AyuUi::AddHideMessageAction(_menu, item);
-		AyuUi::AddUserMessagesAction(_menu, item);
-		AyuUi::AddRepeatMessageAction(_menu, item);
-		AyuUi::AddMessageDetailsAction(_menu, item);
+		TfUi::AddHistoryAction(_menu, item);
+		TfUi::AddHideMessageAction(_menu, item);
+		TfUi::AddUserMessagesAction(_menu, item);
+		TfUi::AddRepeatMessageAction(_menu, item);
+		TfUi::AddMessageDetailsAction(_menu, item);
 
 		if (item->canBeSelected() && !hasSelectRestriction()) {
 			const auto itemId = item->fullId();
@@ -3405,8 +3405,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			}();
 		}
 
-		AyuUi::AddReadUntilAction(_menu, item);
-		AyuUi::AddBurnAction(_menu, item);
+		TfUi::AddReadUntilAction(_menu, item);
+		TfUi::AddBurnAction(_menu, item);
 	};
 
 	const auto addReplyAction = [&](HistoryItem *item) {
@@ -3524,7 +3524,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						getSelectedText().rich,
 						hasCopyRestrictionForSelected()));
 				}, &st::menuIconTranslate);
-				AyuUi::AddForceTranslateSelectedActions(
+				TfUi::AddForceTranslateSelectedActions(
 					_menu,
 					item,
 					_controller,
@@ -3694,14 +3694,14 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						selectedText.rich,
 						hasCopyRestrictionForSelected()));
 				}, &st::menuIconTranslate);
-				AyuUi::AddForceTranslateSelectedActions(
+				TfUi::AddForceTranslateSelectedActions(
 					_menu,
 					item,
 					_controller,
 					selectedText.rich,
 					hasCopyRestrictionForSelected());
 			}
-			AyuUi::AddCreateFilterAction(_menu, _controller, item, selectedText.rich.text);
+			TfUi::AddCreateFilterAction(_menu, _controller, item, selectedText.rich.text);
 			const auto editItem = [&]() -> HistoryItem* {
 				const auto view = (item && item->groupId())
 					? viewByItem(item)
@@ -3815,7 +3815,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 									translate,
 									hasRestriction));
 							}, &st::menuIconTranslate);
-							AyuUi::AddForceTranslateMessageActions(
+							TfUi::AddForceTranslateMessageActions(
 								_menu,
 								item,
 								_controller,

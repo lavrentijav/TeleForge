@@ -92,8 +92,8 @@ void putFilteredLocked(long long dialogId, FilteredKey messageId, bool res) {
 void rebuildCache() {
 	std::lock_guard lock(mutex);
 
-	const auto filters = AyuDatabase::getAllRegexFilters();
-	const auto exclusions = AyuDatabase::getAllFiltersExclusions();
+	const auto filters = TfDatabase::getAllRegexFilters();
+	const auto exclusions = TfDatabase::getAllFiltersExclusions();
 
 	std::vector<HashablePattern> shared;
 	std::unordered_map<long long, std::vector<ReversiblePattern>> byDialogId;

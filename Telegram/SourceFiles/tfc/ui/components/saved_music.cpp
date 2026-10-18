@@ -175,7 +175,7 @@ std::optional<QRgb> ExtractColorFromCover(const QPixmap &cover) {
 	return adjustedColor;
 }
 
-AyuMusicButton::AyuMusicButton(
+TfMusicButton::TfMusicButton(
 	QWidget *parent,
 	MusicButtonData data,
 	std::optional<QColor> overrideBg,
@@ -210,9 +210,9 @@ AyuMusicButton::AyuMusicButton(
 	setClickedCallback(std::move(handler));
 }
 
-AyuMusicButton::~AyuMusicButton() = default;
+TfMusicButton::~TfMusicButton() = default;
 
-void AyuMusicButton::updateData(MusicButtonData data) {
+void TfMusicButton::updateData(MusicButtonData data) {
 	_performer->setText(data.performer);
 	_title->setText(data.title);
 	_performerText = data.performer;
@@ -223,7 +223,7 @@ void AyuMusicButton::updateData(MusicButtonData data) {
 	resizeToWidth(widthNoMargins());
 }
 
-void AyuMusicButton::downloadAndMakeCover(FullMsgId msgId) {
+void TfMusicButton::downloadAndMakeCover(FullMsgId msgId) {
 	if (_mediaView && _mediaView->owner()->isSongWithCover() && !_mediaView->thumbnail()) {
 		const auto settings = &_mediaView->owner()->session().settings().autoDownload();
 		// Data::AutoDownload::Type::Music always returns false
@@ -246,12 +246,12 @@ void AyuMusicButton::downloadAndMakeCover(FullMsgId msgId) {
 	makeCover();
 }
 
-void AyuMusicButton::makeCover() {
+void TfMusicButton::makeCover() {
 	const auto weak = base::make_weak(this);
 	crl::async(
 		[=, mediaView = _mediaView, performerText = _performerText, titleText = _titleText, overrideBg = _overrideBg]()
 		{
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = TfSettings::getInstance();
 			const auto &font = st::infoMusicButtonTitle.style.font;
 			const auto skip = st::normalFont->spacew / 2;
 			const auto size = font->height + skip + font->height;
@@ -298,7 +298,7 @@ void AyuMusicButton::makeCover() {
 					.noCover = cover.noCover,
 				};
 
-				const auto &settings2 = AyuSettings::getInstance();
+				const auto &settings2 = TfSettings::getInstance();
 				const auto &cover2 = *strong->_currentCover;
 
 				if (!cover2.noCover && settings2.adaptiveCoverColor() && !cover2.pix.isNull()) {
@@ -319,7 +319,7 @@ void AyuMusicButton::makeCover() {
 		});
 }
 
-void AyuMusicButton::paintEvent(QPaintEvent *e) {
+void TfMusicButton::paintEvent(QPaintEvent *e) {
 	if (!_currentCover) {
 		return;
 	}
@@ -330,7 +330,7 @@ void AyuMusicButton::paintEvent(QPaintEvent *e) {
 	const auto skip = st::normalFont->spacew / 2;
 	const auto size = font->height + skip + font->height;
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto cover = _currentCover.value();
 	if (cover.noCover || !settings.adaptiveCoverColor()) {
 		p.fillRect(e->rect(), cover.bg);
@@ -349,7 +349,7 @@ void AyuMusicButton::paintEvent(QPaintEvent *e) {
 	}
 }
 
-int AyuMusicButton::resizeGetHeight(int newWidth) {
+int TfMusicButton::resizeGetHeight(int newWidth) {
 	const auto padding = st::infoMusicButtonPadding;
 	const auto &font = st::infoMusicButtonTitle.style.font;
 

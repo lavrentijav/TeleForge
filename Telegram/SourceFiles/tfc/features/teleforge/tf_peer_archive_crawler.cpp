@@ -26,12 +26,12 @@ constexpr auto kTickJitterMs = 5000;
 constexpr auto kMinTickMs = 10000;
 
 [[nodiscard]] crl::time TickMs() {
-	const auto seconds = AyuSettings::getInstance().archiveKnownUserOnlineSeconds();
+	const auto seconds = TfSettings::getInstance().archiveKnownUserOnlineSeconds();
 	return std::max(crl::time(kMinTickMs), crl::time(seconds) * crl::time(1000));
 }
 
 [[nodiscard]] crl::time ReseedMs() {
-	const auto seconds = AyuSettings::getInstance().archiveChatRefreshSeconds();
+	const auto seconds = TfSettings::getInstance().archiveChatRefreshSeconds();
 	return crl::time(seconds) * crl::time(1000);
 }
 constexpr auto kMaxQueue = 1500;
@@ -150,14 +150,14 @@ void ProcessNext(not_null<Main::Session*> session) {
 
 void ScheduleTick(not_null<Main::Session*> session, crl::time delay) {
 	if (CrawlScheduled()
-		|| !AyuSettings::getInstance().archiveBackgroundCrawl()) {
+		|| !TfSettings::getInstance().archiveBackgroundCrawl()) {
 		return;
 	}
 	CrawlScheduled() = true;
 	base::call_delayed(delay, session, [=] {
 		CrawlScheduled() = false;
 		if (!archiveEnabled()
-			|| !AyuSettings::getInstance().archiveBackgroundCrawl()) {
+			|| !TfSettings::getInstance().archiveBackgroundCrawl()) {
 			return;
 		}
 		ProcessNext(session);
@@ -191,7 +191,7 @@ void enqueueLinksFromText(
 		not_null<Main::Session*> session,
 		const QString &text) {
 	if (!archiveEnabled()
-		|| !AyuSettings::getInstance().archiveFollowLinks()) {
+		|| !TfSettings::getInstance().archiveFollowLinks()) {
 		return;
 	}
 	EnqueueLinksFromText(session, text);

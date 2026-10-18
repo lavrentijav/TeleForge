@@ -170,11 +170,11 @@ void ShowCatalogInstallBox(
 
 const auto kMeta = BuildHelper({
 	.id = TeleForgePlugins::Id(),
-	.parentId = AyuMain::Id(),
+	.parentId = TfMain::Id(),
 	.title = &tr::ayu_CategoryTeleForgePlugins,
 	.icon = &st::menuIconBot,
 }, [](SectionBuilder &builder) {
-	auto ayu = AyuSectionBuilder(builder);
+	auto ayu = TfSectionBuilder(builder);
 	const auto controller = builder.controller();
 	const auto pluginsHost = std::make_shared<QPointer<Ui::VerticalLayout>>();
 	const auto developersHost = std::make_shared<QPointer<Ui::VerticalLayout>>();

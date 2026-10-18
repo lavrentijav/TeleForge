@@ -266,7 +266,7 @@ constexpr auto kBlurRadius = 24;
 } // namespace
 
 QRect CornerBadgeTTLRect(int photoSize) {
-	return AyuUserpic::OnlineBadgeRect(photoSize, st::dialogsTTLBadgeSize);
+	return TfUserpic::OnlineBadgeRect(photoSize, st::dialogsTTLBadgeSize);
 }
 
 QImage BlurredDarkenedPart(QImage image, QRect part) {
@@ -583,10 +583,10 @@ void Row::PaintCornerBadgeFrame(
 			}
 		}
 		if (peer && (peer->forum() || peer->monoforum())) {
-			const auto &settings = AyuSettings::getInstance();
+			const auto &settings = TfSettings::getInstance();
 			const auto singleRadius = settings.singleCornerRadius();
 			const auto radius = singleRadius
-				? AyuUserpic::ComputeRadiusF(context.st->photoSize)
+				? TfUserpic::ComputeRadiusF(context.st->photoSize)
 				: (context.st->photoSize * Ui::ForumUserpicRadiusMultiplier());
 			Ui::PaintOutlineSegments(q, outline, radius, segments);
 		} else {
@@ -705,7 +705,7 @@ void Row::PaintCornerBadgeFrame(
 	q.setBrush(data->active
 		? st::dialogsOnlineBadgeFgActive
 		: st::dialogsOnlineBadgeFg);
-	const auto badge = AyuUserpic::OnlineBadgeRect(photoSize, size, stroke);
+	const auto badge = TfUserpic::OnlineBadgeRect(photoSize, size, stroke);
 	q.drawEllipse(QRectF(badge).marginsRemoved({
 		shrink,
 		shrink,
@@ -750,7 +750,7 @@ void Row::paintUserpic(
 			hidden);
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto cornerBadgeShown = !_cornerBadgeUserpic
 		? _cornerBadgeShown
@@ -887,7 +887,7 @@ void Row::paintUserpic(
 		: st::dialogsBg;
 	const auto size = st::dialogsCallBadgeSize;
 	const auto stroke = st::dialogsOnlineBadgeStroke;
-	const auto badge = AyuUserpic::OnlineBadgeRect(
+	const auto badge = TfUserpic::OnlineBadgeRect(
 		context.st->photoSize,
 		size,
 		stroke);

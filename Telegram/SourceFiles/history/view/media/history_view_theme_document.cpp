@@ -274,7 +274,7 @@ void ThemeDocument::draw(Painter &p, const PaintContext &context) const {
 		}
 		if ((radial || (!loaded && !_data->loading()))
 			&& (_parent->context() != Context::MediaEditor)
-			&& !AyuFeatures::MessageShot::isTakingShot()) {
+			&& !TfFeatures::MessageShot::isTakingShot()) {
 			const auto radialOpacity = (radial && loaded && !_data->uploading())
 				? _animation->radial.opacity() :
 				1.;

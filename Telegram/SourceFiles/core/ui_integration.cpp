@@ -450,7 +450,7 @@ bool UiIntegration::handleUrlClick(
 		}
 	}
 
-	if (AyuUrlHandlers::TryHandleSpotify(url)) {
+	if (TfUrlHandlers::TryHandleSpotify(url)) {
 		return true;
 	}
 

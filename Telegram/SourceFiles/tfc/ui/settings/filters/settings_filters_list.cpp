@@ -35,7 +35,7 @@
 
 namespace Settings {
 
-rpl::producer<QString> AyuFiltersList::title() {
+rpl::producer<QString> TfFiltersList::title() {
 	if (shadowBan) {
 		return tr::ayu_FiltersShadowBan();
 	}
@@ -62,7 +62,7 @@ rpl::producer<QString> AyuFiltersList::title() {
 	return rpl::single(res);
 }
 
-AyuFiltersList::AyuFiltersList(
+TfFiltersList::TfFiltersList(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
 	: Section(parent, controller), _controller(controller), _content(Ui::CreateChild<Ui::VerticalLayout>(this)),
@@ -74,13 +74,13 @@ AyuFiltersList::AyuFiltersList(
 	setupContent(controller);
 }
 
-void AyuFiltersList::checkBeforeClose(Fn<void()> close) {
+void TfFiltersList::checkBeforeClose(Fn<void()> close) {
 	_controller->showExclude = true;
 	_controller->shadowBan = false;
 	close();
 }
 
-void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
+void TfFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 	const auto state = lifetime().make_state<RegexFilter>(filter);
 	const auto button = _content->add(
 	object_ptr<Button>(
@@ -117,7 +117,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 			[=]
 			{
 				state->enabled = !state->enabled;
-				AyuDatabase::updateRegexFilter(*state);
+				TfDatabase::updateRegexFilter(*state);
 				FiltersCacheController::rebuildCache();
 				FiltersCacheController::fireUpdate();
 			},
@@ -129,8 +129,8 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 			tr::ayu_Delete(tr::now),
 			[=]
 			{
-				AyuDatabase::deleteFilter(state->id);
-				AyuDatabase::deleteExclusionsByFilterId(state->id);
+				TfDatabase::deleteFilter(state->id);
+				TfDatabase::deleteExclusionsByFilterId(state->id);
 				FiltersCacheController::rebuildCache();
 				FiltersCacheController::fireUpdate();
 			},
@@ -151,7 +151,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 				└── class Ui::ScrollArea
 					└── class QWidget
 						└── class Ui::PaddingWrap<class Ui::RpWidget>
-							└── class Settings::AyuFiltersList
+							└── class Settings::TfFiltersList
 		 */
 		// controller->showBackFromStack() doesn't work (closes box completely)
 		// so as a workaround, use WrapWidget
@@ -162,7 +162,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 			.filterId = state->id
 		};
 
-		AyuDatabase::addRegexExclusion(newExclusion);
+		TfDatabase::addRegexExclusion(newExclusion);
 		FiltersCacheController::rebuildCache();
 		FiltersCacheController::fireUpdate();
 
@@ -182,7 +182,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 			{
 				Expects(dialogId.has_value());
 
-				AyuDatabase::deleteExclusion(dialogId.value(), state->id);
+				TfDatabase::deleteExclusion(dialogId.value(), state->id);
 				FiltersCacheController::rebuildCache();
 				FiltersCacheController::fireUpdate();
 			},
@@ -209,17 +209,17 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 		});
 }
 
-void AyuFiltersList::initializeSharedFilters(
+void TfFiltersList::initializeSharedFilters(
 	not_null<Ui::VerticalLayout*> container) {
 	if (dialogId.has_value() && _controller->showExclude.has_value() && _controller->showExclude.value()) {
-		filters = AyuDatabase::getByDialogId(dialogId.value());
-		exclusions = AyuDatabase::getExcludedByDialogId(dialogId.value());
+		filters = TfDatabase::getByDialogId(dialogId.value());
+		exclusions = TfDatabase::getExcludedByDialogId(dialogId.value());
 	} else {
-		filters = AyuDatabase::getShared();
+		filters = TfDatabase::getShared();
 
 		// remove shared filters that already excluded for that peer exclusion
 		if (dialogId.has_value() && _controller->showExclude.has_value() && !_controller->showExclude.value()) {
-			const auto excludedForDialogId = AyuDatabase::getExcludedByDialogId(dialogId.value());
+			const auto excludedForDialogId = TfDatabase::getExcludedByDialogId(dialogId.value());
 
 			auto rangeToRemove = std::ranges::remove_if(
 				filters,
@@ -262,7 +262,7 @@ void AyuFiltersList::initializeSharedFilters(
 	}
 }
 
-void AyuFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container) {
+void TfFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container) {
 	auto ctrl = container->lifetime().make_state<PerDialogFiltersListController>(
 		&_controller->session(),
 		_controller,
@@ -277,7 +277,7 @@ void AyuFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container
 		QMargins(0, -st::peerListBox.padding.top(), 0, -st::peerListBox.padding.bottom()));
 
 	// delegate is not initialized at this moment
-	if (AyuSettings::getInstance().shadowBanIds().size() > 0) {
+	if (TfSettings::getInstance().shadowBanIds().size() > 0) {
 		AddSkip(container);
 
 		filtersTitle = AddSubsectionTitle(container, tr::ayu_RegexFiltersHeader());
@@ -293,7 +293,7 @@ void AyuFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container
 	}
 }
 
-void AyuFiltersList::setupContent(not_null<Window::SessionController*> controller) {
+void TfFiltersList::setupContent(not_null<Window::SessionController*> controller) {
 	if (shadowBan) {
 		initializeShadowBan(_content);
 	} else {

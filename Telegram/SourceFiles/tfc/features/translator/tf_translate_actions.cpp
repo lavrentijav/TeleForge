@@ -519,7 +519,7 @@ TextWithEntities MessageTranslatableText(not_null<HistoryItem*> item) {
 }
 
 bool AiTranslationAvailable() {
-	if (!AyuSettings::getInstance().aiTranslationEnabled()) {
+	if (!TfSettings::getInstance().aiTranslationEnabled()) {
 		return false;
 	}
 	const auto personality = TeleForge::LoadPersonalityCore()
@@ -538,7 +538,7 @@ bool AiTranslationAvailable() {
 }
 
 bool AiCompressionAvailable() {
-	if (!AyuSettings::getInstance().aiCompressionEnabled()) {
+	if (!TfSettings::getInstance().aiCompressionEnabled()) {
 		return false;
 	}
 	return AiTranslationAvailable();
@@ -614,7 +614,7 @@ void ShowAiCompressBox(
 
 } // namespace Ayu::Translator
 
-namespace AyuUi {
+namespace TfUi {
 
 void AddForceTranslateChatAction(
 		PeerData *peerData,
@@ -721,4 +721,4 @@ void AddForceTranslateSelectedActions(
 	}
 }
 
-} // namespace AyuUi
+} // namespace TfUi

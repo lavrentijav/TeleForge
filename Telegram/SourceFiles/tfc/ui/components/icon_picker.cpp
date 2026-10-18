@@ -121,7 +121,7 @@ void IconPicker::paintEvent(QPaintEvent *e) {
 }
 
 void IconPicker::mousePressEvent(QMouseEvent *e) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	auto changed = false;
 
 	const auto cell = cellWidth();
@@ -155,7 +155,7 @@ void IconPicker::mousePressEvent(QMouseEvent *e) {
 						anim::easeOutCubic
 					);
 
-					AyuSettings::getInstance().setAppIcon(iconName);
+					TfSettings::getInstance().setAppIcon(iconName);
 					changed = true;
 					break;
 				}

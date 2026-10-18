@@ -520,7 +520,7 @@ void Photo::draw(Painter &p, const PaintContext &context) const {
 			p.setBrush(over ? st->msgDateImgBgOver() : st->msgDateImgBg());
 		}
 	}
-	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
+	if (paintInCenter && !TfFeatures::MessageShot::isTakingShot()) {
 		const auto radialOpacity = (radial && loaded && !_data->uploading())
 			? _animation->radial.opacity() :
 			1.;
@@ -654,8 +654,8 @@ void Photo::validateUserpicImageCache(QSize size, bool forum) const {
 	const auto shape = forumValue
 		? Ui::PeerUserpicShape::Forum
 		: Ui::PeerUserpicShape::Circle;
-	if (AyuUserpic::ShouldOverrideShape(shape)) {
-		original = AyuUserpic::RoundImage(std::move(original));
+	if (TfUserpic::ShouldOverrideShape(shape)) {
+		original = TfUserpic::RoundImage(std::move(original));
 	} else {
 		original = Images::Round(
 			std::move(original),
@@ -757,8 +757,8 @@ void Photo::paintUserpicFrame(
 		const auto shape = forum
 			? Ui::PeerUserpicShape::Forum
 			: Ui::PeerUserpicShape::Circle;
-		if (AyuUserpic::ShouldOverrideShape(shape)) {
-			AyuUserpic::ApplyFrameRounding(
+		if (TfUserpic::ShouldOverrideShape(shape)) {
+			TfUserpic::ApplyFrameRounding(
 				request,
 				_streamed->roundingCorners,
 				_streamed->roundingMask,
@@ -994,7 +994,7 @@ void Photo::drawGrouped(
 			|| (!loaded && !_data->loading())
 			|| _data->waitingForAlbum()
 			|| ttlCovered);
-	if (paintInCenter && !AyuFeatures::MessageShot::isTakingShot()) {
+	if (paintInCenter && !TfFeatures::MessageShot::isTakingShot()) {
 		const auto radialOpacity = radial
 			? _animation->radial.opacity()
 			: 1.;
@@ -1109,11 +1109,11 @@ bool Photo::dataLoaded() const {
 }
 
 bool Photo::needInfoDisplay() const {
-	if (AyuFeatures::MessageShot::ignoreRender(AyuFeatures::MessageShot::RenderPart::Date)) {
+	if (TfFeatures::MessageShot::ignoreRender(TfFeatures::MessageShot::RenderPart::Date)) {
 		return false;
 	}
 
-	if (AyuFeatures::MessageShot::isTakingShot()) {
+	if (TfFeatures::MessageShot::isTakingShot()) {
 		return true;
 	}
 

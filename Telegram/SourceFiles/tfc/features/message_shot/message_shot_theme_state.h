@@ -14,7 +14,7 @@
 #include <memory>
 #include <optional>
 
-namespace AyuFeatures::MessageShot {
+namespace TfFeatures::MessageShot {
 
 enum class SavedThemeApplyResult {
 	AppliedSync,

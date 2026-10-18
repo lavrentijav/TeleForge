@@ -145,7 +145,7 @@ void MigrateToV8() {
 	}
 	const auto queries = {
 		R"SQL(
-INSERT OR IGNORE INTO AyuDataSchemaVersion (id, version)
+INSERT OR IGNORE INTO TfDataSchemaVersion (id, version)
 SELECT id, version FROM legacy.SchemaVersion WHERE id = 1;
 )SQL",
 		R"SQL(

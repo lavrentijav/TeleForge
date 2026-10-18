@@ -192,8 +192,8 @@ void ShowStringPickMenu(
 	menu->popup(globalPos);
 }
 
-void BuildAiTranslation(SectionBuilder &builder, AyuSectionBuilder &ayu) {
-	auto *settings = &AyuSettings::getInstance();
+void BuildAiTranslation(SectionBuilder &builder, TfSectionBuilder &ayu) {
+	auto *settings = &TfSettings::getInstance();
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -264,11 +264,11 @@ void BuildAiTranslation(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 const auto kMeta = BuildHelper({
 	.id = TeleForgeAi::Id(),
-	.parentId = AyuMain::Id(),
+	.parentId = TfMain::Id(),
 	.title = &tr::ayu_CategoryTeleForgeAi,
 	.icon = &st::menuIconIpAddress,
 }, [](SectionBuilder &builder) {
-	auto ayu = AyuSectionBuilder(builder);
+	auto ayu = TfSectionBuilder(builder);
 	const auto controller = builder.controller();
 
 	builder.addSkip();

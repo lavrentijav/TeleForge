@@ -108,7 +108,7 @@ void ConfirmSensitive(
 
 PyObject *tf_settings_all(PyObject *, PyObject *) {
 	const auto dump = RunOnMainSync([]() -> std::string {
-		auto &settings = AyuSettings::getInstance();
+		auto &settings = TfSettings::getInstance();
 		nlohmann::json json;
 		to_json(json, settings);
 		return json.dump();
@@ -123,7 +123,7 @@ PyObject *tf_settings_get(PyObject *, PyObject *args) {
 	}
 	const auto keyStr = std::string(key);
 	const auto dump = RunOnMainSync([keyStr]() -> std::string {
-		auto &settings = AyuSettings::getInstance();
+		auto &settings = TfSettings::getInstance();
 		nlohmann::json json;
 		to_json(json, settings);
 		const auto it = json.find(keyStr);
@@ -150,14 +150,14 @@ PyObject *tf_settings_apply(PyObject *, PyObject *args) {
 		return nullptr;
 	}
 	RunOnMainSync([incoming = std::move(incoming)] {
-		auto &settings = AyuSettings::getInstance();
+		auto &settings = TfSettings::getInstance();
 		nlohmann::json merged;
 		to_json(merged, settings);
 		for (auto it = incoming.begin(); it != incoming.end(); ++it) {
 			merged[it.key()] = it.value();
 		}
 		from_json(merged, settings);
-		AyuSettings::save();
+		TfSettings::save();
 	});
 	Py_RETURN_TRUE;
 }
@@ -179,18 +179,18 @@ PyObject *tf_settings_set(PyObject *, PyObject *args) {
 		return nullptr;
 	}
 	RunOnMainSync([keyStr, value = std::move(value)] {
-		auto &settings = AyuSettings::getInstance();
+		auto &settings = TfSettings::getInstance();
 		nlohmann::json merged;
 		to_json(merged, settings);
 		merged[keyStr] = value;
 		from_json(merged, settings);
-		AyuSettings::save();
+		TfSettings::save();
 	});
 	Py_RETURN_TRUE;
 }
 
 PyObject *tf_settings_reset(PyObject *, PyObject *) {
-	RunOnMainSync([] { AyuSettings::reset(); });
+	RunOnMainSync([] { TfSettings::reset(); });
 	Py_RETURN_NONE;
 }
 

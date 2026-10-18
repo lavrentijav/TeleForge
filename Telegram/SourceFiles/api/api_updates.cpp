@@ -2145,7 +2145,7 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 			} else if (d.vstatus().type() == mtpc_userStatusOnline) {
 				cSetOtherOnline(
 					d.vstatus().c_userStatusOnline().vexpires().v);
-				AyuWorker::scheduleOfflinePacket(_session);
+				TfWorker::scheduleOfflinePacket(_session);
 			}
 		}
 	} break;

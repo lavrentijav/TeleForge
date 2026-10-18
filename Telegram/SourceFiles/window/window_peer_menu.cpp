@@ -754,13 +754,13 @@ void Filler::addToggleUnreadBadgeExclude() {
 		return;
 	}
 	const auto peer = _peer;
-	const auto excluded = AyuSettings::getInstance().isUnreadBadgeExcluded(
+	const auto excluded = TfSettings::getInstance().isUnreadBadgeExcluded(
 		peer->id.value);
 	const auto label = excluded
 		? tr::ayu_UnreadBadgeInclude(tr::now)
 		: tr::ayu_UnreadBadgeExclude(tr::now);
 	_addAction(label, [=] {
-		AyuSettings::getInstance().toggleUnreadBadgeExcluded(peer->id.value);
+		TfSettings::getInstance().toggleUnreadBadgeExcluded(peer->id.value);
 	}, &st::menuIconMute);
 }
 
@@ -1955,7 +1955,7 @@ void Filler::fillContextMenuActions() {
 	}
 	addBanFromChannel();
 	addClearHistory();
-	AyuUi::AddDeleteOwnMessagesAction(_peer, _topic, _controller, _addAction);
+	TfUi::AddDeleteOwnMessagesAction(_peer, _topic, _controller, _addAction);
 	addDeleteChat();
 	addLeaveChat();
 	addDeleteTopic();
@@ -1965,10 +1965,10 @@ void Filler::fillHistoryActions() {
 	addToggleMuteSubmenu(true);
 	addCreateTopic();
 	addInfo();
-	AyuUi::AddAiModeAction(_peer, _controller, _addAction);
-	AyuUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
-	AyuUi::AddOpenChannelAction(_peer, _controller, _addAction);
-	AyuUi::AddTeleForgePeerSubmenu(_peer, _controller, _addAction);
+	TfUi::AddAiModeAction(_peer, _controller, _addAction);
+	TfUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
+	TfUi::AddOpenChannelAction(_peer, _controller, _addAction);
+	TfUi::AddTeleForgePeerSubmenu(_peer, _controller, _addAction);
 	addViewAsTopics();
 	addManageChat();
 	addStoryArchive();
@@ -1982,11 +1982,11 @@ void Filler::fillHistoryActions() {
 	addDirectMessages();
 	addExportChat();
 	addTranslate();
-	AyuUi::AddForceTranslateChatAction(_peer, _controller, _addAction);
+	TfUi::AddForceTranslateChatAction(_peer, _controller, _addAction);
 	addReport();
-	AyuUi::AddDeletedMessagesActions(_peer, _thread, _controller, _addAction);
+	TfUi::AddDeletedMessagesActions(_peer, _thread, _controller, _addAction);
 	addClearHistory();
-	AyuUi::AddDeleteOwnMessagesAction(_peer, _topic, _controller, _addAction);
+	TfUi::AddDeleteOwnMessagesAction(_peer, _topic, _controller, _addAction);
 	addDeleteChat();
 	addLeaveChat();
 }
@@ -2008,8 +2008,8 @@ void Filler::fillProfileActions() {
 	addTopicLink();
 	addManageTopic();
 	addToggleTopicClosed();
-	AyuUi::AddOpenChannelAction(_peer, _controller, _addAction);
-	AyuUi::AddShadowBanAction(_peer, _addAction);
+	TfUi::AddOpenChannelAction(_peer, _controller, _addAction);
+	TfUi::AddShadowBanAction(_peer, _addAction);
 	addViewDiscussion();
 	addDirectMessages();
 	addExportChat();
@@ -2026,7 +2026,7 @@ void Filler::fillProfileActions() {
 void Filler::fillRepliesActions() {
 	if (_topic) {
 		addInfo();
-		AyuUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
+		TfUi::AddJumpToBeginningAction(_peer, _thread, _controller, _addAction);
 		addManageTopic();
 	}
 	addBoostChat();
@@ -2034,7 +2034,7 @@ void Filler::fillRepliesActions() {
 	addCreateTodoList();
 	addToggleTopicClosed();
 	addDeleteTopic();
-	AyuUi::AddDeletedMessagesActions(_peer, _thread, _controller, _addAction);
+	TfUi::AddDeletedMessagesActions(_peer, _thread, _controller, _addAction);
 }
 
 void Filler::fillScheduledActions() {
@@ -3716,9 +3716,9 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 
 		// AyuGram-changed
 
-		// workaround for deselecting messages when using AyuForward
+		// workaround for deselecting messages when using TfForward
 		const auto items = history->owner().idsToItems(msgIds);
-		auto ayuForwarding = AyuForward::isAyuForwardNeeded(items) || AyuForward::isFullAyuForwardNeeded(items.front());
+		auto ayuForwarding = TfForward::isAyuForwardNeeded(items) || TfForward::isFullAyuForwardNeeded(items.front());
 
 		if ((!state->submit || ayuForwarding) && successCallback) {
 			successCallback();

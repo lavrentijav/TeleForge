@@ -605,7 +605,7 @@ HistoryWidget::HistoryWidget(
 
 	_fieldCharsCountManager.limitExceeds(
 	) | rpl::on_next([=] {
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		const auto hide = _fieldCharsCountManager.isLimitExceeded();
 		if (_silent) {
 			_silent->setVisible(!hide);
@@ -903,15 +903,15 @@ HistoryWidget::HistoryWidget(
 	}, lifetime());
 
 	rpl::merge(
-		AyuSettings::getInstance().showAttachButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showCommandsButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showEmojiButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showMicrophoneButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showAutoDeleteButtonInMessageFieldChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showAttachPopupChanges() | rpl::to_empty,
-		AyuSettings::getInstance().showEmojiPopupChanges() | rpl::to_empty,
-		AyuSettings::getInstance().channelBottomButtonChanges() | rpl::to_empty,
-		AyuSettings::getInstance().removeMessageTailChanges() | rpl::to_empty
+		TfSettings::getInstance().showAttachButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showCommandsButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showEmojiButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showMicrophoneButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showAutoDeleteButtonInMessageFieldChanges() | rpl::to_empty,
+		TfSettings::getInstance().showAttachPopupChanges() | rpl::to_empty,
+		TfSettings::getInstance().showEmojiPopupChanges() | rpl::to_empty,
+		TfSettings::getInstance().channelBottomButtonChanges() | rpl::to_empty,
+		TfSettings::getInstance().removeMessageTailChanges() | rpl::to_empty
 	) | rpl::on_next([=] {
 		refreshAttachBotsMenu();
 		updateHistoryGeometry();
@@ -920,7 +920,7 @@ HistoryWidget::HistoryWidget(
 		this->update();
 	}, lifetime());
 
-	AyuSettings::getInstance().translationProviderChanges(
+	TfSettings::getInstance().translationProviderChanges(
 	) | rpl::on_next([=](TranslationProvider) {
 		if (_history) {
 			for (const auto &block : _history->blocks) {
@@ -1229,7 +1229,7 @@ HistoryWidget::HistoryWidget(
 		if (action.replaceMediaOf) {
 		} else if (action.options.scheduled) {
 			cancelReplyOrSuggest(lastKeyboardUsed);
-			const auto &ghost = AyuSettings::ghost(&controller->session());
+			const auto &ghost = TfSettings::ghost(&controller->session());
 			if (!ghost.isUseScheduledMessages()) {
 				crl::on_main(this, [=, history = action.history]
 				{
@@ -2827,7 +2827,7 @@ void HistoryWidget::fileChosen(ChatHelpers::FileChosen &&data) {
 			Data::InsertCustomEmoji(_field.data(), data.document);
 		}
 	} else if (_history) {
-		const auto &ghost = AyuSettings::ghost(&controller()->session());
+		const auto &ghost = TfSettings::ghost(&controller()->session());
 		if (!ghost.sendReadMessages() && ghost.markReadAfterAction()) {
 			if (const auto lastMessage = history()->lastMessage()) {
 				readHistory(lastMessage);
@@ -4003,7 +4003,7 @@ void HistoryWidget::setHistory(History *history) {
 	}
 	_pullToNext->setHistory(history);
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto was = _attachBotsMenu && _history && _history->peer->isUser();
 	const auto now = _attachBotsMenu && history && history->peer->isUser() && settings.showAttachPopup();
@@ -4095,7 +4095,7 @@ void HistoryWidget::refreshAttachBotsMenu() {
 		return;
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	_attachBotsMenu = InlineBots::MakeAttachBotsMenu(
 		this,
@@ -4524,7 +4524,7 @@ bool HistoryWidget::canWriteMessage() const {
 }
 
 void HistoryWidget::updateControlsVisibility() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	auto fieldDisabledRemoved = (_fieldDisabled != nullptr);
 	auto fieldVisibilityChanged = false;
@@ -6190,7 +6190,7 @@ void HistoryWidget::sendVoice(const VoiceToSend &data) {
 }
 
 void HistoryWidget::send(Api::SendOptions options) {
-	const auto &ghost = AyuSettings::ghost(&controller()->session());
+	const auto &ghost = TfSettings::ghost(&controller()->session());
 
 	auto lastMessage = _history->lastMessage();
 	if (!ghost.sendReadMessages() && ghost.markReadAfterAction() && lastMessage) {
@@ -6596,7 +6596,7 @@ void HistoryWidget::goToDiscussionGroup() {
 }
 
 bool HistoryWidget::hasDiscussionGroup() const {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (settings.channelBottomButton() != ChannelBottomButton::DiscussWithFallback) {
 		return false;
 	}
@@ -7285,7 +7285,7 @@ bool HistoryWidget::isChoosingTheme() const {
 }
 
 bool HistoryWidget::isMuteUnmute() const {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (settings.channelBottomButton() == ChannelBottomButton::Hidden) {
 		return false;
 	}
@@ -7302,7 +7302,7 @@ bool HistoryWidget::isSearching() const {
 }
 
 bool HistoryWidget::showRecordButton() const {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.showMicrophoneButtonInMessageField()) {
 		return false;
 	}
@@ -7572,7 +7572,7 @@ void HistoryWidget::showKeyboardHideButton() {
 }
 
 void HistoryWidget::toggleKeyboard(bool manual) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto fieldEnabled = canWriteMessage() && !_showAnimation;
 	if (_kbShown || _kbReplyTo) {
@@ -7979,7 +7979,7 @@ void HistoryWidget::updateSendAsFileGeometry() {
 }
 
 void HistoryWidget::moveFieldControls() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	auto keyboardHeight = 0;
 	auto bottom = height();
@@ -8088,7 +8088,7 @@ void HistoryWidget::moveFieldControls() {
 }
 
 void HistoryWidget::updateFieldSize() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto kbShowShown = _history && !_kbShown && _keyboard->hasMarkup();
 	auto fieldWidth = width()
@@ -8980,8 +8980,8 @@ void HistoryWidget::updateSendRestriction() {
 		return;
 	}
 	_sendRestrictionKey = restriction.text;
-	if (AyuForward::isForwarding(_peer->id)) {
-		_sendRestriction = AyuForwardWriteRestriction(this, _peer->id, session());
+	if (TfForward::isForwarding(_peer->id)) {
+		_sendRestriction = TfForwardWriteRestriction(this, _peer->id, session());
 	} else if (!restriction) {
 		_sendRestriction = nullptr;
 	} else if (restriction.frozen) {
@@ -9362,7 +9362,7 @@ void HistoryWidget::updateBotKeyboard(History *h, bool force) {
 		return;
 	}
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto wasVisible = _kbShown || _kbReplyTo;
 	const auto wasMsgId = _keyboard->forMsgId();
@@ -11477,7 +11477,7 @@ void HistoryWidget::messageShotSelected() {
 		return;
 	}
 
-	AyuFeatures::MessageShot::Wrapper(
+	TfFeatures::MessageShot::Wrapper(
 		_list.data(),
 		[=] { clearSelected(); });
 }

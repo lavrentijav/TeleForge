@@ -13,7 +13,7 @@
 
 namespace Media::Streaming { struct FrameRequest; }
 
-namespace AyuUserpic {
+namespace TfUserpic {
 
 [[nodiscard]] bool ShouldOverrideShape(Ui::PeerUserpicShape shape);
 [[nodiscard]] int ComputeRadius(int pixelSize);
@@ -39,4 +39,4 @@ void ApplyFrameRounding(
 	QImage &ellipseCache,
 	QSize size);
 
-} // namespace AyuUserpic
+} // namespace TfUserpic

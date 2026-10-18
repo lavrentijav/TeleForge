@@ -13,9 +13,9 @@
 
 namespace Settings::AyBuilder {
 
-class AyuSectionBuilder {
+class TfSectionBuilder {
 public:
-	explicit AyuSectionBuilder(Builder::SectionBuilder &builder);
+	explicit TfSectionBuilder(Builder::SectionBuilder &builder);
 
 	[[nodiscard]] Builder::SectionBuilder &base();
 

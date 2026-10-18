@@ -176,7 +176,7 @@ Fn<void()> badgeClickHandler(not_null<PeerData*> peer) {
 }
 
 bool isMessageHidden(const not_null<HistoryItem*> item) {
-	if (AyuState::isHidden(item)) {
+	if (TfState::isHidden(item)) {
 		return true;
 	}
 
@@ -288,7 +288,7 @@ void MarkAsReadThread(not_null<Data::Thread*> thread) {
 		sendReadReactions(thread);
 	}
 
-	AyuWorker::scheduleOfflinePacket(&thread->session());
+	TfWorker::scheduleOfflinePacket(&thread->session());
 }
 
 void readHistory(not_null<HistoryItem*> message) {
@@ -304,7 +304,7 @@ void readHistory(not_null<HistoryItem*> message) {
 							 return history->session().api().request(MTPchannels_ReadHistory(
 								 channel->inputChannel(),
 								 MTP_int(tillId)
-							 )).done([=] { AyuWorker::scheduleOfflinePacket(&history->session()); }).send();
+							 )).done([=] { TfWorker::scheduleOfflinePacket(&history->session()); }).send();
 						 }
 
 						 return history->session().api().request(MTPmessages_ReadHistory(
@@ -313,7 +313,7 @@ void readHistory(not_null<HistoryItem*> message) {
 						 )).done([=](const MTPmessages_AffectedMessages &result)
 						 {
 							 history->session().api().applyAffectedMessages(history->peer, result);
-							 AyuWorker::scheduleOfflinePacket(&history->session());
+							 TfWorker::scheduleOfflinePacket(&history->session());
 						 }).fail([=]
 						 {
 						 }).send();
@@ -375,7 +375,7 @@ QString formatDateTime(const QDateTime &date) {
 }
 
 QString formatMessageTime(const QTime &time) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	const auto format =
 		settings.showMessageSeconds()
@@ -584,7 +584,7 @@ int getScheduleTime(int64 sumSize) {
 }
 
 bool isMessageSavable(const not_null<HistoryItem*> item) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 
 	if (!settings.saveDeletedMessages()) {
 		return false;
@@ -597,12 +597,12 @@ bool isMessageSavable(const not_null<HistoryItem*> item) {
 }
 
 void processMessageDelete(not_null<HistoryItem*> item) {
-	AyuMessages::snapshotEditsBeforeDelete(item);
+	TfMessages::snapshotEditsBeforeDelete(item);
 	if (!isMessageSavable(item)) {
 		item->destroy();
 	} else {
 		item->setDeleted();
-		AyuMessages::addDeletedMessage(item);
+		TfMessages::addDeletedMessage(item);
 	}
 }
 
@@ -1427,7 +1427,7 @@ void getRegistrationDate(not_null<PeerData*> peer, Fn<void(TextWithEntities)> ca
 }
 
 QString getBetterLinkPreview(const QString &url) {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (!settings.improveLinkPreviews()) {
 		return url;
 	}
@@ -1461,7 +1461,7 @@ bool applyGhostScheduling(
 		not_null<Main::Session*> session,
 		Api::SendOptions &options,
 		int delaySeconds) {
-	const auto &ghost = AyuSettings::ghost(session);
+	const auto &ghost = TfSettings::ghost(session);
 	if (ghost.isUseScheduledMessages() && !options.scheduled) {
 		options.scheduled = base::unixtime::now() + delaySeconds;
 		options.ghostDeferredSend = true;

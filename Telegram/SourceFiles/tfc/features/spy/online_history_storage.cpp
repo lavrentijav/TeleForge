@@ -61,7 +61,7 @@ void NoteManualLastSeen(long long userId, int timestamp) {
 		const auto date = locale.toString(onlineFull.date(), QLocale::ShortFormat);
 		return u"~%1 %2"_q.arg(date, time);
 	}
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto timeFmt = settings.showMessageSeconds()
 		? QLocale::LongFormat
 		: QLocale::ShortFormat;
@@ -74,7 +74,7 @@ void NoteManualLastSeen(long long userId, int timestamp) {
 }
 
 void SyncFromSettings() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto lock = std::unique_lock(g_mutex);
 	g_globalSpy = settings.spyModeGloballyEnabled();
 	g_retentionDays = settings.spyRetentionDays();
@@ -95,7 +95,7 @@ void appendEvents(const std::vector<OnlineEvent> &events) {
 		row.kind = e.kind;
 		row.onlineTill = e.onlineTill;
 		row.manualLastSeen = e.manualLastSeen;
-		AyuDatabase::insertOnlineEvent(row);
+		TfDatabase::insertOnlineEvent(row);
 		if (e.manualLastSeen > 0) {
 			NoteManualLastSeen(e.userId, e.manualLastSeen);
 		}
@@ -104,7 +104,7 @@ void appendEvents(const std::vector<OnlineEvent> &events) {
 
 std::vector<OnlineEvent> loadRecentForUser(long long userId, int sinceTs) {
 	auto out = std::vector<OnlineEvent>();
-	for (const auto &row : AyuDatabase::loadOnlineEventsForUser(userId, sinceTs)) {
+	for (const auto &row : TfDatabase::loadOnlineEventsForUser(userId, sinceTs)) {
 		out.push_back({
 			.userId = row.userId,
 			.timestamp = row.timestamp,
@@ -124,23 +124,23 @@ std::optional<int> manualLastSeenForUser(long long userId) {
 			return i->second;
 		}
 	}
-	return AyuDatabase::manualLastSeenForUser(userId);
+	return TfDatabase::manualLastSeenForUser(userId);
 }
 
 void setSpyTargetEnabled(long long userId, bool enabled) {
-	AyuDatabase::upsertSpyTarget(userId, enabled);
+	TfDatabase::upsertSpyTarget(userId, enabled);
 }
 
 bool hasSpyTargetOverride(long long userId) {
-	return AyuDatabase::hasSpyTargetOverride(userId);
+	return TfDatabase::hasSpyTargetOverride(userId);
 }
 
 bool isSpyTargetEnabled(long long userId) {
-	return AyuDatabase::isSpyTargetEnabled(userId);
+	return TfDatabase::isSpyTargetEnabled(userId);
 }
 
 bool isSpyEnabledForUser(long long userId) {
-	if (AyuDatabase::hasSpyTargetOverride(userId)) {
+	if (TfDatabase::hasSpyTargetOverride(userId)) {
 		return isSpyTargetEnabled(userId);
 	}
 	return spyModeGloballyEnabled();
@@ -159,7 +159,7 @@ void setSpyModeGloballyEnabled(bool enabled) {
 		}
 		g_globalSpy = enabled;
 	}
-	AyuSettings::getInstance().setSpyModeGloballyEnabled(enabled);
+	TfSettings::getInstance().setSpyModeGloballyEnabled(enabled);
 }
 
 void setRetentionDays(int days) {
@@ -171,7 +171,7 @@ void setRetentionDays(int days) {
 		}
 		g_retentionDays = clamped;
 	}
-	AyuSettings::getInstance().setSpyRetentionDays(clamped);
+	TfSettings::getInstance().setSpyRetentionDays(clamped);
 }
 
 int retentionDays() {
@@ -181,9 +181,9 @@ int retentionDays() {
 
 void purgeOldEvents() {
 	const auto now = base::unixtime::now();
-	AyuDatabase::purgeOnlineEventsBefore(now - retentionDays() * 86400);
+	TfDatabase::purgeOnlineEventsBefore(now - retentionDays() * 86400);
 	const auto ghostCutoff = now - kGhostReadRetentionDays * 86400;
-	AyuDatabase::purgeGhostReadBefore(ghostCutoff);
+	TfDatabase::purgeGhostReadBefore(ghostCutoff);
 }
 
 Data::LastseenStatus effectiveLastseen(

@@ -398,7 +398,7 @@ void UserData::setName(
 	auto filteredFirstName = newFirstName;
 	auto filteredLastName = newLastName;
 
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	if (settings.filterZalgo()) {
 		filteredFirstName = filterZalgo(filteredFirstName);
 		filteredLastName = filterZalgo(filteredLastName);
@@ -646,7 +646,7 @@ bool UserData::isFake() const {
 
 bool UserData::isPremium() const {
 	if (id) {
-		const auto &settings = AyuSettings::getInstance();
+		const auto &settings = TfSettings::getInstance();
 		if (settings.localPremium()) {
 			if (getSession(id.value)) {
 				return true;

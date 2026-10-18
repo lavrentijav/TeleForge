@@ -18,7 +18,7 @@ QString appIcoPath() {
 }
 
 void loadAppIco() {
-	const auto &settings = AyuSettings::getInstance();
+	const auto &settings = TfSettings::getInstance();
 	const auto iconPath = appIcoPath();
 
 	auto f = QFile(iconPath);

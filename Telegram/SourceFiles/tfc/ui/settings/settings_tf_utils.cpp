@@ -641,8 +641,8 @@ not_null<Button*> AddSettingToggle(
 	return AddToggle(
 		container,
 		std::move(text),
-		[getter] { return (AyuSettings::getInstance().*getter)(); },
-		[setter](bool v) { (AyuSettings::getInstance().*setter)(v); });
+		[getter] { return (TfSettings::getInstance().*getter)(); },
+		[setter](bool v) { (TfSettings::getInstance().*setter)(v); });
 }
 
 not_null<Button*> AddSettingToggle(
@@ -654,8 +654,8 @@ not_null<Button*> AddSettingToggle(
 	return AddToggle(
 		container,
 		std::move(text),
-		[getter] { return (AyuSettings::getInstance().*getter)(); },
-		[setter](bool v) { (AyuSettings::getInstance().*setter)(v); },
+		[getter] { return (TfSettings::getInstance().*getter)(); },
+		[setter](bool v) { (TfSettings::getInstance().*setter)(v); },
 		icon);
 }
 

@@ -408,7 +408,7 @@ void BuildSectionButtons(SectionBuilder &builder) {
 
 	builder.addSectionButton({
 		.title = rpl::single(QStringLiteral("TeleForge")),
-		.targetSection = AyuMain::Id(),
+		.targetSection = TfMain::Id(),
 		.icon = { &st::menuIconPremium },
 		.keywords = { u"ayu"_q },
 	});

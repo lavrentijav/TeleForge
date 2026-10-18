@@ -2979,7 +2979,7 @@ void StickersListWidget::mouseReleaseEvent(QMouseEvent *e) {
 				&& (e->modifiers() & Qt::ControlModifier)) {
 				showStickerSetBox(document, set.id);
 			} else {
-				const auto &settings = AyuSettings::getInstance();
+				const auto &settings = TfSettings::getInstance();
 				auto from = messageSentAnimationInfo(
 					sticker->section,
 					sticker->index,
@@ -3476,7 +3476,7 @@ auto StickersListWidget::collectRecentStickers() -> std::vector<Sticker> {
 	result.reserve(cloudCount + recent.size() + customCount);
 	_custom.reserve(cloudCount + recent.size() + customCount);
 
-    const auto &settings = AyuSettings::getInstance();
+    const auto &settings = TfSettings::getInstance();
 
 	auto add = [&](not_null<DocumentData*> document, bool custom) {
 		if (result.size() >= settings.recentStickersCount()) {

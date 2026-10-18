@@ -72,49 +72,49 @@ GhostModeAccountSettings::GhostModeAccountSettings() {
 void GhostModeAccountSettings::setSendReadMessages(bool val) {
 	if (_sendReadMessages.current() == val) return;
 	_sendReadMessages = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendReadStories(bool val) {
 	if (_sendReadStories.current() == val) return;
 	_sendReadStories = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendOnlinePackets(bool val) {
 	if (_sendOnlinePackets.current() == val) return;
 	_sendOnlinePackets = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendUploadProgress(bool val) {
 	if (_sendUploadProgress.current() == val) return;
 	_sendUploadProgress = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendOfflinePacketAfterOnline(bool val) {
 	if (_sendOfflinePacketAfterOnline.current() == val) return;
 	_sendOfflinePacketAfterOnline = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setMarkReadAfterAction(bool val) {
 	if (_markReadAfterAction.current() == val) return;
 	_markReadAfterAction = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setUseScheduledMessages(bool val) {
 	if (_useScheduledMessages.current() == val) return;
 	_useScheduledMessages = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendWithoutSound(bool val) {
 	if (_sendWithoutSound.current() == val) return;
 	_sendWithoutSound = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setGhostModeEnabled(bool val) {
@@ -123,12 +123,12 @@ void GhostModeAccountSettings::setGhostModeEnabled(bool val) {
 	if (!_sendOnlinePacketsLocked.current()) _sendOnlinePackets = !val;
 	if (!_sendUploadProgressLocked.current()) _sendUploadProgress = !val;
 	if (!_sendOfflinePacketAfterOnlineLocked.current()) _sendOfflinePacketAfterOnline = val;
-	AyuSettings::save();
+	TfSettings::save();
 
 	if (val) {
 		if (const auto window = Core::App().activeWindow()) {
 			if (const auto session = window->maybeSession()) {
-				AyuWorker::scheduleOfflinePacket(session);
+				TfWorker::scheduleOfflinePacket(session);
 			}
 		}
 	} else if (const auto window = Core::App().activeWindow()) {
@@ -141,31 +141,31 @@ void GhostModeAccountSettings::setGhostModeEnabled(bool val) {
 void GhostModeAccountSettings::setSendReadMessagesLocked(bool val) {
 	if (_sendReadMessagesLocked.current() == val) return;
 	_sendReadMessagesLocked = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendReadStoriesLocked(bool val) {
 	if (_sendReadStoriesLocked.current() == val) return;
 	_sendReadStoriesLocked = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendOnlinePacketsLocked(bool val) {
 	if (_sendOnlinePacketsLocked.current() == val) return;
 	_sendOnlinePacketsLocked = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendUploadProgressLocked(bool val) {
 	if (_sendUploadProgressLocked.current() == val) return;
 	_sendUploadProgressLocked = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void GhostModeAccountSettings::setSendOfflinePacketAfterOnlineLocked(bool val) {
 	if (_sendOfflinePacketAfterOnlineLocked.current() == val) return;
 	_sendOfflinePacketAfterOnlineLocked = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void to_json(nlohmann::json &j, const GhostModeAccountSettings &s) {
@@ -205,31 +205,31 @@ void from_json(const nlohmann::json &j, GhostModeAccountSettings &s) {
 void MessageShotSettings::setShowBackground(bool val) {
 	if (_showBackground.current() == val) return;
 	_showBackground = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void MessageShotSettings::setShowDate(bool val) {
 	if (_showDate.current() == val) return;
 	_showDate = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void MessageShotSettings::setShowReactions(bool val) {
 	if (_showReactions.current() == val) return;
 	_showReactions = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void MessageShotSettings::setShowColorfulReplies(bool val) {
 	if (_showColorfulReplies.current() == val) return;
 	_showColorfulReplies = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void MessageShotSettings::setRevealSpoilers(bool val) {
 	if (_revealSpoilers.current() == val) return;
 	_revealSpoilers = val;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 bool MessageShotSettings::isCloudThemeEmpty() const {
@@ -256,7 +256,7 @@ void MessageShotSettings::setEmbeddedTheme(int type, uint32 accentColor) {
 	_embeddedThemeType = type;
 	_embeddedThemeAccentColor = accentColor;
 	clearCloudThemeData();
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void MessageShotSettings::setCloudTheme(uint64 accountId, uint64 id, uint64 accessHash, uint64 documentId, const QString &title) {
@@ -276,7 +276,7 @@ void MessageShotSettings::setCloudTheme(uint64 accountId, uint64 id, uint64 acce
 	_cloudThemeAccessHash = accessHash;
 	_cloudThemeDocumentId = documentId;
 	_cloudThemeTitle = title;
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void MessageShotSettings::clearTheme() {
@@ -288,7 +288,7 @@ void MessageShotSettings::clearTheme() {
 	_embeddedThemeType = -1;
 	_embeddedThemeAccentColor = uint32(0);
 	clearCloudThemeData();
-	AyuSettings::save();
+	TfSettings::save();
 }
 
 void to_json(nlohmann::json &j, const MessageShotSettings &s) {
@@ -323,17 +323,17 @@ void from_json(const nlohmann::json &j, MessageShotSettings &s) {
 	s._cloudThemeAccountId = j.value("cloudThemeAccountId", uint64(0));
 }
 
-AyuSettings::AyuSettings()
+TfSettings::TfSettings()
 : _appIcon(TeleForgeAssets::DEFAULT_ICON)
 , _editedMark(Core::IsAppLaunched() ? tr::lng_edited(tr::now) : QString("edited")) {
 }
 
-AyuSettings &AyuSettings::getInstance() {
-	static AyuSettings instance;
+TfSettings &TfSettings::getInstance() {
+	static TfSettings instance;
 	return instance;
 }
 
-void AyuSettings::load() {
+void TfSettings::load() {
 	std::ifstream file(getSettingsPath());
 	if (!file.good()) {
 		return;
@@ -374,7 +374,7 @@ void AyuSettings::load() {
 	}
 
 	if (cGhost()) {
-		auto &ghost = AyuSettings::ghost();
+		auto &ghost = TfSettings::ghost();
 		ghost._sendReadMessages = false;
 		ghost._sendReadStories = false;
 		ghost._sendOnlinePackets = false;
@@ -385,7 +385,7 @@ void AyuSettings::load() {
 	settings.validate();
 }
 
-void AyuSettings::save() {
+void TfSettings::save() {
 	auto &settings = getInstance();
 	json p = settings;
 
@@ -395,16 +395,16 @@ void AyuSettings::save() {
 	file.close();
 }
 
-void AyuSettings::reset() {
-	getInstance() = AyuSettings();
+void TfSettings::reset() {
+	getInstance() = TfSettings();
 	save();
 }
 
-GhostModeAccountSettings &AyuSettings::ghost(not_null<Main::Session*> session) {
+GhostModeAccountSettings &TfSettings::ghost(not_null<Main::Session*> session) {
 	return ghost(session->userId().bare);
 }
 
-GhostModeAccountSettings &AyuSettings::ghost(uint64 userId) {
+GhostModeAccountSettings &TfSettings::ghost(uint64 userId) {
 	auto &settings = getInstance();
 	auto overriddenId = settings.getOverriddenGhostUserId(userId);
 
@@ -417,7 +417,7 @@ GhostModeAccountSettings &AyuSettings::ghost(uint64 userId) {
 	return *it->second;
 }
 
-GhostModeAccountSettings &AyuSettings::ghost() {
+GhostModeAccountSettings &TfSettings::ghost() {
 	if (const auto window = Core::App().activeWindow()) {
 		if (const auto session = window->maybeSession()) {
 			return ghost(session);
@@ -426,13 +426,13 @@ GhostModeAccountSettings &AyuSettings::ghost() {
 	return ghost(0);
 }
 
-void AyuSettings::setUseGlobalGhostMode(bool val) {
+void TfSettings::setUseGlobalGhostMode(bool val) {
 	if (_useGlobalGhostMode.current() == val) return;
 	_useGlobalGhostMode = val;
 	save();
 }
 
-void AyuSettings::addShadowBan(int64 id) {
+void TfSettings::addShadowBan(int64 id) {
 	if (_shadowBanIds.insert(id).second) {
 		FiltersCacheController::rebuildCache();
 		FiltersCacheController::fireUpdate();
@@ -440,7 +440,7 @@ void AyuSettings::addShadowBan(int64 id) {
 	}
 }
 
-void AyuSettings::removeShadowBan(int64 id) {
+void TfSettings::removeShadowBan(int64 id) {
 	if (_shadowBanIds.erase(id) > 0) {
 		FiltersCacheController::rebuildCache();
 		FiltersCacheController::fireUpdate();
@@ -448,11 +448,11 @@ void AyuSettings::removeShadowBan(int64 id) {
 	}
 }
 
-bool AyuSettings::isUnreadBadgeExcluded(uint64 peerSerialized) const {
+bool TfSettings::isUnreadBadgeExcluded(uint64 peerSerialized) const {
 	return _unreadBadgeExcludedPeers.contains(peerSerialized);
 }
 
-void AyuSettings::setUnreadBadgeExcluded(uint64 peerSerialized, bool excluded) {
+void TfSettings::setUnreadBadgeExcluded(uint64 peerSerialized, bool excluded) {
 	const auto changed = excluded
 		? _unreadBadgeExcludedPeers.insert(peerSerialized).second
 		: (_unreadBadgeExcludedPeers.erase(peerSerialized) > 0);
@@ -471,12 +471,12 @@ void AyuSettings::setUnreadBadgeExcluded(uint64 peerSerialized, bool excluded) {
 	Core::App().domain().notifyUnreadBadgeChanged();
 }
 
-void AyuSettings::toggleUnreadBadgeExcluded(uint64 peerSerialized) {
+void TfSettings::toggleUnreadBadgeExcluded(uint64 peerSerialized) {
 	setUnreadBadgeExcluded(peerSerialized, !isUnreadBadgeExcluded(peerSerialized));
 }
 
-void AyuSettings::validate() {
-	AyuSettings defaults;
+void TfSettings::validate() {
+	TfSettings defaults;
 	auto modified = false;
 
 	auto validateRange = [&](auto &var, auto min, auto max, const auto &defaultVar) {
@@ -508,7 +508,7 @@ void AyuSettings::validate() {
 
 	validateRange(_wideMultiplier, 0.5, 4.0, defaults._wideMultiplier);
 	validateRange(_recentStickersCount, 1, 200, defaults._recentStickersCount);
-	validateRange(_avatarCorners, 0, AyuUiSettings::kMaxAvatarCorners, defaults._avatarCorners);
+	validateRange(_avatarCorners, 0, TfUiSettings::kMaxAvatarCorners, defaults._avatarCorners);
 
 	const auto embeddedType = _messageShotSettings._embeddedThemeType.current();
 	auto embeddedTypeValid = (embeddedType == -1) || (embeddedType >= 0 && embeddedType <= 3); // from Window::Theme::EmbeddedType::DayBlue to Window::Theme::EmbeddedType::NightGreen
@@ -523,393 +523,393 @@ void AyuSettings::validate() {
 	}
 }
 
-void AyuSettings::setSaveDeletedMessages(bool val) {
+void TfSettings::setSaveDeletedMessages(bool val) {
 	if (_saveDeletedMessages.current() == val) return;
 	_saveDeletedMessages = val;
 	save();
 }
 
-void AyuSettings::setSaveMessagesHistory(bool val) {
+void TfSettings::setSaveMessagesHistory(bool val) {
 	if (_saveMessagesHistory.current() == val) return;
 	_saveMessagesHistory = val;
 	save();
 }
 
-void AyuSettings::setSaveForBots(bool val) {
+void TfSettings::setSaveForBots(bool val) {
 	if (_saveForBots.current() == val) return;
 	_saveForBots = val;
 	save();
 }
 
-void AyuSettings::setFiltersEnabled(bool val) {
+void TfSettings::setFiltersEnabled(bool val) {
 	if (_filtersEnabled.current() == val) return;
 	_filtersEnabled = val;
 	save();
 }
 
-void AyuSettings::setFiltersEnabledInChats(bool val) {
+void TfSettings::setFiltersEnabledInChats(bool val) {
 	if (_filtersEnabledInChats.current() == val) return;
 	_filtersEnabledInChats = val;
 	save();
 }
 
-void AyuSettings::setHideFromBlocked(bool val) {
+void TfSettings::setHideFromBlocked(bool val) {
 	if (_hideFromBlocked.current() == val) return;
 	_hideFromBlocked = val;
 	save();
 }
 
-void AyuSettings::setSemiTransparentDeletedMessages(bool val) {
+void TfSettings::setSemiTransparentDeletedMessages(bool val) {
 	if (_semiTransparentDeletedMessages.current() == val) return;
 	_semiTransparentDeletedMessages = val;
 	save();
 }
 
-void AyuSettings::setDisableAds(bool val) {
+void TfSettings::setDisableAds(bool val) {
 	if (_disableAds.current() == val) return;
 	_disableAds = val;
 	save();
 }
 
-void AyuSettings::setDisableStories(bool val) {
+void TfSettings::setDisableStories(bool val) {
 	if (_disableStories.current() == val) return;
 	_disableStories = val;
 	save();
 }
 
-void AyuSettings::setDisableCustomBackgrounds(bool val) {
+void TfSettings::setDisableCustomBackgrounds(bool val) {
 	if (_disableCustomBackgrounds.current() == val) return;
 	_disableCustomBackgrounds = val;
 	save();
 }
 
-void AyuSettings::setHidePremiumStatuses(bool val) {
+void TfSettings::setHidePremiumStatuses(bool val) {
 	if (_hidePremiumStatuses.current() == val) return;
 	_hidePremiumStatuses = val;
 	save();
 }
 
-void AyuSettings::setShowOnlyAddedEmojisAndStickers(bool val) {
+void TfSettings::setShowOnlyAddedEmojisAndStickers(bool val) {
 	if (_showOnlyAddedEmojisAndStickers.current() == val) return;
 	_showOnlyAddedEmojisAndStickers = val;
 	save();
 }
 
-void AyuSettings::setCollapseSimilarChannels(bool val) {
+void TfSettings::setCollapseSimilarChannels(bool val) {
 	if (_collapseSimilarChannels.current() == val) return;
 	_collapseSimilarChannels = val;
 	save();
 }
 
-void AyuSettings::setHideSimilarChannels(bool val) {
+void TfSettings::setHideSimilarChannels(bool val) {
 	if (_hideSimilarChannels.current() == val) return;
 	_hideSimilarChannels = val;
 	save();
 }
 
-void AyuSettings::setWideMultiplier(double val) {
+void TfSettings::setWideMultiplier(double val) {
 	if (_wideMultiplier.current() == val) return;
 	_wideMultiplier = val;
 	// doesn't work because it should be set before style::StartManager()
-	// AyuUiSettings::setWideMultiplier(val);
+	// TfUiSettings::setWideMultiplier(val);
 	// repaintApp();
 	save();
 }
 
-void AyuSettings::setSpoofWebviewAsAndroid(bool val) {
+void TfSettings::setSpoofWebviewAsAndroid(bool val) {
 	if (_spoofWebviewAsAndroid.current() == val) return;
 	_spoofWebviewAsAndroid = val;
 	save();
 }
 
-void AyuSettings::setDisableOpenLinkWarning(bool val) {
+void TfSettings::setDisableOpenLinkWarning(bool val) {
 	if (_disableOpenLinkWarning.current() == val) return;
 	_disableOpenLinkWarning = val;
 	save();
 }
 
-void AyuSettings::setIncreaseWebviewHeight(bool val) {
+void TfSettings::setIncreaseWebviewHeight(bool val) {
 	if (_increaseWebviewHeight.current() == val) return;
 	_increaseWebviewHeight = val;
 	save();
 }
 
-void AyuSettings::setIncreaseWebviewWidth(bool val) {
+void TfSettings::setIncreaseWebviewWidth(bool val) {
 	if (_increaseWebviewWidth.current() == val) return;
 	_increaseWebviewWidth = val;
 	save();
 }
 
-void AyuSettings::setMaterialSwitches(bool val) {
+void TfSettings::setMaterialSwitches(bool val) {
 	if (_materialSwitches.current() == val) return;
 	_materialSwitches = val;
-	AyuUiSettings::setMaterialSwitches(val);
+	TfUiSettings::setMaterialSwitches(val);
 	repaintApp();
 	save();
 }
 
-void AyuSettings::setRemoveMessageTail(bool val) {
+void TfSettings::setRemoveMessageTail(bool val) {
 	if (_removeMessageTail.current() == val) return;
 	_removeMessageTail = val;
 	save();
 }
 
-void AyuSettings::setDisableNotificationsDelay(bool val) {
+void TfSettings::setDisableNotificationsDelay(bool val) {
 	if (_disableNotificationsDelay.current() == val) return;
 	_disableNotificationsDelay = val;
 	save();
 }
 
-void AyuSettings::setLocalPremium(bool val) {
+void TfSettings::setLocalPremium(bool val) {
 	if (_localPremium.current() == val) return;
 	_localPremium = val;
 	save();
 }
 
-void AyuSettings::setShowChannelReactions(bool val) {
+void TfSettings::setShowChannelReactions(bool val) {
 	if (_showChannelReactions.current() == val) return;
 	_showChannelReactions = val;
 	save();
 }
 
-void AyuSettings::setShowGroupReactions(bool val) {
+void TfSettings::setShowGroupReactions(bool val) {
 	if (_showGroupReactions.current() == val) return;
 	_showGroupReactions = val;
 	save();
 }
 
-void AyuSettings::setShowPrivateChatReactions(bool val) {
+void TfSettings::setShowPrivateChatReactions(bool val) {
 	if (_showPrivateChatReactions.current() == val) return;
 	_showPrivateChatReactions = val;
 	save();
 }
 
-void AyuSettings::setAppIcon(const QString &val) {
+void TfSettings::setAppIcon(const QString &val) {
 	if (_appIcon.current() == val) return;
 	_appIcon = val;
 	save();
 }
 
-void AyuSettings::setSimpleQuotesAndReplies(bool val) {
+void TfSettings::setSimpleQuotesAndReplies(bool val) {
 	if (_simpleQuotesAndReplies.current() == val) return;
 	_simpleQuotesAndReplies = val;
 	save();
 }
 
-void AyuSettings::setHideFastShare(bool val) {
+void TfSettings::setHideFastShare(bool val) {
 	if (_hideFastShare.current() == val) return;
 	_hideFastShare = val;
 	save();
 }
 
-void AyuSettings::setReplaceBottomInfoWithIcons(bool val) {
+void TfSettings::setReplaceBottomInfoWithIcons(bool val) {
 	if (_replaceBottomInfoWithIcons.current() == val) return;
 	_replaceBottomInfoWithIcons = val;
 	save();
 }
 
-void AyuSettings::setDeletedMark(const QString &val) {
+void TfSettings::setDeletedMark(const QString &val) {
 	if (_deletedMark.current() == val) return;
 	_deletedMark = val;
 	save();
 }
 
-void AyuSettings::setEditedMark(const QString &val) {
+void TfSettings::setEditedMark(const QString &val) {
 	if (_editedMark.current() == val) return;
 	_editedMark = val;
 	save();
 }
 
-void AyuSettings::setRecentStickersCount(int val) {
+void TfSettings::setRecentStickersCount(int val) {
 	if (_recentStickersCount.current() == val) return;
 	_recentStickersCount = val;
 	save();
 }
 
-void AyuSettings::setShowReactionsPanelInContextMenu(ContextMenuVisibility val) {
+void TfSettings::setShowReactionsPanelInContextMenu(ContextMenuVisibility val) {
 	if (_showReactionsPanelInContextMenu.current() == val) return;
 	_showReactionsPanelInContextMenu = val;
 	save();
 }
 
-void AyuSettings::setShowViewsPanelInContextMenu(ContextMenuVisibility val) {
+void TfSettings::setShowViewsPanelInContextMenu(ContextMenuVisibility val) {
 	if (_showViewsPanelInContextMenu.current() == val) return;
 	_showViewsPanelInContextMenu = val;
 	save();
 }
 
-void AyuSettings::setShowHideMessageInContextMenu(ContextMenuVisibility val) {
+void TfSettings::setShowHideMessageInContextMenu(ContextMenuVisibility val) {
 	if (_showHideMessageInContextMenu.current() == val) return;
 	_showHideMessageInContextMenu = val;
 	save();
 }
 
-void AyuSettings::setShowUserMessagesInContextMenu(ContextMenuVisibility val) {
+void TfSettings::setShowUserMessagesInContextMenu(ContextMenuVisibility val) {
 	if (_showUserMessagesInContextMenu.current() == val) return;
 	_showUserMessagesInContextMenu = val;
 	save();
 }
 
-void AyuSettings::setShowMessageDetailsInContextMenu(ContextMenuVisibility val) {
+void TfSettings::setShowMessageDetailsInContextMenu(ContextMenuVisibility val) {
 	if (_showMessageDetailsInContextMenu.current() == val) return;
 	_showMessageDetailsInContextMenu = val;
 	save();
 }
 
-void AyuSettings::setShowRepeatMessageInContextMenu(ContextMenuVisibility val) {
+void TfSettings::setShowRepeatMessageInContextMenu(ContextMenuVisibility val) {
 	if (_showRepeatMessageInContextMenu.current() == val) return;
 	_showRepeatMessageInContextMenu = val;
 	save();
 }
 
-void AyuSettings::setShowAddFilterInContextMenu(ContextMenuVisibility val) {
+void TfSettings::setShowAddFilterInContextMenu(ContextMenuVisibility val) {
 	if (_showAddFilterInContextMenu.current() == val) return;
 	_showAddFilterInContextMenu = val;
 	save();
 }
 
-void AyuSettings::setShowAttachButtonInMessageField(bool val) {
+void TfSettings::setShowAttachButtonInMessageField(bool val) {
 	if (_showAttachButtonInMessageField.current() == val) return;
 	_showAttachButtonInMessageField = val;
 	save();
 }
 
-void AyuSettings::setShowCommandsButtonInMessageField(bool val) {
+void TfSettings::setShowCommandsButtonInMessageField(bool val) {
 	if (_showCommandsButtonInMessageField.current() == val) return;
 	_showCommandsButtonInMessageField = val;
 	save();
 }
 
-void AyuSettings::setShowEmojiButtonInMessageField(bool val) {
+void TfSettings::setShowEmojiButtonInMessageField(bool val) {
 	if (_showEmojiButtonInMessageField.current() == val) return;
 	_showEmojiButtonInMessageField = val;
 	save();
 }
 
-void AyuSettings::setShowMicrophoneButtonInMessageField(bool val) {
+void TfSettings::setShowMicrophoneButtonInMessageField(bool val) {
 	if (_showMicrophoneButtonInMessageField.current() == val) return;
 	_showMicrophoneButtonInMessageField = val;
 	save();
 }
 
-void AyuSettings::setShowAutoDeleteButtonInMessageField(bool val) {
+void TfSettings::setShowAutoDeleteButtonInMessageField(bool val) {
 	if (_showAutoDeleteButtonInMessageField.current() == val) return;
 	_showAutoDeleteButtonInMessageField = val;
 	save();
 }
 
-void AyuSettings::setShowAttachPopup(bool val) {
+void TfSettings::setShowAttachPopup(bool val) {
 	if (_showAttachPopup.current() == val) return;
 	_showAttachPopup = val;
 	save();
 }
 
-void AyuSettings::setShowEmojiPopup(bool val) {
+void TfSettings::setShowEmojiPopup(bool val) {
 	if (_showEmojiPopup.current() == val) return;
 	_showEmojiPopup = val;
 	save();
 }
 
-void AyuSettings::setShowMyProfileInDrawer(bool val) {
+void TfSettings::setShowMyProfileInDrawer(bool val) {
 	if (_showMyProfileInDrawer.current() == val) return;
 	_showMyProfileInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowBotsInDrawer(bool val) {
+void TfSettings::setShowBotsInDrawer(bool val) {
 	if (_showBotsInDrawer.current() == val) return;
 	_showBotsInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowNewGroupInDrawer(bool val) {
+void TfSettings::setShowNewGroupInDrawer(bool val) {
 	if (_showNewGroupInDrawer.current() == val) return;
 	_showNewGroupInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowNewChannelInDrawer(bool val) {
+void TfSettings::setShowNewChannelInDrawer(bool val) {
 	if (_showNewChannelInDrawer.current() == val) return;
 	_showNewChannelInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowContactsInDrawer(bool val) {
+void TfSettings::setShowContactsInDrawer(bool val) {
 	if (_showContactsInDrawer.current() == val) return;
 	_showContactsInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowCallsInDrawer(bool val) {
+void TfSettings::setShowCallsInDrawer(bool val) {
 	if (_showCallsInDrawer.current() == val) return;
 	_showCallsInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowSavedMessagesInDrawer(bool val) {
+void TfSettings::setShowSavedMessagesInDrawer(bool val) {
 	if (_showSavedMessagesInDrawer.current() == val) return;
 	_showSavedMessagesInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowLReadToggleInDrawer(bool val) {
+void TfSettings::setShowLReadToggleInDrawer(bool val) {
 	if (_showLReadToggleInDrawer.current() == val) return;
 	_showLReadToggleInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowSReadToggleInDrawer(bool val) {
+void TfSettings::setShowSReadToggleInDrawer(bool val) {
 	if (_showSReadToggleInDrawer.current() == val) return;
 	_showSReadToggleInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowNightModeToggleInDrawer(bool val) {
+void TfSettings::setShowNightModeToggleInDrawer(bool val) {
 	if (_showNightModeToggleInDrawer.current() == val) return;
 	_showNightModeToggleInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowGhostToggleInDrawer(bool val) {
+void TfSettings::setShowGhostToggleInDrawer(bool val) {
 	if (_showGhostToggleInDrawer.current() == val) return;
 	_showGhostToggleInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowStreamerToggleInDrawer(bool val) {
+void TfSettings::setShowStreamerToggleInDrawer(bool val) {
 	if (_showStreamerToggleInDrawer.current() == val) return;
 	_showStreamerToggleInDrawer = val;
 	save();
 }
 
-void AyuSettings::setShowGhostToggleInTray(bool val) {
+void TfSettings::setShowGhostToggleInTray(bool val) {
 	if (_showGhostToggleInTray.current() == val) return;
 	_showGhostToggleInTray = val;
 	save();
 }
 
-void AyuSettings::setShowStreamerToggleInTray(bool val) {
+void TfSettings::setShowStreamerToggleInTray(bool val) {
 	if (_showStreamerToggleInTray.current() == val) return;
 	_showStreamerToggleInTray = val;
 	save();
 }
 
-void AyuSettings::setMonoFont(const QString &val) {
+void TfSettings::setMonoFont(const QString &val) {
 	if (_monoFont.current() == val) return;
 	_monoFont = val;
 	// doesn't work because `static const auto family = ...`
-	// AyuUiSettings::setMonoFont(val);
+	// TfUiSettings::setMonoFont(val);
 	// repaintApp();
 	save();
 }
 
-void AyuSettings::setHideNotificationCounters(bool val) {
+void TfSettings::setHideNotificationCounters(bool val) {
 	if (_hideNotificationCounters.current() == val) return;
 	_hideNotificationCounters = val;
 	save();
 }
 
-void AyuSettings::setHideNotificationBadge(bool val) {
+void TfSettings::setHideNotificationBadge(bool val) {
 	if (_hideNotificationBadge.current() == val) return;
 	_hideNotificationBadge = val;
 	Core::App().refreshApplicationIcon();
@@ -918,248 +918,248 @@ void AyuSettings::setHideNotificationBadge(bool val) {
 	save();
 }
 
-void AyuSettings::setHideAllChatsFolder(bool val) {
+void TfSettings::setHideAllChatsFolder(bool val) {
 	if (_hideAllChatsFolder.current() == val) return;
 	_hideAllChatsFolder = val;
 	save();
 }
 
-void AyuSettings::setChannelBottomButton(ChannelBottomButton val) {
+void TfSettings::setChannelBottomButton(ChannelBottomButton val) {
 	if (_channelBottomButton.current() == val) return;
 	_channelBottomButton = val;
 	save();
 }
 
-void AyuSettings::setQuickAdminShortcuts(bool val) {
+void TfSettings::setQuickAdminShortcuts(bool val) {
 	if (_quickAdminShortcuts.current() == val) return;
 	_quickAdminShortcuts = val;
 	save();
 }
 
-void AyuSettings::setShowPeerId(PeerIdDisplay val) {
+void TfSettings::setShowPeerId(PeerIdDisplay val) {
 	if (_showPeerId.current() == val) return;
 	_showPeerId = val;
 	save();
 }
 
-void AyuSettings::setShowMessageSeconds(bool val) {
+void TfSettings::setShowMessageSeconds(bool val) {
 	if (_showMessageSeconds.current() == val) return;
 	_showMessageSeconds = val;
 	save();
 }
 
-void AyuSettings::setShowMessageShot(bool val) {
+void TfSettings::setShowMessageShot(bool val) {
 	if (_showMessageShot.current() == val) return;
 	_showMessageShot = val;
 	save();
 }
 
-void AyuSettings::setFilterZalgo(bool val) {
+void TfSettings::setFilterZalgo(bool val) {
 	if (_filterZalgo.current() == val) return;
 	_filterZalgo = val;
 	save();
 }
 
-void AyuSettings::setStickerConfirmation(bool val) {
+void TfSettings::setStickerConfirmation(bool val) {
 	if (_stickerConfirmation.current() == val) return;
 	_stickerConfirmation = val;
 	save();
 }
 
-void AyuSettings::setGifConfirmation(bool val) {
+void TfSettings::setGifConfirmation(bool val) {
 	if (_gifConfirmation.current() == val) return;
 	_gifConfirmation = val;
 	save();
 }
 
-void AyuSettings::setVoiceConfirmation(bool val) {
+void TfSettings::setVoiceConfirmation(bool val) {
 	if (_voiceConfirmation.current() == val) return;
 	_voiceConfirmation = val;
 	save();
 }
 
-void AyuSettings::setTranslationProvider(TranslationProvider val) {
+void TfSettings::setTranslationProvider(TranslationProvider val) {
 	if (_translationProvider.current() == val) return;
 	_translationProvider = val;
 	Ayu::Translator::TranslateManager::currentInstance()->resetCache();
 	save();
 }
 
-void AyuSettings::setAiTranslationEnabled(bool val) {
+void TfSettings::setAiTranslationEnabled(bool val) {
 	if (_aiTranslationEnabled.current() == val) return;
 	_aiTranslationEnabled = val;
 	save();
 }
 
-void AyuSettings::setAiCompressionEnabled(bool val) {
+void TfSettings::setAiCompressionEnabled(bool val) {
 	if (_aiCompressionEnabled.current() == val) return;
 	_aiCompressionEnabled = val;
 	save();
 }
 
-void AyuSettings::setDeleteStubText(const QString &val) {
+void TfSettings::setDeleteStubText(const QString &val) {
 	if (_deleteStubText.current() == val) return;
 	_deleteStubText = val;
 	save();
 }
 
-void AyuSettings::setSpyModeGloballyEnabled(bool val) {
+void TfSettings::setSpyModeGloballyEnabled(bool val) {
 	if (_spyModeGloballyEnabled.current() == val) return;
 	_spyModeGloballyEnabled = val;
 	save();
 }
 
-void AyuSettings::setSpyRetentionDays(int val) {
+void TfSettings::setSpyRetentionDays(int val) {
 	const auto clamped = std::clamp(val, 1, 365);
 	if (_spyRetentionDays.current() == clamped) return;
 	_spyRetentionDays = clamped;
 	save();
 }
 
-void AyuSettings::setPeerArchiveEnabled(bool val) {
+void TfSettings::setPeerArchiveEnabled(bool val) {
 	if (_peerArchiveEnabled.current() == val) return;
 	_peerArchiveEnabled = val;
 	save();
 }
 
-void AyuSettings::setArchiveChatRefreshSeconds(int val) {
+void TfSettings::setArchiveChatRefreshSeconds(int val) {
 	const auto clamped = std::clamp(val, 60, 3600);
 	if (_archiveChatRefreshSeconds.current() == clamped) return;
 	_archiveChatRefreshSeconds = clamped;
 	save();
 }
 
-void AyuSettings::setArchiveKnownUserOnlineSeconds(int val) {
+void TfSettings::setArchiveKnownUserOnlineSeconds(int val) {
 	const auto clamped = std::clamp(val, 15, 600);
 	if (_archiveKnownUserOnlineSeconds.current() == clamped) return;
 	_archiveKnownUserOnlineSeconds = clamped;
 	save();
 }
 
-void AyuSettings::setArchivePrivateOnlineSeconds(int val) {
+void TfSettings::setArchivePrivateOnlineSeconds(int val) {
 	const auto clamped = std::clamp(val, 5, 120);
 	if (_archivePrivateOnlineSeconds.current() == clamped) return;
 	_archivePrivateOnlineSeconds = clamped;
 	save();
 }
 
-void AyuSettings::setArchivePrivateProfileSeconds(int val) {
+void TfSettings::setArchivePrivateProfileSeconds(int val) {
 	const auto clamped = std::clamp(val, 60, 7200);
 	if (_archivePrivateProfileSeconds.current() == clamped) return;
 	_archivePrivateProfileSeconds = clamped;
 	save();
 }
 
-void AyuSettings::setArchiveOtherProfileSeconds(int val) {
+void TfSettings::setArchiveOtherProfileSeconds(int val) {
 	const auto clamped = std::clamp(val, 300, 21600);
 	if (_archiveOtherProfileSeconds.current() == clamped) return;
 	_archiveOtherProfileSeconds = clamped;
 	save();
 }
 
-void AyuSettings::setArchiveHistoryScanLimit(int val) {
+void TfSettings::setArchiveHistoryScanLimit(int val) {
 	const auto clamped = std::clamp(val, 0, 20000);
 	if (_archiveHistoryScanLimit.current() == clamped) return;
 	_archiveHistoryScanLimit = clamped;
 	save();
 }
 
-void AyuSettings::setArchiveCrawlBatchSize(int val) {
+void TfSettings::setArchiveCrawlBatchSize(int val) {
 	const auto clamped = std::clamp(val, 1, 200);
 	if (_archiveCrawlBatchSize.current() == clamped) return;
 	_archiveCrawlBatchSize = clamped;
 	save();
 }
 
-void AyuSettings::setArchiveMaxParticipants(int val) {
+void TfSettings::setArchiveMaxParticipants(int val) {
 	const auto clamped = std::clamp(val, 0, 200000);
 	if (_archiveMaxParticipants.current() == clamped) return;
 	_archiveMaxParticipants = clamped;
 	save();
 }
 
-void AyuSettings::setArchiveScanParticipants(bool val) {
+void TfSettings::setArchiveScanParticipants(bool val) {
 	if (_archiveScanParticipants.current() == val) return;
 	_archiveScanParticipants = val;
 	save();
 }
 
-void AyuSettings::setArchiveScanBroadcasts(bool val) {
+void TfSettings::setArchiveScanBroadcasts(bool val) {
 	if (_archiveScanBroadcasts.current() == val) return;
 	_archiveScanBroadcasts = val;
 	save();
 }
 
-void AyuSettings::setArchiveSaveUserpics(bool val) {
+void TfSettings::setArchiveSaveUserpics(bool val) {
 	if (_archiveSaveUserpics.current() == val) return;
 	_archiveSaveUserpics = val;
 	save();
 }
 
-void AyuSettings::setArchiveFollowLinks(bool val) {
+void TfSettings::setArchiveFollowLinks(bool val) {
 	if (_archiveFollowLinks.current() == val) return;
 	_archiveFollowLinks = val;
 	save();
 }
 
-void AyuSettings::setArchiveBackgroundCrawl(bool val) {
+void TfSettings::setArchiveBackgroundCrawl(bool val) {
 	if (_archiveBackgroundCrawl.current() == val) return;
 	_archiveBackgroundCrawl = val;
 	save();
 }
 
-void AyuSettings::setGhostPassthroughMentions(bool val) {
+void TfSettings::setGhostPassthroughMentions(bool val) {
 	if (_ghostPassthroughMentions.current() == val) return;
 	_ghostPassthroughMentions = val;
 	save();
 }
 
-void AyuSettings::setShowDeletedInChat(bool val) {
+void TfSettings::setShowDeletedInChat(bool val) {
 	if (_showDeletedInChat.current() == val) return;
 	_showDeletedInChat = val;
 	save();
 }
 
-void AyuSettings::setDeletedRestoreLimit(int val) {
+void TfSettings::setDeletedRestoreLimit(int val) {
 	const auto clamped = std::clamp(val, 0, 5000);
 	if (_deletedRestoreLimit.current() == clamped) return;
 	_deletedRestoreLimit = clamped;
 	save();
 }
 
-void AyuSettings::setAdaptiveCoverColor(bool val) {
+void TfSettings::setAdaptiveCoverColor(bool val) {
 	if (_adaptiveCoverColor.current() == val) return;
 	_adaptiveCoverColor = val;
 	save();
 }
 
-void AyuSettings::setImproveLinkPreviews(bool val) {
+void TfSettings::setImproveLinkPreviews(bool val) {
 	if (_improveLinkPreviews.current() == val) return;
 	_improveLinkPreviews = val;
 	save();
 }
 
-void AyuSettings::setCrashReporting(bool val) {
+void TfSettings::setCrashReporting(bool val) {
 	if (_crashReporting.current() == val) return;
 	_crashReporting = val;
 	save();
 }
 
-void AyuSettings::setAvatarCorners(int val) {
+void TfSettings::setAvatarCorners(int val) {
 	if (_avatarCorners.current() == val) return;
 	_avatarCorners = val;
-	AyuUiSettings::setAvatarCorners(val);
+	TfUiSettings::setAvatarCorners(val);
 	save();
 }
 
-void AyuSettings::setSingleCornerRadius(bool val) {
+void TfSettings::setSingleCornerRadius(bool val) {
 	if (_singleCornerRadius.current() == val) return;
 	_singleCornerRadius = val;
 	repaintApp();
 	save();
 }
 
-void to_json(nlohmann::json &j, const AyuSettings &s) {
+void to_json(nlohmann::json &j, const TfSettings &s) {
 	std::map<std::string, GhostModeAccountSettings> ghostAccounts;
 	for (const auto &[key, value] : s._ghostAccounts) {
 		ghostAccounts[std::to_string(key)] = std::move(*value);
@@ -1290,8 +1290,8 @@ template <typename T>
 
 } // namespace
 
-void from_json(const nlohmann::json &j, AyuSettings &s) {
-	AyuSettings defaults;
+void from_json(const nlohmann::json &j, TfSettings &s) {
+	TfSettings defaults;
 
 	if (j.contains("ghostModeSettings") && j["ghostModeSettings"].is_object()) {
 		s._ghostAccounts.clear();

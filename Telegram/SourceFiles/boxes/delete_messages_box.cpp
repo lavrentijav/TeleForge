@@ -243,7 +243,7 @@ void DeleteMessagesBox::prepare() {
 				});
 			}
 		}
-		if (AyuDelete::AnyMessageSupportsStubReplace(_session, _ids)) {
+		if (TfDelete::AnyMessageSupportsStubReplace(_session, _ids)) {
 			_deleteWithStub.create(
 				this,
 				tr::ayu_DeleteWithContentReplacement(tr::now),
@@ -605,5 +605,5 @@ void DeleteMessagesBox::deleteAndClear() {
 	const auto ids = _ids;
 	const auto replaceWithStub = _deleteWithStub && _deleteWithStub->checked();
 	invokeCallbackAndClose();
-	AyuDelete::DeleteMessages(session, ids, revoke, replaceWithStub);
+	TfDelete::DeleteMessages(session, ids, revoke, replaceWithStub);
 }

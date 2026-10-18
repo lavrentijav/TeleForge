@@ -9,7 +9,7 @@
 #include "base/qthelp_regex.h"
 #include "window/window_session_controller.h"
 
-namespace AyuUrlHandlers {
+namespace TfUrlHandlers {
 
 using Match = qthelp::RegularExpressionMatch;
 

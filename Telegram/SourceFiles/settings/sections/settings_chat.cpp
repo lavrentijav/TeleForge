@@ -281,8 +281,8 @@ void ColorsPalette::show(Type type) {
 	}
 	list.insert(list.begin(), scheme->accentColor);
 	const auto &settings = Core::App().settings();
-	const auto color = AyuFeatures::MessageShot::isChoosingTheme()
-		? AyuFeatures::MessageShot::getSelectedColorFromDefault()
+	const auto color = TfFeatures::MessageShot::isChoosingTheme()
+		? TfFeatures::MessageShot::getSelectedColorFromDefault()
 		: settings.systemAccentColorEnabled()
 		? Window::Theme::SystemAccentColor()
 		: settings.themesAccentColors().get(type);
@@ -2120,32 +2120,32 @@ void SetupDefaultThemes(
 	{
 		if (path.isEmpty()) { // for Default theme (otherwise doesn't dispaly name properly)
 			style::palette embeddedPalette;
-			const auto color = AyuFeatures::MessageShot::getSelectedColorFromDefault();
+			const auto color = TfFeatures::MessageShot::getSelectedColorFromDefault();
 			Window::Theme::PreparePaletteCallback(false, color)(embeddedPalette);
-			AyuFeatures::MessageShot::setPalette(embeddedPalette);
+			TfFeatures::MessageShot::setPalette(embeddedPalette);
 			return;
 		}
-		if (const auto color = AyuFeatures::MessageShot::getSelectedColorFromDefault()) {
-			const auto type = AyuFeatures::MessageShot::getSelectedFromDefault();
+		if (const auto color = TfFeatures::MessageShot::getSelectedColorFromDefault()) {
+			const auto type = TfFeatures::MessageShot::getSelectedFromDefault();
 			const auto scheme = ranges::find(kSchemesList, type, &Scheme::type);
 			if (scheme != end(kSchemesList)) {
 				const auto colorizer = ColorizerFrom(*scheme, *color);
 				auto instance = Window::Theme::Instance();
 				if (Window::Theme::LoadFromFile(path, &instance, nullptr, nullptr, colorizer)) {
-					AyuFeatures::MessageShot::setPalette(instance.palette);
+					TfFeatures::MessageShot::setPalette(instance.palette);
 					return;
 				}
 			}
 		}
 		const Data::CloudTheme theme;
 		if (const auto preview = PreviewFromFile(QByteArray(), path, theme)) {
-			AyuFeatures::MessageShot::setPalette(preview->instance.palette);
+			TfFeatures::MessageShot::setPalette(preview->instance.palette);
 		}
 	};
 
 	const auto chosen = [] {
-		if (AyuFeatures::MessageShot::isChoosingTheme()) {
-			return AyuFeatures::MessageShot::getSelectedFromDefault();
+		if (TfFeatures::MessageShot::isChoosingTheme()) {
+			return TfFeatures::MessageShot::getSelectedFromDefault();
 		}
 
 		const auto &object = Background()->themeObject();
@@ -2185,8 +2185,8 @@ void SetupDefaultThemes(
 	const auto schemeClicked = [=](
 			const Scheme &scheme,
 			Qt::KeyboardModifiers modifiers) {
-		if (AyuFeatures::MessageShot::isChoosingTheme()) {
-			AyuFeatures::MessageShot::setDefaultSelected(scheme.type);
+		if (TfFeatures::MessageShot::isChoosingTheme()) {
+			TfFeatures::MessageShot::setDefaultSelected(scheme.type);
 			updateMessageShotPalette(scheme.path);
 			return;
 		}
@@ -2237,8 +2237,8 @@ void SetupDefaultThemes(
 			? Window::Theme::SystemAccentColor()
 			: settings.themesAccentColors().get(type);
 		if (i != end(checks)) {
-			if (AyuFeatures::MessageShot::isChoosingTheme()) {
-				if (const auto color = AyuFeatures::MessageShot::getSelectedColorFromDefault()) {
+			if (TfFeatures::MessageShot::isChoosingTheme()) {
+				if (const auto color = TfFeatures::MessageShot::getSelectedColorFromDefault()) {
 					const auto colorizer = ColorizerFrom(*scheme, color.value());
 					i->second->setColors(ColorsFromScheme(*scheme, colorizer));
 				} else {
@@ -2260,11 +2260,11 @@ void SetupDefaultThemes(
 			anim::type::instant);
 	};
 	group->setChangedCallback([=, raw = group.get()](Type type) {
-		if (AyuFeatures::MessageShot::isChoosingTheme()) {
+		if (TfFeatures::MessageShot::isChoosingTheme()) {
 			palette->show(type);
 			refreshColorizer(type);
 			raw->setValue(type);
-			AyuFeatures::MessageShot::setDefaultSelected(type);
+			TfFeatures::MessageShot::setDefaultSelected(type);
 
 			const auto scheme = ranges::find(kSchemesList, type, &Scheme::type);
 			if (scheme == end(kSchemesList)) {
@@ -2367,12 +2367,12 @@ void SetupDefaultThemes(
 		}
 	}, block->lifetime());
 
-	if (AyuFeatures::MessageShot::isChoosingTheme()) {
+	if (TfFeatures::MessageShot::isChoosingTheme()) {
 		palette->selected() | rpl::on_next(
 			[=](QColor color)
 			{
-				AyuFeatures::MessageShot::setDefaultSelectedColor(color);
-				refreshColorizer(AyuFeatures::MessageShot::getSelectedFromDefault());
+				TfFeatures::MessageShot::setDefaultSelectedColor(color);
+				refreshColorizer(TfFeatures::MessageShot::getSelectedFromDefault());
 
 				const auto type = chosen();
 				const auto scheme = ranges::find(kSchemesList, type, &Scheme::type);
@@ -2384,9 +2384,9 @@ void SetupDefaultThemes(
 			},
 			container->lifetime());
 
-		AyuFeatures::MessageShot::resetDefaultSelectedEvents() | rpl::on_next([=]
+		TfFeatures::MessageShot::resetDefaultSelectedEvents() | rpl::on_next([=]
 			{
-				refreshColorizer(AyuFeatures::MessageShot::getSelectedFromDefault()); // hide colorizer
+				refreshColorizer(TfFeatures::MessageShot::getSelectedFromDefault()); // hide colorizer
 				group->setValue(Type(-1));
 			},
 			container->lifetime());
@@ -2394,7 +2394,7 @@ void SetupDefaultThemes(
 
 	palette->selected(
 	) | rpl::on_next([=](QColor color) {
-		if (AyuFeatures::MessageShot::isChoosingTheme()) {
+		if (TfFeatures::MessageShot::isChoosingTheme()) {
 			return;
 		}
 		if (Background()->editingTheme()) {

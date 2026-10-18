@@ -18,7 +18,7 @@
 #include "main/main_domain.h"
 #include "main/main_session.h"
 
-namespace AyuWorker {
+namespace TfWorker {
 namespace {
 
 constexpr auto kOfflinePacketDelay = crl::time(3000);
@@ -81,7 +81,7 @@ void runOnce() {
 					continue;
 				}
 
-				const auto &ghost = AyuSettings::ghost(session);
+				const auto &ghost = TfSettings::ghost(session);
 				scheduled[id] = false;
 				if (!ghost.sendOfflinePacketAfterOnline()) {
 					continue;
