@@ -270,10 +270,10 @@ set(teleforge_extension_files
         ayu/features/message_shot/message_shot.h
         ayu/features/message_shot/message_shot_theme_state.cpp
         ayu/features/message_shot/message_shot_theme_state.h
-        ayu/features/forward/ayu_forward.cpp
-        ayu/features/forward/ayu_forward.h
-        ayu/features/forward/ayu_sync.cpp
-        ayu/features/forward/ayu_sync.h
+        tfc/features/forward/ayu_forward.cpp
+        tfc/features/forward/ayu_forward.h
+        tfc/features/forward/ayu_sync.cpp
+        tfc/features/forward/ayu_sync.h
         ayu/features/translator/ayu_translator.cpp
         ayu/features/translator/ayu_translator.h
         ayu/features/translator/ayu_translate_actions.cpp

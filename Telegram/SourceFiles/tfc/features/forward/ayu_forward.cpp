@@ -4,11 +4,11 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/forward/ayu_forward.h"
+#include "tfc/features/forward/ayu_forward.h"
 
 #include "apiwrap.h"
 #include "lang_auto.h"
-#include "ayu/features/forward/ayu_sync.h"
+#include "tfc/features/forward/ayu_sync.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "base/random.h"
 #include "base/unixtime.h"

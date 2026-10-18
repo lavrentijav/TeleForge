@@ -147,7 +147,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_ayu_icons.h"
 #include "ayu/ui/context_menu/context_menu.h"
 #include "ayu/features/translator/ayu_translate_actions.h"
-#include "ayu/features/forward/ayu_forward.h"
+#include "tfc/features/forward/ayu_forward.h"
 #include "ayu/ayu_settings.h"
 
 namespace Window {

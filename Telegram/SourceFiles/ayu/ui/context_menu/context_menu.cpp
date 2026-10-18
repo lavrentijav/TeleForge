@@ -14,7 +14,7 @@
 #include "tfc/data/messages_storage.h"
 #include "ayu/features/spy/online_history_storage.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
-#include "ayu/features/forward/ayu_forward.h"
+#include "tfc/features/forward/ayu_forward.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/ui/context_menu/menu_item_subtext.h"
 #include "ayu/ui/message_history/history_section.h"

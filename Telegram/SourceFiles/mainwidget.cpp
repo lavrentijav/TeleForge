@@ -104,7 +104,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QMimeData>
 
 // AyuGram includes
-#include "ayu/features/forward/ayu_forward.h"
+#include "tfc/features/forward/ayu_forward.h"
 
 
 namespace {

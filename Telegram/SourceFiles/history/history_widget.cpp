@@ -229,7 +229,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "ayu/features/message_shot/message_shot.h"
-#include "ayu/features/forward/ayu_forward.h"
+#include "tfc/features/forward/ayu_forward.h"
 #include "ayu/features/teleforge/teleforge_history_bridge.h"
 #include "ayu/features/teleforge/teleforge_inference.h"
 #include "ayu/features/teleforge/teleforge_memory.h"

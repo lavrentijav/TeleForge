@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/forward/ayu_sync.h"
+#include "tfc/features/forward/ayu_sync.h"
 
 #include "apiwrap.h"
 #include "api/api_sending.h"
