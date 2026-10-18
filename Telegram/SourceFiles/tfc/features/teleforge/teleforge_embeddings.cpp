@@ -92,7 +92,9 @@ EmbeddingVector HttpEmbeddingProvider::embed(
 
 	auto request = QNetworkRequest(_endpoint);
 	request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-	request.setTransferTimeout(5000);
+	// Embedding a long batch can take minutes on a local model; a 5 s cap cut
+	// the connection mid-generation and the server logged "Channel Error".
+	request.setTransferTimeout(300000);
 	if (!_apiKey.isEmpty()) {
 		request.setRawHeader(
 			"Authorization",

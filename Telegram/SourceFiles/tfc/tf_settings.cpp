@@ -1430,7 +1430,22 @@ void from_json(const nlohmann::json &j, TfSettings &s) {
 		defaults._archivePrivateProfileSeconds.current());
 	s._archiveOtherProfileSeconds = ReadField(j,
 		"archiveOtherProfileSeconds",
+
 		defaults._archiveOtherProfileSeconds.current());
+
+	// Slider positions used to be stored where seconds belong, which left every
+	// polling interval at its minimum. Anything outside the documented range now
+	// falls back to the default instead of sticking.
+	const auto repairInterval = [](rpl::variable<int> &value, int low, int high, int fallback) {
+		if (value.current() < low || value.current() > high) {
+			value = fallback;
+		}
+	};
+	repairInterval(s._archiveChatRefreshSeconds, 60, 3600, defaults._archiveChatRefreshSeconds.current());
+	repairInterval(s._archiveKnownUserOnlineSeconds, 15, 600, defaults._archiveKnownUserOnlineSeconds.current());
+	repairInterval(s._archivePrivateOnlineSeconds, 5, 120, defaults._archivePrivateOnlineSeconds.current());
+	repairInterval(s._archivePrivateProfileSeconds, 60, 7200, defaults._archivePrivateProfileSeconds.current());
+	repairInterval(s._archiveOtherProfileSeconds, 300, 21600, defaults._archiveOtherProfileSeconds.current());
 	s._archiveHistoryScanLimit = ReadField(j,
 		"archiveHistoryScanLimit",
 		defaults._archiveHistoryScanLimit.current());

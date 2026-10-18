@@ -285,18 +285,24 @@ void TfSectionBuilder::addSliderTo(
 	auto onFinalChanged = std::move(args.onFinalChanged);
 	const auto current = args.current;
 	const auto steps = args.steps;
+	// setPseudoDiscrete reports the slider position, not the value it maps to.
+	// Every caller here works in real units (seconds), so translate before the
+	// label and the handlers see it; otherwise a 5-minute choice arrives as the
+	// index 4 and gets clamped to the minimum.
+	const auto valueAt = [=](int index) {
+		return indexToValue ? indexToValue(index) : index;
+	};
 
 	if (formatLabel) {
-		label->setText(formatLabel(current));
+		label->setText(formatLabel(valueAt(current)));
 	}
 
 	slider->setPseudoDiscrete(
 		steps,
-		[=](int index) {
-			return indexToValue ? indexToValue(index) : index;
-		},
+		valueAt,
 		current,
-		[=](int value) {
+		[=](int index) {
+			const auto value = valueAt(index);
 			if (formatLabel) {
 				label->setText(formatLabel(value));
 			}
@@ -304,7 +310,8 @@ void TfSectionBuilder::addSliderTo(
 				onChanged(value);
 			}
 		},
-		[=](int value) {
+		[=](int index) {
+			const auto value = valueAt(index);
 			if (formatLabel) {
 				label->setText(formatLabel(value));
 			}
