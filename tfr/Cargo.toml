@@ -1,0 +1,125 @@
+[package]
+name = "teleforge-agent"
+version = "0.1.0"
+edition = "2021"
+# WHY 1.85: `zeroize` 1.9 declares MSRV 1.85 and `rusqlite` 0.40 needs a recent
+# compiler; the rest of the tree is older. Declared here so a build on an older
+# toolchain fails with a version error instead of a confusing type error.
+rust-version = "1.85"
+description = "TeleForge server-side agent: SSH tunnel to the user's DB, encrypted Telegram session storage, sync endpoint and self-updater."
+license = "GPL-3.0-or-later"
+publish = false
+
+[lib]
+name = "teleforge_agent"
+path = "src/lib.rs"
+
+[[bin]]
+name = "teleforge-agent"
+path = "src/main.rs"
+
+# Dependencies are pulled in only together with the code that uses them, and only
+# for primitives that cannot reasonably be written by hand (a vetted Argon2id, a
+# vetted AEAD, SQLite). Modules that still have no implementation carry the
+# signature plus a `TODO(<crate>)` naming the crate that will fill it in and
+# return `Error::NotImplemented`, so `cargo check` stays honest about what is real.
+#
+# Added in step 1 of docs/migration.md (passive module + keystore):
+#   rusqlite         append-only passive store (bundled = no system sqlite, which
+#                    is what makes the binary uploadable over SSH)
+#   argon2           Argon2id KEK derivation (closes audit C1)
+#   chacha20poly1305 XChaCha20-Poly1305 envelope wrapping + at-rest values
+#   aes-gcm          AES-256-GCM, read-compat for legacy `TFSYNC1` bundles
+#   hkdf + sha2      labelled subkeys, content hashes
+#   rand             OsRng for salts, nonces, DEKs, tokens
+#   zeroize          wiping the stack copies in the KDF
+#
+# Still planned, still unimplemented (the module says so):
+#   serde/serde_json, toml     config + wire structs
+#   hmac, ed25519-dalek        id blinding, manifest signatures
+#   russh / russh-keys         in-process SSH client (tunnel)
+#   tiny_http / hyper, rustls  loopback listener
+#   tracing + subscriber       structured logging
+#   base64, ulid, prometheus, libc, tokio
+#
+# Build-only (see docs/migration.md):
+#   musl target + `cross`, `cargo-audit`, `cargo-deny`, `cargo-cyclonedx`.
+
+[dependencies]
+aes-gcm = "0.10"
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+hkdf = "0.12"
+rand = "0.8"
+rusqlite = { version = "0.40", features = ["bundled"] }
+# Wire format. Added in step 3 (`sync.push`/`sync.pull`): hand-rolled JSON was
+# tolerable for `meta.json` and a method name, but a request body is *external
+# input* — its parser must reject malformed bytes with an error, never index into
+# a string and hope. `serde_json` is that parser, and `serde` gives the wire
+# structs a single definition that both the response writer and the tests use.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# TLS 1.3 for the listener. `ring` rather than `aws-lc-rs`: no CMake/Go in the
+# musl-static CI path, and ring is what `rustls` already vendors in this tree.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+sha2 = "0.10"
+zeroize = "1"
+# The two database engines the agent reads the user's shared DB from
+# (`src/db/**`). Synchronous drivers on purpose:
+#   * `postgres` (the blocking wrapper over `tokio-postgres`) and `mysql` are
+#     *sync* clients, so the ingest runs on the existing `tf-db-ingest` thread and
+#     the crate does **not** grow an async runtime of its own. The transport is
+#     deliberately blocking (`thread-per-connection` HTTP), and mixing a tokio
+#     reactor into it would mean two ownership models for the same request path.
+#   * `tokio-postgres-rustls` and mysql's `rustls-tls-ring` keep TLS pure Rust
+#     with `ring`, the same choice as the listener: no OpenSSL/SChannel in the
+#     musl-static CI path (see the note above `rustls`).
+#   * `minimal-rust` gives mysql's `flate2` the pure-Rust deflate backend, because
+#     the default (`flate2/zlib`) needs a C compiler and a system zlib.
+postgres = "0.19"
+tokio-postgres-rustls = "0.13"
+mysql = { version = "26", default-features = false, features = ["rustls-tls-ring", "minimal-rust"] }
+# Root certificates and PEM parsing for the DB TLS connectors. `webpki-roots` is the
+# bundled Mozilla store (so a DB certificate signed by a public CA verifies with no
+# extra file on the VPS); `rustls-pemfile` reads the `sslrootcert` bundle.
+webpki-roots = "1"
+rustls-pemfile = "2"
+
+# Signals. `libc` is needed for one thing only: turning SIGTERM/SIGINT into a
+# flag the accept loop observes, so `serve` drains instead of dying mid-write.
+# Unix-only: Windows has no SIGTERM and the unit file is the production target.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[features]
+default = []
+# Links the system TDLib (`-ltdjson`). Off by default so that `cargo check`
+# works with no TDLib installed; see src/tdlib.rs.
+tdlib-link = []
+
+[profile.release]
+opt-level = "z"      # portability/size over raw speed: the client uploads this over SSH
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+debug = false
+overflow-checks = true
+
+[profile.release.package."*"]
+opt-level = "z"
+
+# WHY: `cc-rs` passes `-Z7` (debug info in the .obj) when the profile carries
+# debug symbols. MSVC's `cl.exe` then fails on `sqlite3.c` with
+# `D8050: cannot execute c1.dll - unable to place command line into debug record`:
+# the generated command line carries ~20 `-D` flags and the `/Z7` debug record has
+# a fixed size budget. Dropping debug info for the vendored SQLite only — never
+# for this crate — is enough to build it.
+[profile.dev.package.libsqlite3-sys]
+debug = false
+
+# WHY: the same MSVC `D8050` on `cl.exe` (`-Z7` debug record budget) hits `ring`
+# in its curve25519/ asm C files. Dropping debug info for the vendored crypto
+# only — never for this crate — is enough, exactly as for SQLite above.
+[profile.dev.package.ring]
+debug = false

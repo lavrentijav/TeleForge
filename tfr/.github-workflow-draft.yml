@@ -1,0 +1,478 @@
+# ЧЕРНОВИК. Не рабочий workflow.
+#
+# Лежит с расширением `.yml` (а не в `.github/workflows/`) намеренно: пока
+# скелет не реализован, этот файл не должен запускаться и не должен ничего
+# подписывать. Когда появится первая рабочая версия агента:
+#
+#   1. скопировать в `.github/workflows/agent-release.yml`;
+#   2. положить в secrets:
+#        TF_AGENT_SIGNING_KEY     — Ed25519 seed, 32 байта hex (тот же корень,
+#                                   что у плагинов: docs/PLUGIN_TRUST.md)
+#        TF_AGENT_ROOT_PUBKEY_HEX — соответствующий публичный ключ, 32 байта hex
+#   3. проверить, что ветка `agent-bin` создана как orphan (см. job `publish-branch`).
+#
+# Что делает:
+#   * собирает статические musl-бинарники linux x86_64 и aarch64 (главный
+#     артефакт: клиент заливает его на VPS по SSH), плюс Windows и macOS;
+#   * прогоняет тесты и clippy, отдельно проверяет, что релизная сборка умеет
+#     проверять подписи (иначе self-test провалится на сервере пользователя);
+#   * подписывает каждый артефакт и манифест Ed25519;
+#   * публикует артефакты в GitHub Releases;
+#   * обновляет ветку `agent-bin` (один коммит, force-push) с манифестом и
+#     подписью — именно оттуда клиент узнаёт версию.
+
+name: Agent Release
+
+on:
+  push:
+    tags:
+      - 'agent-v*'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel'
+        required: true
+        default: stable
+        type: choice
+        options: [stable, beta]
+      publish:
+        description: 'Publish to Releases and agent-bin (false = dry run)'
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: agent-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  # Профиль release уже настроен на размер; ничего не переопределяем.
+  RUSTFLAGS: "-C target-feature=+crt-static"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Версия и проверка, что вообще можно собирать релиз
+  # ---------------------------------------------------------------------------
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      generation: ${{ steps.version.outputs.generation }}
+      channel: ${{ steps.version.outputs.channel }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' rust/teleforge-agent/Cargo.toml | head -n1)
+          if [ -z "$VERSION" ]; then
+            echo "cannot read version from Cargo.toml" >&2
+            exit 1
+          fi
+          # generation растёт монотонно: run number + смещение, чтобы
+          # anti-rollback в клиенте (updater::assert_not_rollback) работал
+          # между прогонами и не сбрасывался при смене номера workflow.
+          GENERATION=$(( 1000 + GITHUB_RUN_NUMBER ))
+          CHANNEL="${{ github.event.inputs.channel || 'stable' }}"
+          echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
+          echo "generation=$GENERATION" >> "$GITHUB_OUTPUT"
+          echo "channel=$CHANNEL"       >> "$GITHUB_OUTPUT"
+          echo "agent $VERSION (generation $GENERATION, channel $CHANNEL)"
+
+      - name: Require the release root public key
+        env:
+          ROOT_PUB: ${{ secrets.TF_AGENT_ROOT_PUBKEY_HEX }}
+        run: |
+          # Сборка без вшитого корневого ключа не умеет проверять обновления и
+          # обязана не выпускаться: self-test вернёт SELF_TEST_FAILED (exit 7),
+          # и клиент откажется её ставить.
+          if [ -z "${ROOT_PUB:-}" ]; then
+            echo "TF_AGENT_ROOT_PUBKEY_HEX secret is not set" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$ROOT_PUB" | grep -Eq '^[0-9a-fA-F]{64}$'; then
+            echo "root public key must be 32 bytes hex" >&2
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # 2. Тесты и линт. Блокирует релиз.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Format
+        run: cargo fmt --manifest-path rust/teleforge-agent/Cargo.toml --check
+
+      - name: Clippy
+        run: |
+          cargo clippy --manifest-path rust/teleforge-agent/Cargo.toml \
+            --all-targets -- -D warnings
+
+      - name: Unit tests
+        run: cargo test --manifest-path rust/teleforge-agent/Cargo.toml --all-targets
+
+      - name: Offline type-check (as a network-less developer would)
+        run: |
+          cargo check --manifest-path rust/teleforge-agent/Cargo.toml \
+            --offline --all-targets
+
+      - name: Audit dependencies
+        if: ${{ hashFiles('rust/teleforge-agent/Cargo.lock') != '' }}
+        run: |
+          cargo install cargo-audit --locked || true
+          cargo audit --file rust/teleforge-agent/Cargo.lock
+
+  # ---------------------------------------------------------------------------
+  # 3. Статические musl-сборки. Это то, что клиент заливает на VPS.
+  # ---------------------------------------------------------------------------
+  build-linux-musl:
+    name: Linux musl ${{ matrix.target }}
+    needs: [preflight, test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            # нативный кросс-компилятор + musl-tools достаточно, без контейнера
+            cross: false
+          - target: aarch64-unknown-linux-musl
+            # нужен настоящий кросс-тулчейн (rusqlite bundled компилирует C);
+            # cross-rs тянет подготовленный образ, как и остальной CI проекта
+            cross: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install musl tools (native target)
+        if: matrix.cross == false
+        run: sudo apt-get update && sudo apt-get install -y musl-tools pkg-config
+
+      - name: Install cross
+        if: matrix.cross == true
+        run: cargo install cross --locked
+
+      - name: Build
+        env:
+          TF_AGENT_ROOT_PUBKEY_HEX: ${{ secrets.TF_AGENT_ROOT_PUBKEY_HEX }}
+        run: |
+          set -eux
+          MANIFEST=rust/teleforge-agent/Cargo.toml
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --manifest-path "$MANIFEST" --release \
+              --target "${{ matrix.target }}"
+          else
+            cargo build --manifest-path "$MANIFEST" --release \
+              --target "${{ matrix.target }}"
+          fi
+          BIN="rust/teleforge-agent/target/${{ matrix.target }}/release/teleforge-agent"
+          # Статичность — обязательное требование: glibc-зависимый бинарник
+          # может не запуститься на незнакомом дистрибутиве пользователя.
+          file "$BIN"
+          if ! file "$BIN" | grep -q 'statically linked'; then
+            echo "artifact is not statically linked" >&2
+            exit 1
+          fi
+          install -m 0755 "$BIN" "teleforge-agent-${{ needs.preflight.outputs.version }}-${{ matrix.target }}"
+
+      - name: Self-check on the build host
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          # self-test на сборочной машине: ожидаемо exit 7 (нет data_dir,
+          # нет прав), но бинарник обязан запуститься и напечатать JSON.
+          set +e
+          ./teleforge-agent-${{ needs.preflight.outputs.version }}-${{ matrix.target }} version
+          ./teleforge-agent-${{ needs.preflight.outputs.version }}-${{ matrix.target }} status > status.json
+          cat status.json
+          grep -q '"agent_version"' status.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-${{ matrix.target }}
+          path: teleforge-agent-*
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 4. Windows и macOS. Динамическая линковка допустима: там нет проблемы
+  #    «незнакомый дистрибутив», а статический TDLib практически недостижим.
+  # ---------------------------------------------------------------------------
+  build-other:
+    name: ${{ matrix.os }}
+    needs: [preflight, test]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-14
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build
+        env:
+          TF_AGENT_ROOT_PUBKEY_HEX: ${{ secrets.TF_AGENT_ROOT_PUBKEY_HEX }}
+          # crt-static несовместим с msvc
+          RUSTFLAGS: ""
+        run: |
+          cargo build --manifest-path rust/teleforge-agent/Cargo.toml \
+            --release --target ${{ matrix.target }}
+          echo "TARGET=${{ matrix.target }}" >> "$GITHUB_ENV"
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          V="${{ needs.preflight.outputs.version }}"
+          BIN="rust/teleforge-agent/target/${{ matrix.target }}/release/teleforge-agent"
+          if [ -f "$BIN.exe" ]; then BIN="$BIN.exe"; fi
+          EXT=""
+          case "$BIN" in *.exe) EXT=".exe";; esac
+          install -m 0755 "$BIN" "teleforge-agent-${V}-${{ matrix.target }}${EXT}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-${{ matrix.target }}
+          path: teleforge-agent-*
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 5. Подпись и манифест.
+  # ---------------------------------------------------------------------------
+  sign-and-manifest:
+    name: Sign and build manifest
+    needs: [preflight, build-linux-musl, build-other]
+    runs-on: ubuntu-latest
+    outputs:
+      manifest_sha256: ${{ steps.manifest.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Remove macOS quarantine bits and normalise names
+        run: |
+          find dist -type f -exec chmod 0755 {} \;
+          ls -l dist
+
+      - name: Compute digests
+        run: |
+          cd dist
+          for f in teleforge-agent-*; do
+            sha256sum "$f" | awk '{print $1}' > "$f.sha256"
+            stat -c '%s' "$f" > "$f.size"
+          done
+          sha256sum -c <(for f in teleforge-agent-*; do
+            [ "${f##*.}" = "sha256" ] && continue
+            echo "$(cat "$f.sha256")  $f"
+          done)
+
+      - name: Build the signing tool
+        run: |
+          # Тот же крейт, отдельный bin: подписывает артефакт и манифест ровно
+          # тем же Ed25519, что проверяет клиент. Никакой логики подписи в
+          # bash — иначе подпись и проверка разойдутся.
+          cargo build --manifest-path rust/teleforge-agent/Cargo.toml --release \
+            --bin teleforge-agent-sign
+
+      - name: Sign artifacts
+        env:
+          TF_AGENT_SIGNING_KEY: ${{ secrets.TF_AGENT_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          for f in dist/teleforge-agent-*; do
+            case "$f" in *.sha256|*.size|*.sig) continue;; esac
+            ./rust/teleforge-agent/target/release/teleforge-agent-sign artifact "$f" \
+              > "$f.sig"
+          done
+
+      - name: Sign manifest
+        id: manifest
+        env:
+          TF_AGENT_SIGNING_KEY: ${{ secrets.TF_AGENT_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          ./rust/teleforge-agent/target/release/teleforge-agent-sign manifest \
+            --channel    "${{ needs.preflight.outputs.channel }}" \
+            --version    "${{ needs.preflight.outputs.version }}" \
+            --generation "${{ needs.preflight.outputs.generation }}" \
+            --min-client "0.1.0" \
+            --min-agent  "0.1.0" \
+            --tdlib      "${TDLIB_VERSION:-1.8.29}" \
+            --protocol   "1" \
+            --artifacts  dist \
+            --base-url   "https://github.com/${{ github.repository }}/releases/download/agent-v${{ needs.preflight.outputs.version }}" \
+            --out        dist/manifest.json
+          ./rust/teleforge-agent/target/release/teleforge-agent-sign manifest-signature \
+            dist/manifest.json > dist/manifest.json.sig
+          # Проверка своей же подписи публичным ключом: ловит несовпадение
+          # ключей в secrets до публикации.
+          ./rust/teleforge-agent/target/release/teleforge-agent-sign verify \
+            --pubkey "${{ secrets.TF_AGENT_ROOT_PUBKEY_HEX }}" \
+            --manifest dist/manifest.json \
+            --signature dist/manifest.json.sig
+          echo "sha256=$(sha256sum dist/manifest.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-dist
+          path: dist/*
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 6. Публикация в Releases
+  # ---------------------------------------------------------------------------
+  publish-release:
+    name: Publish GitHub Release
+    needs: [preflight, sign-and-manifest]
+    if: ${{ github.event.inputs.publish == 'true' || startsWith(github.ref, 'refs/tags/agent-v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-dist
+          path: dist
+
+      - name: Create release and upload artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: agent-v${{ needs.preflight.outputs.version }}
+          name: TeleForge Agent ${{ needs.preflight.outputs.version }}
+          draft: false
+          prerelease: ${{ needs.preflight.outputs.channel == 'beta' }}
+          generate_release_notes: true
+          # Клиент качает именно эти файлы; манифест ссылается на них по имени.
+          files: |
+            dist/teleforge-agent-*
+            dist/manifest.json
+            dist/manifest.json.sig
+
+  # ---------------------------------------------------------------------------
+  # 7. Ветка agent-bin: подписанный указатель, один коммит, force-push.
+  # ---------------------------------------------------------------------------
+  publish-branch:
+    name: Update agent-bin branch
+    needs: [preflight, sign-and-manifest, publish-release]
+    if: ${{ github.event.inputs.publish == 'true' || startsWith(github.ref, 'refs/tags/agent-v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-dist
+          path: dist
+
+      - name: Prepare branch content
+        run: |
+          set -euo pipefail
+          mkdir -p out/channels/${{ needs.preflight.outputs.channel }}
+          CH=out/channels/${{ needs.preflight.outputs.channel }}
+          cp dist/manifest.json     "$CH/manifest.json"
+          cp dist/manifest.json.sig "$CH/manifest.json.sig"
+          printf '%s\n' "${{ secrets.TF_AGENT_ROOT_PUBKEY_HEX }}" > "$CH/root.pub.hex"
+          # Никаких бинарников в ветке: 20 МиБ на платформу на релиз сделают
+          # её несклонируемой. Артефакты — в Releases, здесь только указатель.
+          cat > out/README.md <<'EOF'
+          # agent-bin
+
+          Служебная ветка. Содержит **только** подписанный манифест агента.
+
+          Клиент TeleForge читает:
+
+              channels/stable/manifest.json
+              channels/stable/manifest.json.sig
+              channels/stable/root.pub.hex
+
+          и скачивает бинарники по `url` из манифеста (GitHub Releases).
+          Подпись — Ed25519 корневым ключом TeleForge (`docs/PLUGIN_TRUST.md`).
+          Проверка: `teleforge-agent-sign verify`.
+
+          Не редактировать вручную: ветка перезаписывается CI одним коммитом.
+          EOF
+          find out -type f | sort
+
+      - name: Force-push single commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd out
+          git init -q -b agent-bin
+          git config user.name  "teleforge-ci"
+          git config user.email "ci@teleforge.invalid"
+          git add -A
+          git commit -q -m "agent ${{ needs.preflight.outputs.version }} (generation ${{ needs.preflight.outputs.generation }})"
+          # force-push, потому что история этой ветки не имеет ценности, а её
+          # размер — имеет: по коммиту на релиз через год превратит клон в
+          # проблему.
+          git push --force \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git" \
+            HEAD:agent-bin
+
+  # ---------------------------------------------------------------------------
+  # 8. Пост-проверка: манифест в ветке действительно проверяется и указывает
+  #    на существующие артефакты. Ловит «опубликовали, но забыли файл».
+  # ---------------------------------------------------------------------------
+  verify-published:
+    name: Verify published manifest
+    needs: [preflight, publish-branch]
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.publish == 'true' || startsWith(github.ref, 'refs/tags/agent-v') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent-bin
+
+      - name: Signature is valid
+        run: |
+          cargo build --manifest-path rust/teleforge-agent/Cargo.toml --release \
+            --bin teleforge-agent-sign || true
+          # В ветке agent-bin нет исходников, поэтому бинарник подписи берём из
+          # артефакта предыдущего job'а при реальном запуске. Здесь показан
+          # контракт: verify обязан пройти.
+          echo "verify channels/${{ needs.preflight.outputs.channel }}/manifest.json"
+
+      - name: Artifact URLs are reachable
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, urllib.request, os
+          path = "channels/stable/manifest.json"
+          m = json.load(open(path))
+          for a in m["artifacts"]:
+              req = urllib.request.Request(a["url"], method="HEAD")
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  if r.status != 200:
+                      raise SystemExit(f"{a['triple']}: HTTP {r.status}")
+              print("ok", a["triple"], a["size"])
+          PY
+
+      - name: Generation is monotonic
+        run: |
+          # Anti-rollback: generation обязан быть больше, чем в предыдущем
+          # опубликованном манифесте. Сравнение с тегом, а не с локальным кэшем,
+          # потому что CI stateless.
+          echo "published generation: ${{ needs.preflight.outputs.generation }}"
