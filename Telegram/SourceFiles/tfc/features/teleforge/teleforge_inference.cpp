@@ -57,21 +57,8 @@ constexpr auto kFactSplitShortMessageMaxChars = 100;
 } // namespace
 
 void ApplyPersonalityEndpoints(const PersonalityCore &core) {
-	// A base URL without a path is the common case ("http://127.0.0.1:1234"),
-	// and posting to it makes the server answer "unexpected endpoint". Fill in
-	// the embeddings path unless the user already gave a full one.
-	auto embeddingUrlOrBase = core.embeddingEndpointUrl.trimmed();
-	if (!embeddingUrlOrBase.isEmpty()) {
-		const auto asUrl = QUrl(embeddingUrlOrBase);
-		if (asUrl.path().isEmpty() || asUrl.path() == u"/"_q) {
-			const auto withPath = EmbeddingsUrlFromChatBase(embeddingUrlOrBase);
-			if (!withPath.isEmpty()) {
-				embeddingUrlOrBase = withPath;
-			}
-		}
-	}
 	const auto parsedEmbedding = ParseOpenAiEndpointUrl(
-		embeddingUrlOrBase,
+		core.embeddingEndpointUrl,
 		core.embeddingModelId);
 	const auto embeddingEndpoint = parsedEmbedding.url;
 	const auto embeddingModelId = parsedEmbedding.modelId;
