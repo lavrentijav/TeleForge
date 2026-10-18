@@ -850,7 +850,11 @@ void AddReadUntilAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 		[=]
 		{
 			readHistory(item);
-			if (item->media() && item->media()->ttlSeconds() <= 0 && item->unsupportedTTL() <= 0 && !item->out()) {
+			if ((!ghost.isGhostModeActive() || ghost.sendReadMessages())
+				&& item->media()
+				&& item->media()->ttlSeconds() <= 0
+				&& item->unsupportedTTL() <= 0
+				&& !item->out()) {
 				const auto ids = MTP_vector<MTPint>(1, MTP_int(item->id));
 				if (const auto channel = item->history()->peer->asChannel()) {
 					item->history()->session().api().request(MTPchannels_ReadMessageContents(
@@ -874,6 +878,10 @@ void AddReadUntilAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 }
 
 void AddBurnAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
+	const auto &ghost = TfSettings::ghost(&item->history()->session());
+	if (ghost.isGhostModeActive() && !ghost.sendReadMessages()) {
+		return;
+	}
 	if (!item->media() || (item->media()->ttlSeconds() <= 0 && item->unsupportedTTL() <= 0) || item->out() ||
 		!item->hasUnreadMediaFlag()) {
 		return;
