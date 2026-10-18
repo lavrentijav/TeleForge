@@ -266,6 +266,7 @@ void rememberShownTill(
 			rows.push_back({
 				.accountId = accountId,
 				.peerId = peerId,
+				.topicId = TfId(item->topicRootId().bare),
 				.msgId = id,
 				.readAt = now,
 				.flags = kFlagIncoming,
