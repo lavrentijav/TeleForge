@@ -349,28 +349,28 @@ set(teleforge_extension_files
         tfc/features/teleforge/tf_chat_wallpaper_save.h
         tfc/data/ayu_content_hash.cpp
         tfc/data/ayu_content_hash.h
-        ayu/features/sync/teleforge_sync.cpp
-        ayu/features/sync/teleforge_sync.h
-        ayu/features/sync/teleforge_sync_crypto.cpp
-        ayu/features/sync/teleforge_sync_crypto.h
-        ayu/features/sync/teleforge_sync_embeddings.cpp
-        ayu/features/sync/teleforge_sync_embeddings.h
-        ayu/features/sync/teleforge_sync_files.cpp
-        ayu/features/sync/teleforge_sync_files.h
-        ayu/features/sync/teleforge_sync_merger.cpp
-        ayu/features/sync/teleforge_sync_merger.h
-        ayu/features/sync/teleforge_sync_mysql.cpp
-        ayu/features/sync/teleforge_sync_mysql.h
-        ayu/features/sync/teleforge_sync_pg.cpp
-        ayu/features/sync/teleforge_sync_pg.h
-        ayu/features/sync/teleforge_ssh_tunnel.cpp
-        ayu/features/sync/teleforge_ssh_tunnel.h
-        ayu/features/sync/teleforge_sync_snapshot.cpp
-        ayu/features/sync/teleforge_sync_snapshot.h
-        ayu/features/sync/teleforge_sync_rows.cpp
-        ayu/features/sync/teleforge_sync_rows.h
-        ayu/features/sync/teleforge_sync_transport.cpp
-        ayu/features/sync/teleforge_sync_transport.h
+        tfc/features/sync/teleforge_sync.cpp
+        tfc/features/sync/teleforge_sync.h
+        tfc/features/sync/teleforge_sync_crypto.cpp
+        tfc/features/sync/teleforge_sync_crypto.h
+        tfc/features/sync/teleforge_sync_embeddings.cpp
+        tfc/features/sync/teleforge_sync_embeddings.h
+        tfc/features/sync/teleforge_sync_files.cpp
+        tfc/features/sync/teleforge_sync_files.h
+        tfc/features/sync/teleforge_sync_merger.cpp
+        tfc/features/sync/teleforge_sync_merger.h
+        tfc/features/sync/teleforge_sync_mysql.cpp
+        tfc/features/sync/teleforge_sync_mysql.h
+        tfc/features/sync/teleforge_sync_pg.cpp
+        tfc/features/sync/teleforge_sync_pg.h
+        tfc/features/sync/teleforge_ssh_tunnel.cpp
+        tfc/features/sync/teleforge_ssh_tunnel.h
+        tfc/features/sync/teleforge_sync_snapshot.cpp
+        tfc/features/sync/teleforge_sync_snapshot.h
+        tfc/features/sync/teleforge_sync_rows.cpp
+        tfc/features/sync/teleforge_sync_rows.h
+        tfc/features/sync/teleforge_sync_transport.cpp
+        tfc/features/sync/teleforge_sync_transport.h
         tfc/features/spy/online_tracker.cpp
         tfc/features/spy/online_tracker.h
         tfc/features/spy/online_history_storage.cpp
@@ -2827,7 +2827,7 @@ if (WIN32)
         # Sources are attached via nice_target_sources(${src_loc} ...), so the
         # property key must be the absolute path under SourceFiles.
         set_source_files_properties(
-            "${src_loc}/ayu/features/sync/teleforge_sync_pg.cpp"
+            "${src_loc}/tfc/features/sync/teleforge_sync_pg.cpp"
             PROPERTIES
             INCLUDE_DIRECTORIES "${PostgreSQL_INCLUDE_DIRS}")
         target_link_libraries(Telegram PRIVATE ${PostgreSQL_LIBRARIES})
@@ -2880,7 +2880,7 @@ if (WIN32)
         target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_MYSQL=1)
         # Scope connector headers to the single backend TU (same reason as PG).
         set_source_files_properties(
-            "${src_loc}/ayu/features/sync/teleforge_sync_mysql.cpp"
+            "${src_loc}/tfc/features/sync/teleforge_sync_mysql.cpp"
             PROPERTIES
             INCLUDE_DIRECTORIES "${_tf_mysql_incdir};${_tf_mysql_incparent}")
         target_link_libraries(Telegram PRIVATE "${_tf_mysql_lib}")

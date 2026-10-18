@@ -1,10 +1,10 @@
 // Copyright @Radolyn, 2026
 #include "ayu/ui/settings/settings_teleforge_sync.h"
 
-#include "ayu/features/sync/teleforge_sync.h"
+#include "tfc/features/sync/teleforge_sync.h"
 #include "ayu/ui/teleforge_upload_bar.h"
-#include "ayu/features/sync/teleforge_sync_mysql.h"
-#include "ayu/features/sync/teleforge_sync_pg.h"
+#include "tfc/features/sync/teleforge_sync_mysql.h"
+#include "tfc/features/sync/teleforge_sync_pg.h"
 #include "tfc/features/teleforge/teleforge_core.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
 #include "ayu/ui/settings/ayu_builder.h"

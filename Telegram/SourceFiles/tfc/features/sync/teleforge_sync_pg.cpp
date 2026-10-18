@@ -1,4 +1,4 @@
-#include "ayu/features/sync/teleforge_sync_pg.h"
+#include "tfc/features/sync/teleforge_sync_pg.h"
 
 #include "tfc/features/teleforge/teleforge_core.h"
 #include "data/data_user.h"
@@ -9,10 +9,10 @@
 
 #ifdef TELEFORGE_WITH_POSTGRES
 
-#include "ayu/features/sync/teleforge_ssh_tunnel.h"
-#include "ayu/features/sync/teleforge_sync_crypto.h"
-#include "ayu/features/sync/teleforge_sync_embeddings.h"
-#include "ayu/features/sync/teleforge_sync_rows.h"
+#include "tfc/features/sync/teleforge_ssh_tunnel.h"
+#include "tfc/features/sync/teleforge_sync_crypto.h"
+#include "tfc/features/sync/teleforge_sync_embeddings.h"
+#include "tfc/features/sync/teleforge_sync_rows.h"
 #include "tfc/features/teleforge/teleforge_embeddings.h"
 
 #include "logs.h"

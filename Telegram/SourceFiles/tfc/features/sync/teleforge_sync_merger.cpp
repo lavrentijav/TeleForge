@@ -1,6 +1,6 @@
-#include "ayu/features/sync/teleforge_sync_merger.h"
+#include "tfc/features/sync/teleforge_sync_merger.h"
 
-#include "ayu/features/sync/teleforge_sync_snapshot.h"
+#include "tfc/features/sync/teleforge_sync_snapshot.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
 #include "settings.h"
 

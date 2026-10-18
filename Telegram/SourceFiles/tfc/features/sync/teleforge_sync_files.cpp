@@ -1,4 +1,4 @@
-#include "ayu/features/sync/teleforge_sync_files.h"
+#include "tfc/features/sync/teleforge_sync_files.h"
 
 #include "tfc/utils/telegram_helpers.h"
 #include "api/api_common.h"

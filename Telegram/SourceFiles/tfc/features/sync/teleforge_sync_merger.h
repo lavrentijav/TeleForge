@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ayu/features/sync/teleforge_sync_snapshot.h"
+#include "tfc/features/sync/teleforge_sync_snapshot.h"
 
 #include <QByteArray>
 #include <QJsonObject>

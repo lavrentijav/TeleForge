@@ -1,6 +1,6 @@
 #include "tfc/features/teleforge/teleforge_memory.h"
 
-#include "ayu/features/sync/teleforge_sync.h"
+#include "tfc/features/sync/teleforge_sync.h"
 #include "tfc/features/teleforge/teleforge_core.h"
 #include "tfc/features/teleforge/teleforge_embeddings.h"
 #include "tfc/features/teleforge/teleforge_rerank.h"

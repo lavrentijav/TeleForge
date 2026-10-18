@@ -1,4 +1,4 @@
-#include "ayu/features/sync/teleforge_sync_embeddings.h"
+#include "tfc/features/sync/teleforge_sync_embeddings.h"
 
 #include "tfc/features/teleforge/teleforge_storage.h"
 
