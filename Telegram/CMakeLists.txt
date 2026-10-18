@@ -375,27 +375,27 @@ set(teleforge_extension_files
         ayu/features/spy/online_tracker.h
         ayu/features/spy/online_history_storage.cpp
         ayu/features/spy/online_history_storage.h
-        ayu/features/plugins/plugin_api.cpp
-        ayu/features/plugins/plugin_api.h
-        ayu/features/plugins/plugin_catalog.h
-        ayu/features/plugins/plugin_catalog_store.cpp
-        ayu/features/plugins/plugin_catalog_store.h
-        ayu/features/plugins/plugin_channel_install.cpp
-        ayu/features/plugins/plugin_channel_install.h
-        ayu/features/plugins/plugin_dev_mode.cpp
-        ayu/features/plugins/plugin_dev_mode.h
-        ayu/features/plugins/plugin_developers_store.cpp
-        ayu/features/plugins/plugin_developers_store.h
-        ayu/features/plugins/plugin_trust.cpp
-        ayu/features/plugins/plugin_trust.h
-        ayu/features/plugins/plugin_manager.cpp
-        ayu/features/plugins/plugin_manager.h
-        ayu/features/plugins/plugin_registry.cpp
-        ayu/features/plugins/plugin_registry.h
-        ayu/features/plugins/plugin_runner.cpp
-        ayu/features/plugins/plugin_runner.h
-        ayu/features/plugins/plugin_tool_registry.cpp
-        ayu/features/plugins/plugin_tool_registry.h
+        tfc/features/plugins/plugin_api.cpp
+        tfc/features/plugins/plugin_api.h
+        tfc/features/plugins/plugin_catalog.h
+        tfc/features/plugins/plugin_catalog_store.cpp
+        tfc/features/plugins/plugin_catalog_store.h
+        tfc/features/plugins/plugin_channel_install.cpp
+        tfc/features/plugins/plugin_channel_install.h
+        tfc/features/plugins/plugin_dev_mode.cpp
+        tfc/features/plugins/plugin_dev_mode.h
+        tfc/features/plugins/plugin_developers_store.cpp
+        tfc/features/plugins/plugin_developers_store.h
+        tfc/features/plugins/plugin_trust.cpp
+        tfc/features/plugins/plugin_trust.h
+        tfc/features/plugins/plugin_manager.cpp
+        tfc/features/plugins/plugin_manager.h
+        tfc/features/plugins/plugin_registry.cpp
+        tfc/features/plugins/plugin_registry.h
+        tfc/features/plugins/plugin_runner.cpp
+        tfc/features/plugins/plugin_runner.h
+        tfc/features/plugins/plugin_tool_registry.cpp
+        tfc/features/plugins/plugin_tool_registry.h
         tfc/data/messages_storage.cpp
         tfc/data/messages_storage.h
         tfc/data/entities.h
@@ -2767,8 +2767,8 @@ if (WIN32)
         # The two TUs that include <Python.h> need our headers and must not let
         # Python.h auto-link a python lib by basename (we link it explicitly).
         set_source_files_properties(
-            ayu/features/plugins/plugin_runner.cpp
-            ayu/features/plugins/plugin_api.cpp
+            tfc/features/plugins/plugin_runner.cpp
+            tfc/features/plugins/plugin_api.cpp
             PROPERTIES
             INCLUDE_DIRECTORIES "${_tf_python_src}/Include;${_tf_python_src}/PC"
             COMPILE_DEFINITIONS "Py_NO_LINK_LIB")

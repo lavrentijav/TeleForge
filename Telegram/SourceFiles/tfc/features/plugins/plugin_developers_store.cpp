@@ -1,7 +1,7 @@
-#include "ayu/features/plugins/plugin_developers_store.h"
+#include "tfc/features/plugins/plugin_developers_store.h"
 
-#include "ayu/features/plugins/plugin_catalog.h"
-#include "ayu/features/plugins/plugin_trust.h"
+#include "tfc/features/plugins/plugin_catalog.h"
+#include "tfc/features/plugins/plugin_trust.h"
 #include <crl/crl.h>
 #include "settings.h"
 

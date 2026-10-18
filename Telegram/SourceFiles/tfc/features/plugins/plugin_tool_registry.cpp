@@ -1,6 +1,6 @@
-#include "ayu/features/plugins/plugin_tool_registry.h"
+#include "tfc/features/plugins/plugin_tool_registry.h"
 
-#include "ayu/features/plugins/plugin_runner.h"
+#include "tfc/features/plugins/plugin_runner.h"
 
 namespace TeleForge::Plugins {
 

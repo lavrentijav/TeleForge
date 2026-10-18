@@ -1,6 +1,6 @@
-#include "ayu/features/plugins/plugin_runner.h"
+#include "tfc/features/plugins/plugin_runner.h"
 
-#include "ayu/features/plugins/plugin_api.h"
+#include "tfc/features/plugins/plugin_api.h"
 #include "settings.h"
 #include "logs.h"
 

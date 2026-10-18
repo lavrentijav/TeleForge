@@ -2,7 +2,7 @@
 
 #include "ayu/features/subscription/teleforge_subscription.h"
 
-#include "ayu/features/plugins/plugin_catalog.h"
+#include "tfc/features/plugins/plugin_catalog.h"
 #include "apiwrap.h"
 #include "data/data_channel.h"
 #include "data/data_peer.h"

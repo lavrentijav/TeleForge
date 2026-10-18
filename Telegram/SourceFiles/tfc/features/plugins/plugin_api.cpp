@@ -1,5 +1,5 @@
 // TeleForge plugin API bridge — native `_teleforge` module.
-#include "ayu/features/plugins/plugin_api.h"
+#include "tfc/features/plugins/plugin_api.h"
 
 #ifdef TELEFORGE_WITH_PYTHON
 

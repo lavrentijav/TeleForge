@@ -1,6 +1,6 @@
 #include "ayu/features/teleforge/teleforge_lm_studio.h"
 
-#include "ayu/features/plugins/plugin_tool_registry.h"
+#include "tfc/features/plugins/plugin_tool_registry.h"
 #include "ayu/features/teleforge/teleforge_llama_runtime.h"
 
 #include "base/invoke_queued.h"

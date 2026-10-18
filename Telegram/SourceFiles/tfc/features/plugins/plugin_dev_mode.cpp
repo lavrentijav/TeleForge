@@ -1,4 +1,4 @@
-#include "ayu/features/plugins/plugin_dev_mode.h"
+#include "tfc/features/plugins/plugin_dev_mode.h"
 
 #include "settings.h"
 

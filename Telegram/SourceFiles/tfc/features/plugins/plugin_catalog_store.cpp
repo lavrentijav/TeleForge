@@ -1,11 +1,11 @@
-#include "ayu/features/plugins/plugin_catalog_store.h"
+#include "tfc/features/plugins/plugin_catalog_store.h"
 
-#include "ayu/features/plugins/plugin_catalog.h"
-#include "ayu/features/plugins/plugin_dev_mode.h"
-#include "ayu/features/plugins/plugin_developers_store.h"
-#include "ayu/features/plugins/plugin_manager.h"
-#include "ayu/features/plugins/plugin_registry.h"
-#include "ayu/features/plugins/plugin_trust.h"
+#include "tfc/features/plugins/plugin_catalog.h"
+#include "tfc/features/plugins/plugin_dev_mode.h"
+#include "tfc/features/plugins/plugin_developers_store.h"
+#include "tfc/features/plugins/plugin_manager.h"
+#include "tfc/features/plugins/plugin_registry.h"
+#include "tfc/features/plugins/plugin_trust.h"
 #include <crl/crl.h>
 #include "logs.h"
 #include "settings.h"

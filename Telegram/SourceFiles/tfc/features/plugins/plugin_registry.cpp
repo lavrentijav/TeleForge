@@ -1,4 +1,4 @@
-#include "ayu/features/plugins/plugin_registry.h"
+#include "tfc/features/plugins/plugin_registry.h"
 
 #include "settings.h"
 

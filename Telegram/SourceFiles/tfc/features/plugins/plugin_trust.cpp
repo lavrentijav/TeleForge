@@ -1,4 +1,4 @@
-#include "ayu/features/plugins/plugin_trust.h"
+#include "tfc/features/plugins/plugin_trust.h"
 
 #include "logs.h"
 

@@ -8,7 +8,7 @@
 #include "ayu/features/teleforge/teleforge_openai_models.h"
 #include "ayu/features/teleforge/teleforge_rerank.h"
 #include "ayu/features/teleforge/teleforge_tools.h"
-#include "ayu/features/plugins/plugin_tool_registry.h"
+#include "tfc/features/plugins/plugin_tool_registry.h"
 
 #include "logs.h"
 

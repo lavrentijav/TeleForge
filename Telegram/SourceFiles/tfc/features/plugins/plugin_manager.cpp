@@ -1,10 +1,10 @@
-#include "ayu/features/plugins/plugin_manager.h"
+#include "tfc/features/plugins/plugin_manager.h"
 
-#include "ayu/features/plugins/plugin_dev_mode.h"
-#include "ayu/features/plugins/plugin_developers_store.h"
-#include "ayu/features/plugins/plugin_registry.h"
-#include "ayu/features/plugins/plugin_runner.h"
-#include "ayu/features/plugins/plugin_trust.h"
+#include "tfc/features/plugins/plugin_dev_mode.h"
+#include "tfc/features/plugins/plugin_developers_store.h"
+#include "tfc/features/plugins/plugin_registry.h"
+#include "tfc/features/plugins/plugin_runner.h"
+#include "tfc/features/plugins/plugin_trust.h"
 #include "logs.h"
 #include "settings.h"
 
