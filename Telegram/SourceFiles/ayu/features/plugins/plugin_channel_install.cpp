@@ -250,9 +250,14 @@ void installChannelOffer(
 		return;
 	}
 	const auto doc = item->media()->document();
+	const auto fileName = SafePluginFileName(offer.fileName);
+	if (fileName.isEmpty()) {
+		done(false, u"Некорректное имя файла плагина."_q);
+		return;
+	}
 	const auto pluginsDir = cWorkingDir() + u"plugins"_q;
 	QDir().mkpath(pluginsDir);
-	const auto dest = QDir(pluginsDir).absoluteFilePath(offer.fileName);
+	const auto dest = QDir(pluginsDir).absoluteFilePath(fileName);
 	DownloadDocument(session, doc, item, dest, [=](bool ok, QString err) {
 		if (!ok) {
 			done(false, err);
@@ -272,20 +277,25 @@ void installChannelOffer(
 					pub,
 					sha,
 					offer.devId,
-					offer.fileName,
+					fileName,
 					offer.pluginSignatureHex)) {
 				QFile::remove(dest);
 				done(false, u"Подпись плагина не прошла проверку."_q);
 				return;
 			}
+			setSignature(fileName, {
+				.sha256Hex = QString::fromLatin1(sha.toHex()),
+				.devId = offer.devId,
+				.signatureHex = offer.pluginSignatureHex,
+			});
 		}
-		setSource(offer.fileName, u"@%1 · %2"_q.arg(dev->channelUsername, dev->title));
-		setEnabled(offer.fileName, true);
+		setSource(fileName, u"@%1 · %2"_q.arg(dev->channelUsername, dev->title));
+		setEnabled(fileName, true);
 		reloadAll();
 		const auto suffix = DevMode::allowUnverifiedInstalls()
 			? u" (режим разработчика)"_q
 			: QString();
-		done(true, u"Установлено%1: %2"_q.arg(suffix, offer.fileName));
+		done(true, u"Установлено%1: %2"_q.arg(suffix, fileName));
 	});
 }
 

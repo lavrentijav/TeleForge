@@ -78,6 +78,13 @@ settings.local.json
 # Project specific
 Telegram/SourceFiles/_other/packer_private.h
 
+# Private key material (plugin trust, update signing, TLS): keys live in CI
+# secrets and password managers, only public parts belong in the repository.
+*_private.pem
+*private*.pem
+*.private.key
+!Telegram/Resources/update/root-public.pem
+
 # TeleForge CI trigger marker
 
 /out-ninja/

@@ -742,7 +742,8 @@ private:
 	rpl::variable<bool> _aiTranslationEnabled = true;
 	rpl::variable<bool> _aiCompressionEnabled = true;
 	rpl::variable<QString> _deleteStubText = QStringLiteral(".");
-	rpl::variable<bool> _spyModeGloballyEnabled = true;
+	// Presence tracking is surveillance of third parties: opt-in, never a default.
+	rpl::variable<bool> _spyModeGloballyEnabled = false;
 	rpl::variable<int> _spyRetentionDays = 30;
 	rpl::variable<bool> _peerArchiveEnabled = false;
 	rpl::variable<int> _archiveChatRefreshSeconds = 300;

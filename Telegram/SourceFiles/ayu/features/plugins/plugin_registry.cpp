@@ -4,6 +4,7 @@
 
 #include <QtCore/QDir>
 #include <QtCore/QFile>
+#include <QtCore/QFileInfo>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -13,6 +14,10 @@ namespace {
 
 [[nodiscard]] QString StatePath() {
 	return cWorkingDir() + u"tdata/teleforge_plugins.json"_q;
+}
+
+[[nodiscard]] QString PluginsDir() {
+	return cWorkingDir() + u"plugins"_q;
 }
 
 [[nodiscard]] QJsonObject LoadRoot() {
@@ -71,6 +76,33 @@ void UpsertEntry(const QString &fileName, const QJsonObject &patch) {
 
 } // namespace
 
+QString SafePluginFileName(const QString &name) {
+	auto clean = QFileInfo(name.trimmed()).fileName();
+	if (clean.isEmpty()
+		|| clean == u".."_q
+		|| clean.contains(u'/')
+		|| clean.contains(u'\\')
+		|| !clean.endsWith(u".py"_q, Qt::CaseInsensitive)
+		|| clean.startsWith(u'.')) {
+		return {};
+	}
+	return clean;
+}
+
+QString PluginFilePath(const QString &fileName) {
+	const auto clean = SafePluginFileName(fileName);
+	if (clean.isEmpty()) {
+		return {};
+	}
+	const auto dir = QDir(PluginsDir()).absolutePath();
+	const auto path = QDir::cleanPath(
+		QDir(dir).absoluteFilePath(clean));
+	if (!path.startsWith(dir + u'/')) {
+		return {};
+	}
+	return path;
+}
+
 std::vector<InstalledPlugin> listInstalled() {
 	const auto root = LoadRoot();
 	const auto dir = QDir(cWorkingDir() + u"plugins"_q);
@@ -90,6 +122,9 @@ std::vector<InstalledPlugin> listInstalled() {
 				? entry.value(u"enabled"_q).toBool(true)
 				: true,
 			.sourceChannel = entry.value(u"source"_q).toString(),
+			.verified = entry.contains(u"sha256"_q)
+				&& entry.contains(u"devId"_q)
+				&& entry.contains(u"sig"_q),
 		};
 		result.push_back(std::move(item));
 	}
@@ -112,9 +147,32 @@ void setSource(const QString &fileName, const QString &channel) {
 	UpsertEntry(fileName, { { u"source"_q, channel } });
 }
 
+void setSignature(const QString &fileName, const PluginSignature &signature) {
+	UpsertEntry(fileName, {
+		{ u"sha256"_q, signature.sha256Hex },
+		{ u"devId"_q, signature.devId },
+		{ u"sig"_q, signature.signatureHex },
+	});
+}
+
+std::optional<PluginSignature> signature(const QString &fileName) {
+	const auto entry = EntryForFile(LoadRoot(), fileName);
+	const auto digest = entry.value(u"sha256"_q).toString();
+	const auto devId = entry.value(u"devId"_q).toString();
+	const auto sig = entry.value(u"sig"_q).toString();
+	if (digest.isEmpty() || devId.isEmpty() || sig.isEmpty()) {
+		return std::nullopt;
+	}
+	return PluginSignature{
+		.sha256Hex = digest,
+		.devId = devId,
+		.signatureHex = sig,
+	};
+}
+
 bool removeInstalledFile(const QString &fileName) {
-	const auto path = QDir(cWorkingDir() + u"plugins"_q).absoluteFilePath(fileName);
-	if (!QFile::exists(path)) {
+	const auto path = PluginFilePath(fileName);
+	if (path.isEmpty() || !QFile::exists(path)) {
 		return false;
 	}
 	return QFile::remove(path);

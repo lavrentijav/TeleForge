@@ -200,7 +200,7 @@ void installCatalogEntry(const CatalogEntry &entry, DoneCallback done) {
 		done(false, u"Недопустимая ссылка на плагин."_q);
 		return;
 	}
-	const auto fileName = SafeFileName(entry.fileName);
+	const auto fileName = SafePluginFileName(SafeFileName(entry.fileName));
 	if (fileName.isEmpty()) {
 		done(false, u"Некорректное имя файла."_q);
 		return;
@@ -226,6 +226,16 @@ void installCatalogEntry(const CatalogEntry &entry, DoneCallback done) {
 			}
 			file.write(body);
 			file.close();
+			if (!DevMode::allowUnverifiedInstalls()) {
+				setSignature(fileName, {
+					.sha256Hex = QString::fromLatin1(
+						QCryptographicHash::hash(
+							body,
+							QCryptographicHash::Sha256).toHex()),
+					.devId = entry.devId,
+					.signatureHex = entry.pluginSignatureHex,
+				});
+			}
 			setSource(fileName, entry.sourceLabel);
 			setEnabled(fileName, true);
 			reloadAll();
