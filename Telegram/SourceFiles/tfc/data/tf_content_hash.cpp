@@ -1,59 +1,78 @@
 #include "tfc/data/tf_content_hash.h"
 
 #include <QtCore/QCryptographicHash>
-#include <QtCore/QString>
+#include <QtCore/QByteArray>
+
+#include <array>
 
 namespace TfContentHash {
 namespace {
 
-[[nodiscard]] std::string Sha256Hex(const QByteArray &data) {
-	return QCryptographicHash::hash(data, QCryptographicHash::Sha256)
-		.toHex()
-		.toStdString();
+constexpr auto kSeparator = char('|');
+
+void AppendNumber(QByteArray &out, long long value) {
+	auto magnitude = static_cast<unsigned long long>(value);
+	if (value < 0) {
+		out.append('-');
+		magnitude = 0 - magnitude;
+	}
+	auto digits = std::array<char, 20>();
+	auto count = 0;
+	do {
+		digits[count++] = char('0' + (magnitude % 10));
+		magnitude /= 10;
+	} while (magnitude);
+	while (count > 0) {
+		out.append(digits[--count]);
+	}
 }
 
-[[nodiscard]] QByteArray PackFields(
-		long long userId,
+[[nodiscard]] std::string ComputeKey(
+		long long accountId,
 		long long dialogId,
 		int messageId,
-		long long fromId,
+		long long authorId,
 		const std::string &text,
 		int revisionDate) {
 	auto payload = QByteArray();
-	payload.append(QByteArray::number(userId));
-	payload.append('|');
-	payload.append(QByteArray::number(dialogId));
-	payload.append('|');
-	payload.append(QByteArray::number(messageId));
-	payload.append('|');
-	payload.append(QByteArray::number(fromId));
-	payload.append('|');
-	payload.append(text.c_str(), int(text.size()));
-	payload.append('|');
-	payload.append(QByteArray::number(revisionDate));
-	return payload;
+	AppendNumber(payload, accountId);
+	payload.append(kSeparator);
+	AppendNumber(payload, dialogId);
+	payload.append(kSeparator);
+	AppendNumber(payload, messageId);
+	payload.append(kSeparator);
+	AppendNumber(payload, authorId);
+	payload.append(kSeparator);
+	payload.append(text.data(), int(text.size()));
+	payload.append(kSeparator);
+	AppendNumber(payload, revisionDate);
+
+	return QCryptographicHash::hash(
+		payload,
+		QCryptographicHash::Sha256
+	).toHex().toStdString();
 }
 
 } // namespace
 
 std::string ComputeEdited(const EditedMessage &message) {
-	return Sha256Hex(PackFields(
+	return ComputeKey(
 		message.userId,
 		message.dialogId,
 		message.messageId,
 		message.fromId,
 		message.text,
-		message.editDate));
+		message.editDate);
 }
 
 std::string ComputeDeleted(const DeletedMessage &message) {
-	return Sha256Hex(PackFields(
+	return ComputeKey(
 		message.userId,
 		message.dialogId,
 		message.messageId,
 		message.fromId,
 		message.text,
-		message.date));
+		message.date);
 }
 
 } // namespace TfContentHash
