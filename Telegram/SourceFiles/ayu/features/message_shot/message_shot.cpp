@@ -9,7 +9,7 @@
 #include "qguiapplication.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/boxes/message_shot_box.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"

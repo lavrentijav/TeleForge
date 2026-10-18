@@ -20,7 +20,7 @@
 #include "logs.h"
 
 #ifdef Q_OS_WIN
-#include "ayu/utils/windows_utils.h"
+#include "tfc/utils/windows_utils.h"
 #endif
 
 namespace AyuInfra {

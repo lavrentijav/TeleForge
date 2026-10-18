@@ -3,7 +3,7 @@
 #include "ayu/features/presence/tf_presence_filter.h"
 #include "ayu/features/sync/teleforge_sync_files.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "api/api_common.h"
 #include "apiwrap.h"
 #include "api/api_common.h"

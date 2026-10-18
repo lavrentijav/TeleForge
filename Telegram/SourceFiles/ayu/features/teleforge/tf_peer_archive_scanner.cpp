@@ -109,7 +109,7 @@ void RequestChannelParticipantsPage(
 		int offset,
 		Fn<void()> done,
 		int attempt = 0) {
-	if (!channel->canViewMembers()) {
+	if (!channel->canViewMembers() || !channel->amIn()) {
 		if (done) {
 			done();
 		}

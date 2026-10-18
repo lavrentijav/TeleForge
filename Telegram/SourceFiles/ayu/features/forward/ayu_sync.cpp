@@ -8,7 +8,7 @@
 
 #include "apiwrap.h"
 #include "api/api_sending.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "core/file_utilities.h"

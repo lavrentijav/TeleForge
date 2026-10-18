@@ -92,7 +92,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/features/message_shot/message_shot.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "ui/emoji_config.h"
 
 #include "styles/style_chat.h"

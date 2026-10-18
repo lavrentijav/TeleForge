@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_saved_sublist.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
+#include "mtproto/mtproto_response.h"
 #include "base/unixtime.h"
 #include "base/random.h"
 #include "main/main_session.h"
@@ -37,8 +38,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "ayu/ayu_settings.h"
 #include "ayu/features/ghost/tf_ghost_audit.h"
+#include "ayu/features/ghost/tf_ghost_read.h"
 #include "ayu/ayu_worker.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 
 
 namespace Data {
@@ -255,6 +257,12 @@ void Histories::readInboxTill(not_null<History*> history, MsgId tillId) {
 	readInboxTill(history, tillId, false);
 }
 
+void Histories::readInboxTillForced(
+		not_null<History*> history,
+		MsgId tillId) {
+	readInboxTill(history, tillId, true);
+}
+
 void Histories::readInboxTill(
 		not_null<History*> history,
 		MsgId tillId,
@@ -264,6 +272,11 @@ void Histories::readInboxTill(
 	DEBUG_LOG(("Reading: readInboxTill %1, force %2."
 		).arg(tillId.bare
 		).arg(Logs::b(force)));
+
+	const auto ghostReadSince = history->inboxReadTillId();
+	const auto rememberGhostRead = [=] {
+		TeleForge::GhostRead::rememberShownTill(history, ghostReadSince, tillId);
+	};
 
 	const auto syncGuard = gsl::finally([&] {
 		DEBUG_LOG(("Reading: in guard, unread %1."
@@ -317,6 +330,7 @@ void Histories::readInboxTill(
 		DEBUG_LOG(("Reading: count didn't change so just update till %1"
 			).arg(tillId.bare));
 		history->setInboxReadTill(tillId);
+		rememberGhostRead();
 		return;
 	}
 	auto &state = maybeState ? *maybeState : _states[history];
@@ -347,6 +361,7 @@ void Histories::readInboxTill(
 	history->setInboxReadTill(tillId);
 	history->setUnreadCount(*stillUnread);
 	history->updateChatListEntry();
+	rememberGhostRead();
 }
 
 void Histories::readInboxOnNewMessage(not_null<HistoryItem*> item) {
@@ -792,7 +807,10 @@ void Histories::sendReadRequest(not_null<History*> history, State &state) {
 			return session().api().request(MTPchannels_ReadHistory(
 				channel->inputChannel(),
 				MTP_int(tillId)
-			)).done(finished).fail(finished).send();
+			)).done(finished).fail([=](const MTP::Error &error) {
+				TeleForge::GhostRead::noteFloodWait(error.type());
+				finished();
+			}).send();
 		} else {
 			return session().api().request(MTPmessages_ReadHistory(
 				history->peer->input(),
@@ -800,7 +818,8 @@ void Histories::sendReadRequest(not_null<History*> history, State &state) {
 			)).done([=](const MTPmessages_AffectedMessages &result) {
 				session().api().applyAffectedMessages(history->peer, result);
 				finished();
-			}).fail([=] {
+			}).fail([=](const MTP::Error &error) {
+				TeleForge::GhostRead::noteFloodWait(error.type());
 				finished();
 			}).send();
 		}
@@ -1205,7 +1224,7 @@ int Histories::sendPreparedMessage(
 					const MTPUpdates &result,
 					const MTP::Response &response) {
 				api->applyUpdates(result, randomId);
-				AyuWorker::markAsOnline(&history->owner().session());
+				AyuWorker::scheduleOfflinePacket(&history->owner().session());
 				done(result, response);
 				finish();
 			}).fail([=](

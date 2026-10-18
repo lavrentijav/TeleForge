@@ -15,7 +15,7 @@
 #include "ayu/ui/settings/settings_ayu_utils.h"
 #include "ayu/ui/settings/filters/edit_filter.h"
 #include "ayu/ui/settings/filters/per_dialog_filter.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "boxes/connection_box.h"
 #include "data/data_channel.h"
 #include "info/info_wrap_widget.h"

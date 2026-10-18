@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_session.h"
 
+#include "ayu/features/ghost/tf_ghost_read.h"
 #include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/features/spy/online_tracker.h"
 #include "main/main_session.h"
@@ -101,7 +102,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_settings.h"
 #include "ayu/data/messages_storage.h"
 #include "ayu/features/filters/filters_controller.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 
 
 namespace Data {
@@ -1730,6 +1731,7 @@ void Session::deleteConversationLocally(not_null<PeerData*> peer) {
 		}
 		removeChatListEntry(history);
 		history->clearFolder();
+		TeleForge::GhostRead::forgetPeer(&session(), peer->id);
 
 		// We want to mark the channel as left before unloading the history,
 		// otherwise some parts of updating may return us to the chats list.

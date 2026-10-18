@@ -156,3 +156,15 @@ public:
 	bool enabled = true;
 	int since = 0;
 };
+
+class GhostReadMessage
+{
+public:
+	ID fakeId = 0;
+	ID accountId = 0; // session->userId().bare, never the overridden ghost id
+	ID peerId = 0;
+	ID topicId = 0;
+	int msgId = 0;
+	int readAt = 0;
+	int flags = 0;
+};

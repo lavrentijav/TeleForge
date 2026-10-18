@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 
 #include "apiwrap.h"
 #include "lang_auto.h"
@@ -15,8 +15,8 @@
 #include "ayu/data/entities.h"
 #include "ayu/data/messages_storage.h"
 #include "ayu/features/filters/filters_controller.h"
-#include "ayu/utils/rc_manager.h"
-#include "ayu/utils/official_resources.h"
+#include "tfc/utils/rc_manager.h"
+#include "tfc/utils/official_resources.h"
 #include "base/unixtime.h"
 #include "core/mime_type.h"
 #include "data/data_channel.h"
@@ -288,7 +288,7 @@ void MarkAsReadThread(not_null<Data::Thread*> thread) {
 		sendReadReactions(thread);
 	}
 
-	AyuWorker::markAsOnline(&thread->session());
+	AyuWorker::scheduleOfflinePacket(&thread->session());
 }
 
 void readHistory(not_null<HistoryItem*> message) {
@@ -304,7 +304,7 @@ void readHistory(not_null<HistoryItem*> message) {
 							 return history->session().api().request(MTPchannels_ReadHistory(
 								 channel->inputChannel(),
 								 MTP_int(tillId)
-							 )).done([=] { AyuWorker::markAsOnline(&history->session()); }).send();
+							 )).done([=] { AyuWorker::scheduleOfflinePacket(&history->session()); }).send();
 						 }
 
 						 return history->session().api().request(MTPmessages_ReadHistory(
@@ -313,7 +313,7 @@ void readHistory(not_null<HistoryItem*> message) {
 						 )).done([=](const MTPmessages_AffectedMessages &result)
 						 {
 							 history->session().api().applyAffectedMessages(history->peer, result);
-							 AyuWorker::markAsOnline(&history->session());
+							 AyuWorker::scheduleOfflinePacket(&history->session());
 						 }).fail([=]
 						 {
 						 }).send();

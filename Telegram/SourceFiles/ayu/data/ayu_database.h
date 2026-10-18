@@ -64,4 +64,13 @@ void upsertSpyTarget(ID userId, bool enabled);
 [[nodiscard]] bool isSpyTargetEnabled(ID userId);
 void purgeOnlineEventsBefore(int timestamp);
 
+void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows);
+[[nodiscard]] bool hasGhostRead(ID accountId);
+[[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForAccount(ID accountId);
+[[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForPeer(ID accountId, ID peerId);
+void eraseGhostReadForPeer(ID accountId, ID peerId);
+void eraseGhostReadUpTo(ID accountId, ID peerId, int msgId);
+void eraseGhostReadForAccount(ID accountId);
+void purgeGhostReadBefore(int timestamp);
+
 }

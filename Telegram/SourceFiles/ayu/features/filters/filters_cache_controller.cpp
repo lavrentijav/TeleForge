@@ -67,7 +67,7 @@ void trimFilteredLocked() {
 		if (dialogIt == filteredMessages.end()) {
 			continue;
 		}
-		if (dialogIt->second.erase(front.messageId)) {
+		if (dialogIt->second.erase(front.messageId) && filteredCount) {
 			--filteredCount;
 		}
 		if (dialogIt->second.empty()) {

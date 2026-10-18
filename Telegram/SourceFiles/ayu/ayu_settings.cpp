@@ -10,6 +10,7 @@
 #include "tray.h"
 #include "ayu/ayu_ui_settings.h"
 #include "ayu/ayu_worker.h"
+#include "ayu/features/ghost/tf_ghost_read.h"
 #include "ayu/ui/ayu_logo.h"
 #include "core/application.h"
 #include "data/data_peer_id.h"
@@ -129,6 +130,10 @@ void GhostModeAccountSettings::setGhostModeEnabled(bool val) {
 			if (const auto session = window->maybeSession()) {
 				AyuWorker::scheduleOfflinePacket(session);
 			}
+		}
+	} else if (const auto window = Core::App().activeWindow()) {
+		if (const auto session = window->maybeSession()) {
+			TeleForge::GhostRead::scheduleFlush(session);
 		}
 	}
 }

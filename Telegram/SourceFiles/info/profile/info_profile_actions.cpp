@@ -119,7 +119,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ui/utils/ayu_profile_values.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "base/event_filter.h"
 #include "styles/style_ayu_styles.h"
 #include "ui/widgets/tooltip.h"

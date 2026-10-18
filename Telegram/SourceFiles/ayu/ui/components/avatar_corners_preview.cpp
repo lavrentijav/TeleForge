@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "ayu/ui/components/avatar_corners_preview.h"
 
-#include "ayu/utils/official_resources.h"
+#include "tfc/utils/official_resources.h"
 #include "apiwrap.h"
 #include "data/data_peer.h"
 #include "data/data_peer_id.h"

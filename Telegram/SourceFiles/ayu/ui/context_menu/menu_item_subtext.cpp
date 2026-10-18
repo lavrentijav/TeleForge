@@ -9,7 +9,7 @@
 #include "mainwindow.h"
 #include "qguiapplication.h"
 #include "ayu/data/entities.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "base/unixtime.h"
 #include "data/data_user.h"
 #include "lang/lang_keys.h"

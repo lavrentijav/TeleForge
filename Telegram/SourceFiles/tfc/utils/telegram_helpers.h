@@ -8,7 +8,7 @@
 
 #include "api/api_common.h"
 #include "ayu/data/entities.h"
-#include "ayu/utils/rc_manager.h"
+#include "tfc/utils/rc_manager.h"
 #include "core/application.h"
 #include "data/data_media_types.h"
 #include "dialogs/dialogs_main_list.h"

@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #ifdef Q_OS_WIN
 
-#include "ayu/utils/windows_utils.h"
+#include "tfc/utils/windows_utils.h"
 
 #include "ayu/ui/ayu_logo.h"
 #include "base/platform/win/base_windows_winrt.h"

@@ -10,7 +10,7 @@
 #include "ayu/ayu_settings.h"
 #include "ayu/data/ayu_database.h"
 #include "ayu/features/filters/filters_cache_controller.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "data/data_document.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"

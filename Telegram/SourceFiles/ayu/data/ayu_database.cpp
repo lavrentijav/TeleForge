@@ -14,6 +14,10 @@
 
 #include <QtCore/QFile>
 
+#include <set>
+#include <tuple>
+#include <utility>
+
 using namespace sqlite_orm;
 
 namespace {
@@ -534,6 +538,115 @@ void purgeOnlineEventsBefore(int timestamp) {
 			where(column<OnlineEvent>(&OnlineEvent::timestamp) < timestamp));
 	} catch (const std::exception &ex) {
 		LOG(("Failed purgeOnlineEventsBefore: %1").arg(ex.what()));
+	}
+}
+
+void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows) {
+	if (rows.empty()) {
+		return;
+	}
+	try {
+		auto peers = std::set<std::pair<ID, ID>>();
+		for (const auto &row : rows) {
+			peers.emplace(row.accountId, row.peerId);
+		}
+		auto seen = std::set<std::tuple<ID, ID, int>>();
+		for (const auto &[accountId, peerId] : peers) {
+			const auto existing = db().get_all<GhostReadMessage>(
+				where(
+					column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId
+					and column<GhostReadMessage>(&GhostReadMessage::peerId) == peerId));
+			for (const auto &row : existing) {
+				seen.emplace(row.accountId, row.peerId, row.msgId);
+			}
+		}
+		auto tx = Tx(db());
+		for (const auto &row : rows) {
+			if (!seen.emplace(row.accountId, row.peerId, row.msgId).second) {
+				continue;
+			}
+			db().insert(row);
+		}
+		tx.commit();
+	} catch (const std::exception &ex) {
+		LOG(("Failed insertGhostReadBatch: %1").arg(ex.what()));
+	}
+}
+
+bool hasGhostRead(ID accountId) {
+	try {
+		return !db().select(
+			columns(column<GhostReadMessage>(&GhostReadMessage::fakeId)),
+			where(column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId),
+			limit(1)).empty();
+	} catch (const std::exception &ex) {
+		LOG(("Failed hasGhostRead: %1").arg(ex.what()));
+		return false;
+	}
+}
+
+std::vector<GhostReadMessage> loadGhostReadForAccount(ID accountId) {
+	try {
+		return db().get_all<GhostReadMessage>(
+			where(column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId),
+			order_by(column<GhostReadMessage>(&GhostReadMessage::msgId)).asc());
+	} catch (const std::exception &ex) {
+		LOG(("Failed loadGhostReadForAccount: %1").arg(ex.what()));
+		return {};
+	}
+}
+
+std::vector<GhostReadMessage> loadGhostReadForPeer(ID accountId, ID peerId) {
+	try {
+		return db().get_all<GhostReadMessage>(
+			where(
+				column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId
+				and column<GhostReadMessage>(&GhostReadMessage::peerId) == peerId),
+			order_by(column<GhostReadMessage>(&GhostReadMessage::msgId)).asc());
+	} catch (const std::exception &ex) {
+		LOG(("Failed loadGhostReadForPeer: %1").arg(ex.what()));
+		return {};
+	}
+}
+
+void eraseGhostReadForPeer(ID accountId, ID peerId) {
+	try {
+		db().remove_all<GhostReadMessage>(
+			where(
+				column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId
+				and column<GhostReadMessage>(&GhostReadMessage::peerId) == peerId));
+	} catch (const std::exception &ex) {
+		LOG(("Failed eraseGhostReadForPeer: %1").arg(ex.what()));
+	}
+}
+
+void eraseGhostReadUpTo(ID accountId, ID peerId, int msgId) {
+	try {
+		db().remove_all<GhostReadMessage>(
+			where(
+				column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId
+				and column<GhostReadMessage>(&GhostReadMessage::peerId) == peerId
+				and column<GhostReadMessage>(&GhostReadMessage::msgId) <= msgId));
+	} catch (const std::exception &ex) {
+		LOG(("Failed eraseGhostReadUpTo: %1").arg(ex.what()));
+	}
+}
+
+void eraseGhostReadForAccount(ID accountId) {
+	try {
+		db().remove_all<GhostReadMessage>(
+			where(column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId));
+	} catch (const std::exception &ex) {
+		LOG(("Failed eraseGhostReadForAccount: %1").arg(ex.what()));
+	}
+}
+
+void purgeGhostReadBefore(int timestamp) {
+	try {
+		db().remove_all<GhostReadMessage>(
+			where(column<GhostReadMessage>(&GhostReadMessage::readAt) < timestamp));
+	} catch (const std::exception &ex) {
+		LOG(("Failed purgeGhostReadBefore: %1").arg(ex.what()));
 	}
 }
 

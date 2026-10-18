@@ -9,7 +9,7 @@
 #include "apiwrap.h"
 #include "lang_auto.h"
 #include "ayu/features/forward/ayu_sync.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "base/random.h"
 #include "base/unixtime.h"
 #include "core/application.h"

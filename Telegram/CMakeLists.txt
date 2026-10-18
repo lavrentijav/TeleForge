@@ -140,23 +140,23 @@ set(teleforge_extension_files
         ayu/ayu_lang.h
         ayu/ayu_infra.cpp
         ayu/ayu_infra.h
-        ayu/utils/ayu_mapper.cpp
-        ayu/utils/ayu_mapper.h
-        ayu/utils/qt_key_modifiers_extended.h
-        ayu/utils/telegram_helpers.cpp
-        ayu/utils/ayu_delete_actions.cpp
-        ayu/utils/ayu_delete_actions.h
-        ayu/utils/telegram_helpers.h
-        ayu/utils/windows_utils.cpp
-        ayu/utils/windows_utils.h
-        ayu/utils/rc_manager.cpp
-        ayu/utils/rc_manager.h
-        ayu/utils/taptic_engine/taptic_engine.cpp
-        ayu/utils/taptic_engine/taptic_engine.h
-        ayu/utils/taptic_engine/platform/taptic_engine_dummy.cpp
-        ayu/utils/taptic_engine/platform/taptic_engine_dummy.h
-        ayu/utils/taptic_engine/platform/taptic_engine_mac.mm
-        ayu/utils/taptic_engine/platform/taptic_engine_mac.h
+        tfc/utils/ayu_mapper.cpp
+        tfc/utils/ayu_mapper.h
+        tfc/utils/qt_key_modifiers_extended.h
+        tfc/utils/telegram_helpers.cpp
+        tfc/utils/ayu_delete_actions.cpp
+        tfc/utils/ayu_delete_actions.h
+        tfc/utils/telegram_helpers.h
+        tfc/utils/windows_utils.cpp
+        tfc/utils/windows_utils.h
+        tfc/utils/rc_manager.cpp
+        tfc/utils/rc_manager.h
+        tfc/utils/taptic_engine/taptic_engine.cpp
+        tfc/utils/taptic_engine/taptic_engine.h
+        tfc/utils/taptic_engine/platform/taptic_engine_dummy.cpp
+        tfc/utils/taptic_engine/platform/taptic_engine_dummy.h
+        tfc/utils/taptic_engine/platform/taptic_engine_mac.mm
+        tfc/utils/taptic_engine/platform/taptic_engine_mac.h
         ayu/ui/ayu_logo.cpp
         ayu/ui/ayu_logo.h
         ayu/ui/ayu_userpic.cpp
@@ -213,6 +213,8 @@ set(teleforge_extension_files
         ayu/ui/teleforge_upload_bar.h
         ayu/features/ghost/tf_ghost_audit.cpp
         ayu/features/ghost/tf_ghost_audit.h
+        ayu/features/ghost/tf_ghost_read.cpp
+        ayu/features/ghost/tf_ghost_read.h
         ayu/features/ghost/tf_ghost_scheduled.cpp
         ayu/features/ghost/tf_ghost_scheduled.h
         ayu/features/presence/tf_presence_filter.cpp

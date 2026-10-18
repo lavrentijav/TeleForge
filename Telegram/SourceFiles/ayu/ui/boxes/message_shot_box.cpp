@@ -10,7 +10,7 @@
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/boxes/theme_selector_box.h"
 #include "ayu/ui/components/image_view.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
 #include "data/data_todo_list.h"
 #include "history/history_item.h"

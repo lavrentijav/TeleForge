@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/utils/ayu_mapper.h"
+#include "tfc/utils/ayu_mapper.h"
 
 #include "apiwrap.h"
 #include "api/api_text_entities.h"

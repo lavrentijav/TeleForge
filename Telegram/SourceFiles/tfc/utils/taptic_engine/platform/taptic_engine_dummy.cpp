@@ -4,26 +4,23 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/utils/taptic_engine/taptic_engine.h"
+#include "tfc/utils/taptic_engine/platform/taptic_engine_dummy.h"
 
-#if defined Q_OS_MAC
-#include "ayu/utils/taptic_engine/platform/taptic_engine_mac.h"
-#else
-#include "ayu/utils/taptic_engine/platform/taptic_engine_dummy.h"
-#endif
+#ifndef Q_OS_MAC
 
 namespace TapticEngine {
+namespace Impl {
 
 void generateGeneric() {
-	Impl::generateGeneric();
 }
 
 void generateAlignment() {
-	Impl::generateAlignment();
 }
 
 void generateLevelChange() {
-	Impl::generateLevelChange();
 }
 
 }
+}
+
+#endif

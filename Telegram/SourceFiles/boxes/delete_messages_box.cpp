@@ -35,7 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 
 // AyuGram includes
-#include "ayu/utils/ayu_delete_actions.h"
+#include "tfc/utils/ayu_delete_actions.h"
 #include "lang_auto.h"
 
 namespace {

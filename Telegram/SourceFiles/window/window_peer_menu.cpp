@@ -2232,6 +2232,11 @@ void PeerMenuExportChat(
 		not_null<Window::SessionController*> controller,
 		not_null<PeerData*> peer) {
 	base::call_delayed(st::defaultPopupMenu.showDuration, [=] {
+		if (const auto channel = peer->asChannel();
+			channel && !channel->amIn()) {
+			controller->showToast(tr::lng_cant_do_this(tr::now));
+			return;
+		}
 		Core::App().exportManager().start(peer);
 	});
 }

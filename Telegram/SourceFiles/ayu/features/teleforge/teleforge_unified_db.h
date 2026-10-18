@@ -60,6 +60,11 @@ using namespace sqlite_orm;
 			column<PeerArchive::UsernameRecord>(&PeerArchive::UsernameRecord::peerId),
 			column<PeerArchive::UsernameRecord>(&PeerArchive::UsernameRecord::observedAt)),
 		make_index(
+			"idx_ghost_read_peer",
+			column<GhostReadMessage>(&GhostReadMessage::accountId),
+			column<GhostReadMessage>(&GhostReadMessage::peerId),
+			column<GhostReadMessage>(&GhostReadMessage::topicId)),
+		make_index(
 			"idx_peer_archive_chat_account",
 			column<PeerArchive::ChatMembershipRecord>(&PeerArchive::ChatMembershipRecord::accountId),
 			column<PeerArchive::ChatMembershipRecord>(&PeerArchive::ChatMembershipRecord::peerId),
@@ -293,6 +298,15 @@ using namespace sqlite_orm;
 			make_column("userId", &SpyTarget::userId, primary_key()),
 			make_column("enabled", &SpyTarget::enabled),
 			make_column("since", &SpyTarget::since)),
+		make_table<GhostReadMessage>(
+			"GhostReadMessage",
+			make_column("fakeId", &GhostReadMessage::fakeId, primary_key().autoincrement()),
+			make_column("accountId", &GhostReadMessage::accountId),
+			make_column("peerId", &GhostReadMessage::peerId),
+			make_column("topicId", &GhostReadMessage::topicId, default_value(0)),
+			make_column("msgId", &GhostReadMessage::msgId),
+			make_column("readAt", &GhostReadMessage::readAt),
+			make_column("flags", &GhostReadMessage::flags, default_value(0))),
 		make_table<PeerArchive::ProfileRecord>(
 			"PeerArchiveProfile",
 			make_column("accountId", &PeerArchive::ProfileRecord::accountId, default_value(0)),

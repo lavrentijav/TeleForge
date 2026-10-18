@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/utils/ayu_delete_actions.h"
+#include "tfc/utils/ayu_delete_actions.h"
 
 #include "api/api_editing.h"
 #include "api/api_common.h"

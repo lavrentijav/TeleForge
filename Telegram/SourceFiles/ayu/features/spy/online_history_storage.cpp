@@ -14,6 +14,8 @@
 namespace TeleForge::Spy {
 namespace {
 
+constexpr auto kGhostReadRetentionDays = 90;
+
 auto g_mutex = std::mutex();
 auto g_globalSpy = true;
 auto g_retentionDays = 30;
@@ -178,8 +180,10 @@ int retentionDays() {
 }
 
 void purgeOldEvents() {
-	const auto cutoff = base::unixtime::now() - retentionDays() * 86400;
-	AyuDatabase::purgeOnlineEventsBefore(cutoff);
+	const auto now = base::unixtime::now();
+	AyuDatabase::purgeOnlineEventsBefore(now - retentionDays() * 86400);
+	const auto ghostCutoff = now - kGhostReadRetentionDays * 86400;
+	AyuDatabase::purgeGhostReadBefore(ghostCutoff);
 }
 
 Data::LastseenStatus effectiveLastseen(

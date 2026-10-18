@@ -85,6 +85,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_dialogs.h"
 
 // AyuGram includes
+#include "ayu/features/ghost/tf_ghost_read.h"
 #include "ayu/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_state.h"
@@ -3695,6 +3696,7 @@ void History::applyDialogFields(
 		&& maxInboxRead + 1 >= _inboxReadBefore.value_or(1)) {
 		setUnreadCount(unreadCount);
 		setInboxReadTill(maxInboxRead);
+		TeleForge::GhostRead::applyServerEntry(this, unreadCount, maxInboxRead);
 	}
 	setOutboxReadTill(maxOutboxRead);
 }
@@ -4524,6 +4526,7 @@ void History::clear(ClearType type, bool markEmpty) {
 			messages->removeAll();
 		}
 		clearLastKeyboard();
+		TeleForge::GhostRead::forgetPeer(&session(), peer->id);
 	}
 
 	if (const auto chat = peer->asChat()) {

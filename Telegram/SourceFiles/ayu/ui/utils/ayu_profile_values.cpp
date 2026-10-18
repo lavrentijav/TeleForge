@@ -7,7 +7,7 @@
 #include "ayu/ui/utils/ayu_profile_values.h"
 
 #include "ayu/ayu_settings.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "data/data_peer.h"
 #include "lang/lang_text_entity.h"
 

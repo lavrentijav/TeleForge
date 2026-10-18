@@ -18,7 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 
 // AyuGram includes
-#include "ayu/utils/taptic_engine/taptic_engine.h"
+#include "tfc/utils/taptic_engine/taptic_engine.h"
 
 
 namespace Ui {

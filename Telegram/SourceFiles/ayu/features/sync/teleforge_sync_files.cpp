@@ -1,6 +1,6 @@
 #include "ayu/features/sync/teleforge_sync_files.h"
 
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "api/api_common.h"
 #include "apiwrap.h"
 #include "base/random.h"

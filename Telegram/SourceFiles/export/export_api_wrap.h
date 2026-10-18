@@ -215,6 +215,8 @@ private:
 		int addOffset,
 		int limit,
 		FnMut<void(MTPmessages_Messages&&)> done);
+	void skipChatProcess(const QString &reason);
+	void skipTopicProcess(const QString &reason);
 	void startMessagesSlice(Data::MessagesSlice &&slice);
 	void resumeMessagesSlice();
 	void hydrateMessageDone(

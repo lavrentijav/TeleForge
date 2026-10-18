@@ -7,7 +7,7 @@
 #include "ayu/ui/components/message_preview.h"
 
 #include "ayu/ayu_settings.h"
-#include "ayu/utils/official_resources.h"
+#include "tfc/utils/official_resources.h"
 #include "base/unixtime.h"
 #include "data/data_session.h"
 #include "history/history.h"

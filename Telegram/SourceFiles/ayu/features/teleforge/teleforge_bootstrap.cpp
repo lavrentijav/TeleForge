@@ -1,6 +1,7 @@
 #include "ayu/features/teleforge/teleforge_bootstrap.h"
 
 #include "ayu/features/plugins/plugin_manager.h"
+#include "ayu/features/ghost/tf_ghost_read.h"
 #include "ayu/features/plugins/plugin_runner.h"
 #include "ayu/features/spy/online_history_storage.h"
 #include "ayu/features/subscription/teleforge_subscription.h"
@@ -78,6 +79,7 @@ void initialize() {
 	};
 	if (const auto session = Core::App().maybePrimarySession()) {
 		attachPeerArchive(session);
+		TeleForge::GhostRead::flushIfNotGhost(session);
 		// Create the dedicated sync chat right away (no-op when sync is off or
 		// the chat already exists), then pull the latest bundle from it.
 		// checkRemoteFreshness() owns the download decision: it pulls when the
@@ -92,6 +94,7 @@ void initialize() {
 	) | rpl::on_next([=](Main::Session *session) {
 		if (session) {
 			attachPeerArchive(session);
+			TeleForge::GhostRead::flushIfNotGhost(session);
 			EnsureLocalEmbeddingModelReady();
 		}
 	}, sessionChangesLifetime);

@@ -1,4 +1,4 @@
-﻿// This is the source code of AyuGram for Desktop.
+// This is the source code of AyuGram for Desktop.
 //
 // We do not and cannot prevent the use of our code,
 // but be respectful and credit the original author.
@@ -8,8 +8,8 @@
 
 #include "ayu/ayu_settings.h"
 #include "ayu/data/ayu_database.h"
-#include "ayu/utils/ayu_mapper.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/ayu_mapper.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "base/unixtime.h"
 #include "data/data_forum_topic.h"
 #include "data/data_session.h"

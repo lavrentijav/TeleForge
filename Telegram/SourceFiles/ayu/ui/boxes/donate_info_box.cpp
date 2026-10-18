@@ -7,7 +7,7 @@
 #include "ayu/ui/boxes/donate_info_box.h"
 
 #include "lang_auto.h"
-#include "ayu/utils/official_resources.h"
+#include "tfc/utils/official_resources.h"
 #include "core/ui_integration.h"
 #include "info/profile/info_profile_icon.h"
 #include "lang/lang_text_entity.h"

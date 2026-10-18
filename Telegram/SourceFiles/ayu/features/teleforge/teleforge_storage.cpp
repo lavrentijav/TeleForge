@@ -17,7 +17,7 @@
 namespace TeleForge::Storage {
 namespace {
 
-constexpr auto kSchemaVersion = 15;
+constexpr auto kSchemaVersion = 16;
 
 std::unique_ptr<UnifiedStorage> gTeleForgeDb;
 
@@ -269,6 +269,10 @@ void MigrateToV15() {
 	// which preserves the data and defaults the new column to 0 (legacy).
 }
 
+void MigrateToV16() {
+	// V16 adds GhostReadMessage and idx_ghost_read_peer (via sync_schema).
+}
+
 void RunMigrations() {
 	EnsureSchemaVersionRow();
 	const auto version = DbImpl().get<SchemaVersionRecord>(1).version;
@@ -309,6 +313,8 @@ void RunMigrations() {
 				MigrateToV14();
 			} else if (next == 15) {
 				MigrateToV15();
+			} else if (next == 16) {
+				MigrateToV16();
 			}
 			DbImpl().replace(SchemaVersionRecord{
 				.singletonId = 1,

@@ -89,6 +89,32 @@ Settings::Type SettingsFromDialogsType(Data::DialogInfo::Type type) {
 	return Settings::Type(0);
 }
 
+[[nodiscard]] bool PeerUnavailableError(const MTP::Error &error) {
+	const auto &type = error.type();
+	return (type == u"USER_NOT_PARTICIPANT"_q)
+		|| (type == u"PEER_ID_INVALID"_q)
+		|| (type == u"CHANNEL_PRIVATE"_q)
+		|| (type == u"CHANNEL_INVALID"_q)
+		|| (type == u"CHANNEL_PUBLIC_GROUP_NA"_q)
+		|| (type == u"CHAT_ID_INVALID"_q)
+		|| (type == u"USER_BANNED_IN_CHANNEL"_q);
+}
+
+[[nodiscard]] bool InputPeerLoaded(const MTPInputPeer &input) {
+	if (input.type() == mtpc_inputPeerEmpty) {
+		return false;
+	}
+	return !input.match([](const MTPDinputPeerUser &data) {
+		return !data.vuser_id().v;
+	}, [](const MTPDinputPeerChannel &data) {
+		return !data.vchannel_id().v || !data.vaccess_hash().v;
+	}, [](const MTPDinputPeerChat &data) {
+		return !data.vchat_id().v;
+	}, [](const auto &) {
+		return false;
+	});
+}
+
 MediaSettings::Type DocumentMediaType(const Data::Document &document) {
 	using Type = MediaSettings::Type;
 	if (document.isSticker) {
@@ -1800,6 +1826,19 @@ void ApiWrap::requestMessagesCount(int localSplitIndex) {
 	Expects(_chatProcess != nullptr);
 	Expects(localSplitIndex < _chatProcess->info.splits.size());
 
+	const auto splitIndex = _chatProcess->info.splits[localSplitIndex];
+	const auto &input = (splitIndex >= 0)
+		? _chatProcess->info.input
+		: _chatProcess->info.migratedFromInput;
+	if (!InputPeerLoaded(input)) {
+		if (splitIndex < 0) {
+			messagesCountLoaded(localSplitIndex, 0);
+		} else {
+			skipChatProcess(u"peer is not loaded"_q);
+		}
+		return;
+	}
+
 	requestChatMessages(
 		_chatProcess->info.splits[localSplitIndex],
 		0, // offset_id
@@ -1904,23 +1943,32 @@ void ApiWrap::requestSinglePeerDialog() {
 		appendSinglePeerDialogs(
 			Data::ParseDialogsInfo(_settings->singlePeer, result));
 	};
+	const auto failSinglePeer = [=](const MTP::Error &error) {
+		if (!PeerUnavailableError(error)) {
+			return false;
+		}
+		LOG((u"Export Error: Single peer unavailable, %1."_q
+			).arg(error.type()));
+		appendSinglePeerDialogs(Data::DialogsInfo());
+		return true;
+	};
 	const auto requestUser = [&](const MTPInputUser &data) {
 		mainRequest(MTPusers_GetUsers(
 			MTP_vector<MTPInputUser>(1, data)
-		)).done(std::move(doneSinglePeer)).send();
+		)).done(doneSinglePeer).fail(failSinglePeer).send();
 	};
 	_settings->singlePeer.match([&](const MTPDinputPeerUser &data) {
 		requestUser(MTP_inputUser(data.vuser_id(), data.vaccess_hash()));
 	}, [&](const MTPDinputPeerChat &data) {
 		mainRequest(MTPmessages_GetChats(
 			MTP_vector<MTPlong>(1, data.vchat_id())
-		)).done(std::move(doneSinglePeer)).send();
+		)).done(doneSinglePeer).fail(failSinglePeer).send();
 	}, [&](const MTPDinputPeerChannel &data) {
 		mainRequest(MTPchannels_GetChannels(
 			MTP_vector<MTPInputChannel>(
 				1,
 				MTP_inputChannel(data.vchannel_id(), data.vaccess_hash()))
-		)).done(std::move(doneSinglePeer)).send();
+		)).done(doneSinglePeer).fail(failSinglePeer).send();
 	}, [&](const MTPDinputPeerSelf &data) {
 		requestUser(MTP_inputUserSelf());
 	}, [&](const MTPDinputPeerUserFromMessage &data) {
@@ -1960,6 +2008,14 @@ mtpRequestId ApiWrap::requestSinglePeerMigrated(
 				: Data::DialogsInfo();
 		});
 		appendSinglePeerDialogs(std::move(info));
+	}).fail([=](const MTP::Error &error) {
+		if (!PeerUnavailableError(error)) {
+			return false;
+		}
+		LOG((u"Export Error: Migrated supergroup unavailable, %1."_q
+			).arg(error.type()));
+		appendSinglePeerDialogs(Data::DialogsInfo());
+		return true;
 	}).send();
 }
 
@@ -2102,10 +2158,10 @@ void ApiWrap::finishDialogsList() {
 void ApiWrap::requestLeftChannelsSliceGeneric(FnMut<void()> done) {
 	Expects(_leftChannelsProcess != nullptr);
 
+	const auto finish = std::make_shared<FnMut<void()>>(std::move(done));
 	mainRequest(MTPchannels_GetLeftChannels(
 		MTP_int(_leftChannelsProcess->offset)
-	)).done([=, done = std::move(done)](
-			const MTPmessages_Chats &result) mutable {
+	)).done([=](const MTPmessages_Chats &result) mutable {
 		Expects(_leftChannelsProcess != nullptr);
 
 		appendLeftChannelsSlice(Data::ParseLeftChannelsInfo(result));
@@ -2136,7 +2192,18 @@ void ApiWrap::requestLeftChannelsSliceGeneric(FnMut<void()> done) {
 			}
 		}
 
-		done();
+		(*finish)();
+	}).fail([=](const MTP::Error &error) mutable {
+		if (!PeerUnavailableError(error)) {
+			return false;
+		}
+		LOG((u"Export Error: Left channels unavailable, %1."_q
+			).arg(error.type()));
+		if (_leftChannelsProcess) {
+			_leftChannelsProcess->finished = true;
+		}
+		(*finish)();
+		return true;
 	}).send();
 }
 
@@ -2259,6 +2326,34 @@ void ApiWrap::requestChatMessages(
 	const auto realSplitIndex = (splitIndex >= 0)
 		? splitIndex
 		: (splitsCount + splitIndex);
+	if (!InputPeerLoaded(realPeerInput)) {
+		skipChatProcess(u"peer is not loaded"_q);
+		return;
+	}
+	const auto failHandler = [=](const MTP::Error &error) {
+		if (!PeerUnavailableError(error)) {
+			return false;
+		}
+		if (!_chatProcess) {
+			return true;
+		}
+		if (error.type() == u"CHANNEL_PRIVATE"_q
+			&& realPeerInput.type() == mtpc_inputPeerChannel
+			&& !_chatProcess->info.onlyMyMessages) {
+			_chatProcess->info.onlyMyMessages = true;
+			requestChatMessages(
+				splitIndex,
+				offsetId,
+				addOffset,
+				limit,
+				base::take(_chatProcess->requestDone));
+			return true;
+		}
+		if (_chatProcess) {
+			skipChatProcess(error.type());
+		}
+		return true;
+	};
 	if (_chatProcess->info.onlyMyMessages) {
 		splitRequest(realSplitIndex, MTPmessages_Search(
 			MTP_flags(MTPmessages_Search::Flag::f_from_id),
@@ -2277,7 +2372,7 @@ void ApiWrap::requestChatMessages(
 			MTP_int(0), // max_id
 			MTP_int(0), // min_id
 			MTP_long(0) // hash
-		)).done(doneHandler).send();
+		)).fail(failHandler).done(doneHandler).send();
 	} else {
 		splitRequest(realSplitIndex, MTPmessages_GetHistory(
 			realPeerInput,
@@ -2288,27 +2383,7 @@ void ApiWrap::requestChatMessages(
 			MTP_int(0), // max_id
 			MTP_int(0), // min_id
 			MTP_long(0)  // hash
-		)).fail([=](const MTP::Error &error) {
-			Expects(_chatProcess != nullptr);
-
-			if (error.type() == u"CHANNEL_PRIVATE"_q) {
-				if (realPeerInput.type() == mtpc_inputPeerChannel
-					&& !_chatProcess->info.onlyMyMessages) {
-
-					// Perhaps we just left / were kicked from channel.
-					// Just switch to only my messages.
-					_chatProcess->info.onlyMyMessages = true;
-					requestChatMessages(
-						splitIndex,
-						offsetId,
-						addOffset,
-						limit,
-						base::take(_chatProcess->requestDone));
-					return true;
-				}
-			}
-			return false;
-		}).done(doneHandler).send();
+		)).fail(failHandler).done(doneHandler).send();
 	}
 }
 
@@ -2912,6 +2987,30 @@ void ApiWrap::finishMessages() {
 	process->done();
 }
 
+void ApiWrap::skipChatProcess(const QString &reason) {
+	if (!_chatProcess) {
+		return;
+	}
+	LOG((u"Export Error: Chat skipped, %1."_q).arg(reason));
+
+	const auto process = base::take(_chatProcess);
+	if (process->start(process->info)) {
+		process->done();
+	}
+}
+
+void ApiWrap::skipTopicProcess(const QString &reason) {
+	if (!_topicProcess) {
+		return;
+	}
+	LOG((u"Export Error: Topic skipped, %1."_q).arg(reason));
+
+	const auto process = base::take(_topicProcess);
+	if (process->start(0)) {
+		process->done();
+	}
+}
+
 void ApiWrap::requestTopicMessages(
 		PeerId peerId,
 		MTPInputPeer inputPeer,
@@ -2938,6 +3037,10 @@ void ApiWrap::requestTopicMessages(
 	_topicProcess->handleSlice = std::move(slice);
 	_topicProcess->done = std::move(done);
 
+	if (!InputPeerLoaded(inputPeer)) {
+		skipTopicProcess(u"peer is not loaded"_q);
+		return;
+	}
 	mainRequest(MTPchannels_GetMessages(
 		MTP_inputChannel(
 			inputPeer.c_inputPeerChannel().vchannel_id(),
@@ -2996,6 +3099,12 @@ void ApiWrap::requestTopicMessages(
 
 				requestTopicMessagesSlice();
 			});
+	}).fail([=](const MTP::Error &error) {
+		if (!PeerUnavailableError(error)) {
+			return false;
+		}
+		skipTopicProcess(error.type());
+		return true;
 	}).send();
 }
 
@@ -3055,7 +3164,13 @@ void ApiWrap::requestTopicReplies(
 		MTP_int(0),
 		MTP_int(0),
 		MTP_long(0)
-	)).done(doneHandler).send();
+	)).done(doneHandler).fail([=](const MTP::Error &error) {
+		if (!PeerUnavailableError(error)) {
+			return false;
+		}
+		skipTopicProcess(error.type());
+		return true;
+	}).send();
 }
 
 void ApiWrap::loadTopicMessagesFiles(Data::MessagesSlice &&slice) {

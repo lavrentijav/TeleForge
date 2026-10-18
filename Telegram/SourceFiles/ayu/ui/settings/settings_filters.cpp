@@ -13,7 +13,7 @@
 #include "ayu/ui/boxes/import_filters_box.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_main.h"
-#include "ayu/utils/telegram_helpers.h"
+#include "tfc/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
 #include "boxes/peer_list_box.h"
 #include "core/application.h"

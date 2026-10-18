@@ -20,7 +20,7 @@
 #include "ayu/ui/settings/settings_teleforge_ai.h"
 #include "ayu/ui/settings/settings_teleforge_plugins.h"
 #include "ayu/ui/settings/settings_teleforge_sync.h"
-#include "ayu/utils/official_resources.h"
+#include "tfc/utils/official_resources.h"
 #include "core/version.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
