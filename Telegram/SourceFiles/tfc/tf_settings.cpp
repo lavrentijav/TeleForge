@@ -1113,14 +1113,20 @@ void TfSettings::setArchiveBackgroundCrawl(bool val) {
 }
 
 QString TfSettings::syncArchivePassphrase() const {
-	return _syncArchivePassphrase.current();
+	const auto stored = _syncArchivePassphrase.current();
+	return stored.isEmpty()
+		? QString()
+		: TeleForge::Sync::UnprotectSecret(stored);
 }
 
 void TfSettings::setSyncArchivePassphrase(const QString &value) {
-	if (_syncArchivePassphrase.current() == value) {
+	const auto stored = value.isEmpty()
+		? QString()
+		: TeleForge::Sync::ProtectSecret(value);
+	if (_syncArchivePassphrase.current() == stored) {
 		return;
 	}
-	_syncArchivePassphrase = value;
+	_syncArchivePassphrase = stored;
 	TfSettings::save();
 }
 void TfSettings::setGhostPassthroughMentions(bool val) {
@@ -1186,7 +1192,7 @@ void to_json(nlohmann::json &j, const TfSettings &s) {
 		{"saveDeletedMessages", s._saveDeletedMessages.current()},
 		{"showDeletedInChat", s._showDeletedInChat.current()},
 		{"ghostPassthroughMentions", s._ghostPassthroughMentions.current()},
-		{"syncArchivePassphrase", TeleForge::Sync::ProtectSecret(s._syncArchivePassphrase.current())},
+		{"syncArchivePassphrase", s._syncArchivePassphrase.current()},
 		{"deletedRestoreLimit", s._deletedRestoreLimit.current()},
 		{"saveMessagesHistory", s._saveMessagesHistory.current()},
 		{"saveForBots", s._saveForBots.current()},
@@ -1328,10 +1334,12 @@ void from_json(const nlohmann::json &j, TfSettings &s) {
 	s._saveDeletedMessages = ReadField(j, "saveDeletedMessages", defaults._saveDeletedMessages.current());
 	s._showDeletedInChat = ReadField(j, "showDeletedInChat", defaults._showDeletedInChat.current());
 	s._ghostPassthroughMentions = ReadField(j, "ghostPassthroughMentions", defaults._ghostPassthroughMentions.current());
-	s._syncArchivePassphrase = TeleForge::Sync::UnprotectSecret(ReadField(
+	// Kept exactly as stored: decrypting here would run the crypto layer while
+	// the settings are still loading, before the working directory is known.
+	s._syncArchivePassphrase = ReadField(
 		j,
 		"syncArchivePassphrase",
-		TeleForge::Sync::ProtectSecret(defaults._syncArchivePassphrase.current())));
+		defaults._syncArchivePassphrase.current());
 	s._deletedRestoreLimit = ReadField(j, "deletedRestoreLimit", defaults._deletedRestoreLimit.current());
 	s._saveMessagesHistory = ReadField(j, "saveMessagesHistory", defaults._saveMessagesHistory.current());
 	s._saveForBots = ReadField(j, "saveForBots", defaults._saveForBots.current());
