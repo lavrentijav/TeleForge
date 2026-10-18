@@ -208,19 +208,12 @@ void PluginRunner::ensureStarted() {
 }
 
 void PluginRunner::reloadEnabled(const QStringList &paths) {
-#ifdef TELEFORGE_WITH_PYTHON
-	ensureStarted();
-	Post([paths] {
-		CallReset();
-		for (const auto &path : paths) {
-			ExecFile(path);
-		}
-		RefreshMenuCache();
-	});
-#else
+	// The embedded interpreter takes the whole application down when it fails to
+	// initialise, so it stays off until the startup crash is understood.
+	LOG(("TeleForge plugins: runtime disabled, %1 path(s) skipped").arg(paths.size()));
 	Q_UNUSED(paths);
-#endif
 }
+
 
 void PluginRunner::loadPlugin(const QString &path) {
 #ifdef TELEFORGE_WITH_PYTHON
