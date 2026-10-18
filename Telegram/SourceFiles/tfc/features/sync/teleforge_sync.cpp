@@ -30,6 +30,19 @@ auto g_mutex = std::mutex();
 [[nodiscard]] QByteArray SyncKey(not_null<Main::Session*> session) {
 	const auto binding = MasterMaterial(session);
 	SetLegacySyncKey(DeriveLegacySyncKey(binding));
+	const auto passphrase = TfSettings::getInstance().syncArchivePassphrase();
+	if (!g_exportKey.isEmpty()) {
+		// An exported key always wins: it is the only way into data written by a
+		// build that predates the passphrase mode.
+		return DeriveSyncKey(DeviceSecret(), g_exportKey, binding);
+	} else if (!passphrase.isEmpty()) {
+		// Same key on every device that logs into this account: the passphrase is
+		// never uploaded, so the server cannot derive it.
+		const auto key = DeriveAccountKey(passphrase.toUtf8(), binding);
+		if (key.size() == 32) {
+			return key;
+		}
+	}
 	return DeriveSyncKey(DeviceSecret(), g_exportKey, binding);
 }
 
