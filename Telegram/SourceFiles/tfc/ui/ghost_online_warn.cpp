@@ -13,27 +13,27 @@ constexpr auto kToastDuration = crl::time(4500);
 [[nodiscard]] TextWithEntities textFor(Action action) {
 	switch (action) {
 	case Action::PinMessage:
-		return { tr::ayu_GhostOnlineWarnPin(tr::now) };
+		return { tr::tf_GhostOnlineWarnPin(tr::now) };
 	case Action::UnpinMessage:
-		return { tr::ayu_GhostOnlineWarnUnpin(tr::now) };
+		return { tr::tf_GhostOnlineWarnUnpin(tr::now) };
 	case Action::SendMessage:
-		return { tr::ayu_GhostOnlineWarnSend(tr::now) };
+		return { tr::tf_GhostOnlineWarnSend(tr::now) };
 	case Action::Reaction:
-		return { tr::ayu_GhostOnlineWarnReaction(tr::now) };
+		return { tr::tf_GhostOnlineWarnReaction(tr::now) };
 	case Action::PollVote:
-		return { tr::ayu_GhostOnlineWarnPoll(tr::now) };
+		return { tr::tf_GhostOnlineWarnPoll(tr::now) };
 	case Action::EditMessage:
-		return { tr::ayu_GhostOnlineWarnEdit(tr::now) };
+		return { tr::tf_GhostOnlineWarnEdit(tr::now) };
 	case Action::Forward:
-		return { tr::ayu_GhostOnlineWarnForward(tr::now) };
+		return { tr::tf_GhostOnlineWarnForward(tr::now) };
 	case Action::StartBot:
-		return { tr::ayu_GhostOnlineWarnBot(tr::now) };
+		return { tr::tf_GhostOnlineWarnBot(tr::now) };
 	case Action::ChatPin:
-		return { tr::ayu_GhostOnlineWarnChatPin(tr::now) };
+		return { tr::tf_GhostOnlineWarnChatPin(tr::now) };
 	case Action::Generic:
 		break;
 	}
-	return { tr::ayu_GhostOnlineWarnGeneric(tr::now) };
+	return { tr::tf_GhostOnlineWarnGeneric(tr::now) };
 }
 
 } // namespace

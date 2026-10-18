@@ -135,7 +135,7 @@ void FillDonateInfoBox(not_null<Ui::GenericBox*> box, not_null<Window::SessionCo
 	box->verticalLayout()->add(
 		object_ptr<Ui::FlatLabel>(
 			box->verticalLayout(),
-			tr::ayu_SupportBoxHeader(tr::bold),
+			tr::tf_SupportBoxHeader(tr::bold),
 			st::boxTitle),
 		st::boxRowPadding,
 		style::al_top);
@@ -143,7 +143,7 @@ void FillDonateInfoBox(not_null<Ui::GenericBox*> box, not_null<Window::SessionCo
 	box->verticalLayout()->add(
 		object_ptr<Ui::FlatLabel>(
 			box->verticalLayout(),
-			tr::ayu_SupportBoxInfo(),
+			tr::tf_SupportBoxInfo(),
 			st::starrefCenteredText),
 		st::boxRowPadding);
 
@@ -154,11 +154,11 @@ void FillDonateInfoBox(not_null<Ui::GenericBox*> box, not_null<Window::SessionCo
 		const auto title = [&] {
 			using Type = TeleForge::OfficialResources::Type;
 			if (entry.type == Type::Channel) {
-				return tr::ayu_SupportBoxMakeDonationHeader(tr::now);
+				return tr::tf_SupportBoxMakeDonationHeader(tr::now);
 			} else if (entry.type == Type::Chat) {
-				return tr::ayu_SupportBoxSendProofHeader(tr::now);
+				return tr::tf_SupportBoxSendProofHeader(tr::now);
 			}
-			return tr::ayu_SupportBoxReceiveBadgeHeader(tr::now);
+			return tr::tf_SupportBoxReceiveBadgeHeader(tr::now);
 		}();
 		const auto text = QString::fromLatin1(entry.label);
 		box->verticalLayout()->add(InfoRow(

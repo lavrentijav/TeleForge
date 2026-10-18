@@ -73,11 +73,11 @@ namespace {
 void ShowSubscribePrompt(
 		not_null<Window::SessionController*> controller) {
 	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setTitle(tr::ayu_PluginsSubscribeTitle());
+		box->setTitle(tr::tf_PluginsSubscribeTitle());
 		const auto layout = box->verticalLayout();
 		for (const auto &ch : TeleForge::Plugins::Catalog::kSubscribeChannels) {
 			const auto username = QString::fromLatin1(ch.username);
-			const auto label = tr::ayu_PluginsChannelLabel(
+			const auto label = tr::tf_PluginsChannelLabel(
 				tr::now,
 				lt_title,
 				QString::fromLatin1(ch.title),
@@ -101,10 +101,10 @@ void ShowChannelOffersBox(
 		not_null<Window::SessionController*> controller,
 		const QVector<TeleForge::Plugins::ChannelPluginOffer> &offers) {
 	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setTitle(tr::ayu_PluginsChannelOffersTitle());
+		box->setTitle(tr::tf_PluginsChannelOffersTitle());
 		const auto layout = box->verticalLayout();
 		for (const auto &offer : offers) {
-			const auto label = tr::ayu_PluginsChannelOfferLabel(
+			const auto label = tr::tf_PluginsChannelOfferLabel(
 				tr::now,
 				lt_file,
 				offer.fileName,
@@ -127,7 +127,7 @@ void ShowChannelOffersBox(
 			});
 		}
 		if (offers.isEmpty()) {
-			AddSettingsHint(layout, tr::ayu_PluginsNoChannelOffers());
+			AddSettingsHint(layout, tr::tf_PluginsNoChannelOffers());
 		}
 	}));
 }
@@ -136,10 +136,10 @@ void ShowCatalogInstallBox(
 		not_null<Window::SessionController*> controller,
 		const QVector<TeleForge::Plugins::CatalogEntry> &entries) {
 	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setTitle(tr::ayu_PluginsCatalogTitle());
+		box->setTitle(tr::tf_PluginsCatalogTitle());
 		const auto layout = box->verticalLayout();
 		for (const auto &entry : entries) {
-			const auto label = tr::ayu_PluginsCatalogEntryLabel(
+			const auto label = tr::tf_PluginsCatalogEntryLabel(
 				tr::now,
 				lt_file,
 				entry.fileName,
@@ -163,7 +163,7 @@ void ShowCatalogInstallBox(
 			});
 		}
 		if (entries.isEmpty()) {
-			AddSettingsHint(layout, tr::ayu_PluginsCatalogEmpty());
+			AddSettingsHint(layout, tr::tf_PluginsCatalogEmpty());
 		}
 	}));
 }
@@ -171,7 +171,7 @@ void ShowCatalogInstallBox(
 const auto kMeta = BuildHelper({
 	.id = TeleForgePlugins::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_CategoryTeleForgePlugins,
+	.title = &tr::tf_CategoryTeleForgePlugins,
 	.icon = &st::menuIconBot,
 }, [](SectionBuilder &builder) {
 	auto ayu = TfSectionBuilder(builder);
@@ -188,7 +188,7 @@ const auto kMeta = BuildHelper({
 	}
 
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_PluginsSubscriptionsSection());
+	builder.addSubsectionTitle(tr::tf_PluginsSubscriptionsSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -197,7 +197,7 @@ const auto kMeta = BuildHelper({
 				const auto subscribe = wctx.container->add(
 					object_ptr<Ui::SettingsButton>(
 						wctx.container,
-						tr::ayu_PluginsSubscribeTo(
+						tr::tf_PluginsSubscribeTo(
 							tr::now,
 							lt_channel,
 							username),
@@ -211,7 +211,7 @@ const auto kMeta = BuildHelper({
 			const auto remind = wctx.container->add(
 				object_ptr<Ui::SettingsButton>(
 					wctx.container,
-					tr::ayu_PluginsRemindSubscription(),
+					tr::tf_PluginsRemindSubscription(),
 					st::settingsButtonNoIcon));
 			remind->setClickedCallback([=] {
 				ShowSubscribePrompt(controller);
@@ -222,11 +222,11 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_PluginsDevelopersSection());
+	builder.addSubsectionTitle(tr::tf_PluginsDevelopersSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			AddHint(wctx.container, tr::ayu_PluginsDevelopersHint(tr::now));
+			AddHint(wctx.container, tr::tf_PluginsDevelopersHint(tr::now));
 		}, [](const SearchContext &) {});
 	});
 
@@ -238,7 +238,7 @@ const auto kMeta = BuildHelper({
 		(*developersHost)->clear();
 		const auto devs = TeleForge::Plugins::cachedTrustedDevelopers();
 		if (devs.isEmpty()) {
-			AddHint(*developersHost, tr::ayu_PluginsDevelopersEmpty(tr::now));
+			AddHint(*developersHost, tr::tf_PluginsDevelopersEmpty(tr::now));
 			return;
 		}
 		for (const auto &dev : devs) {
@@ -246,7 +246,7 @@ const auto kMeta = BuildHelper({
 				object_ptr<Ui::VerticalLayout>((*developersHost).data()));
 			AddHint(
 				block,
-				tr::ayu_PluginsDeveloperLabel(
+				tr::tf_PluginsDeveloperLabel(
 					tr::now,
 					lt_title,
 					dev.title,
@@ -255,7 +255,7 @@ const auto kMeta = BuildHelper({
 			const auto open = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
-					tr::ayu_PluginsOpenDevChannel(),
+					tr::tf_PluginsOpenDevChannel(),
 					st::settingsButtonNoIcon));
 			open->setClickedCallback([=] {
 				controller->showPeerByLink(Window::PeerByLinkInfo{
@@ -265,10 +265,10 @@ const auto kMeta = BuildHelper({
 			const auto scan = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
-					tr::ayu_PluginsScanChannel(),
+					tr::tf_PluginsScanChannel(),
 					st::settingsButtonNoIcon));
 			scan->setClickedCallback([=, id = dev.devId] {
-				controller->showToast(tr::ayu_PluginsScanningChannel(
+				controller->showToast(tr::tf_PluginsScanningChannel(
 					tr::now,
 					lt_channel,
 					dev.channelUsername));
@@ -294,7 +294,7 @@ const auto kMeta = BuildHelper({
 			const auto update = wctx.container->add(
 				object_ptr<Ui::SettingsButton>(
 					wctx.container,
-					tr::ayu_PluginsRefreshDevelopers(),
+					tr::tf_PluginsRefreshDevelopers(),
 					st::settingsButtonNoIcon));
 			update->setClickedCallback([=] {
 				TeleForge::Plugins::fetchTrustedDevelopers(
@@ -319,11 +319,11 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_PluginsCatalogSection());
+	builder.addSubsectionTitle(tr::tf_PluginsCatalogSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			AddHint(wctx.container, tr::ayu_PluginsCatalogHint(tr::now));
+			AddHint(wctx.container, tr::tf_PluginsCatalogHint(tr::now));
 		}, [](const SearchContext &) {});
 	});
 
@@ -335,7 +335,7 @@ const auto kMeta = BuildHelper({
 		(*catalogHost)->clear();
 		const auto entries = TeleForge::Plugins::cachedCatalog();
 		if (entries.isEmpty()) {
-			AddHint(*catalogHost, tr::ayu_PluginsCatalogStale(tr::now));
+			AddHint(*catalogHost, tr::tf_PluginsCatalogStale(tr::now));
 			return;
 		}
 		for (const auto &entry : entries) {
@@ -343,7 +343,7 @@ const auto kMeta = BuildHelper({
 				object_ptr<Ui::VerticalLayout>((*catalogHost).data()));
 			AddHint(
 				block,
-				tr::ayu_PluginsCatalogRow(
+				tr::tf_PluginsCatalogRow(
 					tr::now,
 					lt_file,
 					entry.fileName,
@@ -352,7 +352,7 @@ const auto kMeta = BuildHelper({
 			const auto install = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
-					tr::ayu_PluginsDownloadInstall(),
+					tr::tf_PluginsDownloadInstall(),
 					st::settingsButtonNoIcon));
 			const auto captured = entry;
 			install->setClickedCallback([=] {
@@ -373,10 +373,10 @@ const auto kMeta = BuildHelper({
 			const auto update = wctx.container->add(
 				object_ptr<Ui::SettingsButton>(
 					wctx.container,
-					tr::ayu_PluginsRefreshCatalog(),
+					tr::tf_PluginsRefreshCatalog(),
 					st::settingsButtonNoIcon));
 			update->setClickedCallback([=] {
-				controller->showToast(tr::ayu_PluginsLoadingIndexes(tr::now));
+				controller->showToast(tr::tf_PluginsLoadingIndexes(tr::now));
 				TeleForge::Plugins::fetchTrustedDevelopers([=](auto, QString) {
 					TeleForge::Plugins::fetchCatalog(
 						[=](QVector<TeleForge::Plugins::CatalogEntry> entries, QString error) {
@@ -407,7 +407,7 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_PluginsDevModeSection());
+	builder.addSubsectionTitle(tr::tf_PluginsDevModeSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -429,7 +429,7 @@ const auto kMeta = BuildHelper({
 					return;
 				}
 				if (TeleForge::Plugins::DevMode::allowUnverifiedInstalls()) {
-					state->status->setText(tr::ayu_PluginsDevModeOn(tr::now));
+					state->status->setText(tr::tf_PluginsDevModeOn(tr::now));
 					state->finalSwitch->setChecked(true);
 					state->finalSwitch->setEnabled(true);
 					return;
@@ -441,7 +441,7 @@ const auto kMeta = BuildHelper({
 						state->timer->cancel();
 					}
 					state->status->setText(
-						tr::ayu_PluginsDevModeSubscriptionRequired(tr::now));
+						tr::tf_PluginsDevModeSubscriptionRequired(tr::now));
 					state->finalSwitch->setChecked(false);
 					state->finalSwitch->setEnabled(false);
 					return;
@@ -456,7 +456,7 @@ const auto kMeta = BuildHelper({
 					if (state->timer) {
 						state->timer->cancel();
 					}
-					state->status->setText(tr::ayu_PluginsDevModeAckAll(
+					state->status->setText(tr::tf_PluginsDevModeAckAll(
 						tr::now,
 						lt_seconds,
 						QString::number(
@@ -466,13 +466,13 @@ const auto kMeta = BuildHelper({
 				}
 				if (!state->cooldownReady) {
 					state->finalSwitch->setEnabled(false);
-					state->status->setText(tr::ayu_PluginsDevModeWait(
+					state->status->setText(tr::tf_PluginsDevModeWait(
 						tr::now,
 						lt_seconds,
 						QString::number(state->secondsLeft)));
 					return;
 				}
-				state->status->setText(tr::ayu_PluginsDevModeReady(tr::now));
+				state->status->setText(tr::tf_PluginsDevModeReady(tr::now));
 				state->finalSwitch->setEnabled(true);
 			};
 
@@ -507,7 +507,7 @@ const auto kMeta = BuildHelper({
 
 			Ui::AddDividerText(
 				c,
-				tr::ayu_PluginsDevModeHint(),
+				tr::tf_PluginsDevModeHint(),
 				st::defaultBoxDividerLabelPadding);
 
 			state->status = Ui::AddDividerText(
@@ -531,7 +531,7 @@ const auto kMeta = BuildHelper({
 				Ui::AddSkip(c, st::settingsCheckboxesSkip);
 				state->finalSwitch = AddWrappedSettingsCheckbox(
 					c,
-					tr::ayu_PluginsAllowUnverified(tr::now),
+					tr::tf_PluginsAllowUnverified(tr::now),
 					true);
 				state->finalSwitch->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -546,7 +546,7 @@ const auto kMeta = BuildHelper({
 						}
 						updateUi();
 						controller->showToast(
-							tr::ayu_PluginsDevModeDisabled(tr::now));
+							tr::tf_PluginsDevModeDisabled(tr::now));
 					}
 				}, state->finalSwitch->lifetime());
 			} else {
@@ -554,7 +554,7 @@ const auto kMeta = BuildHelper({
 
 				const auto ack1 = AddWrappedSettingsCheckbox(
 					c,
-					tr::ayu_PluginsAckRisk(tr::now),
+					tr::tf_PluginsAckRisk(tr::now),
 					false);
 				ack1->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -565,7 +565,7 @@ const auto kMeta = BuildHelper({
 
 				const auto ack2 = AddWrappedSettingsCheckbox(
 					c,
-					tr::ayu_PluginsAckNoSupport(tr::now),
+					tr::tf_PluginsAckNoSupport(tr::now),
 					false);
 				ack2->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -576,7 +576,7 @@ const auto kMeta = BuildHelper({
 
 				const auto ack3 = AddWrappedSettingsCheckbox(
 					c,
-					tr::ayu_PluginsAckTesting(tr::now),
+					tr::tf_PluginsAckTesting(tr::now),
 					false);
 				ack3->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -587,7 +587,7 @@ const auto kMeta = BuildHelper({
 
 				state->finalSwitch = AddWrappedSettingsCheckbox(
 					c,
-					tr::ayu_PluginsAllowUnverified(tr::now),
+					tr::tf_PluginsAllowUnverified(tr::now),
 					false);
 				state->finalSwitch->setEnabled(false);
 				state->finalSwitch->checkedChanges(
@@ -599,7 +599,7 @@ const auto kMeta = BuildHelper({
 					TeleForge::Plugins::DevMode::setAllowUnverifiedInstalls(true);
 					updateUi();
 					controller->showToast(
-						tr::ayu_PluginsDevModeEnabled(tr::now));
+						tr::tf_PluginsDevModeEnabled(tr::now));
 				}, state->finalSwitch->lifetime());
 
 					const auto gateAck = [=](not_null<Ui::Checkbox*> box) {
@@ -626,7 +626,7 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_PluginsButtonsSection());
+	builder.addSubsectionTitle(tr::tf_PluginsButtonsSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -635,7 +635,7 @@ const auto kMeta = BuildHelper({
 				TeleForge::Plugins::PluginRunner::menuItemsJson();
 			const auto items = QJsonDocument::fromJson(json.toUtf8()).array();
 			if (items.isEmpty()) {
-				AddHint(c, tr::ayu_PluginsNoButtons(tr::now));
+				AddHint(c, tr::tf_PluginsNoButtons(tr::now));
 				return;
 			}
 			for (const auto &value : items) {
@@ -659,7 +659,7 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_PluginsInstalledSection());
+	builder.addSubsectionTitle(tr::tf_PluginsInstalledSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -674,7 +674,7 @@ const auto kMeta = BuildHelper({
 				(*pluginsHost)->clear();
 				const auto plugins = TeleForge::Plugins::listWithRuntimeState();
 				if (plugins.empty()) {
-					AddHint(*pluginsHost, tr::ayu_PluginsNoInstalled(tr::now));
+					AddHint(*pluginsHost, tr::tf_PluginsNoInstalled(tr::now));
 					return;
 				}
 				for (const auto &plugin : plugins) {
@@ -682,14 +682,14 @@ const auto kMeta = BuildHelper({
 						object_ptr<Ui::VerticalLayout>((*pluginsHost).data()));
 					const auto status = plugin.loaded
 						? (plugin.enabled
-							? tr::ayu_PluginsStateRunning(tr::now)
-							: tr::ayu_PluginsStateStopped(tr::now))
+							? tr::tf_PluginsStateRunning(tr::now)
+							: tr::tf_PluginsStateStopped(tr::now))
 						: (plugin.enabled
-							? tr::ayu_PluginsStateEnabledNotLoaded(tr::now)
-							: tr::ayu_PluginsStateDisabled(tr::now));
+							? tr::tf_PluginsStateEnabledNotLoaded(tr::now)
+							: tr::tf_PluginsStateDisabled(tr::now));
 					AddHint(
 						block,
-						tr::ayu_PluginsRow(
+						tr::tf_PluginsRow(
 							tr::now,
 							lt_file,
 							plugin.fileName,
@@ -699,8 +699,8 @@ const auto kMeta = BuildHelper({
 						object_ptr<Ui::SettingsButton>(
 							block,
 							rpl::single(plugin.enabled
-								? tr::ayu_PluginsDisable(tr::now)
-								: tr::ayu_PluginsEnable(tr::now)),
+								? tr::tf_PluginsDisable(tr::now)
+								: tr::tf_PluginsEnable(tr::now)),
 							st::settingsButtonNoIcon));
 					toggle->setClickedCallback([=, name = plugin.fileName] {
 						const auto now = TeleForge::Plugins::isEnabled(name);
@@ -709,42 +709,42 @@ const auto kMeta = BuildHelper({
 							TeleForge::Plugins::stopPlugin(name);
 						}
 						(*refresh)();
-						controller->showToast(tr::ayu_PluginsSaved(tr::now));
+						controller->showToast(tr::tf_PluginsSaved(tr::now));
 					});
 					const auto start = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,
-							tr::ayu_PluginsStartReload(),
+							tr::tf_PluginsStartReload(),
 							st::settingsButtonNoIcon));
 					start->setClickedCallback([=, name = plugin.fileName] {
 						TeleForge::Plugins::setEnabled(name, true);
 						TeleForge::Plugins::reloadAll();
 						(*refresh)();
-						controller->showToast(tr::ayu_PluginsReloaded(tr::now));
+						controller->showToast(tr::tf_PluginsReloaded(tr::now));
 					});
 					const auto stop = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,
-							tr::ayu_PluginsStop(),
+							tr::tf_PluginsStop(),
 							st::settingsButtonNoIcon));
 					stop->setClickedCallback([=, name = plugin.fileName] {
 						TeleForge::Plugins::stopPlugin(name);
 						(*refresh)();
-						controller->showToast(tr::ayu_PluginsStopped(tr::now));
+						controller->showToast(tr::tf_PluginsStopped(tr::now));
 					});
 					const auto remove = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,
-							tr::ayu_PluginsRemoveFile(),
+							tr::tf_PluginsRemoveFile(),
 							st::settingsButtonNoIcon));
 					remove->setClickedCallback([=, name = plugin.fileName] {
 						TeleForge::Plugins::stopPlugin(name);
 						if (TeleForge::Plugins::removeInstalledFile(name)) {
 							TeleForge::Plugins::reloadAll();
 							(*refresh)();
-							controller->showToast(tr::ayu_PluginsRemoved(tr::now));
+							controller->showToast(tr::tf_PluginsRemoved(tr::now));
 						} else {
-							controller->showToast(tr::ayu_PluginsRemoveFailed(tr::now));
+							controller->showToast(tr::tf_PluginsRemoveFailed(tr::now));
 						}
 					});
 				}
@@ -759,16 +759,16 @@ const auto kMeta = BuildHelper({
 			const auto reload = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_PluginsReloadAll(),
+					tr::tf_PluginsReloadAll(),
 					st::settingsButtonNoIcon));
 			reload->setClickedCallback([=] {
 				TeleForge::Plugins::reloadAll();
-				controller->showToast(tr::ayu_PluginsAllReloaded(tr::now));
+				controller->showToast(tr::tf_PluginsAllReloaded(tr::now));
 			});
 			const auto folder = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_PluginsOpenFolder(),
+					tr::tf_PluginsOpenFolder(),
 					st::settingsButtonNoIcon));
 			folder->setClickedCallback([=] {
 				const auto path = QDir(cWorkingDir() + u"plugins"_q).absolutePath();
@@ -783,7 +783,7 @@ const auto kMeta = BuildHelper({
 			const auto site = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_PluginsSiteAndFormat(),
+					tr::tf_PluginsSiteAndFormat(),
 					st::settingsButtonNoIcon));
 			site->setClickedCallback([=] {
 				QDesktopServices::openUrl(QUrl(
@@ -796,7 +796,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TeleForgePlugins::title() {
-	return tr::ayu_CategoryTeleForgePlugins();
+	return tr::tf_CategoryTeleForgePlugins();
 }
 
 TeleForgePlugins::TeleForgePlugins(

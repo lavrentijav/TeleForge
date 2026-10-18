@@ -83,7 +83,7 @@ void ApplyTunedStyle(
 		std::shared_ptr<std::vector<QString>> texts,
 		not_null<Window::SessionController*> controller) {
 	if (texts->size() < 5) {
-		controller->showToast(tr::ayu_AiTuneNotEnoughMessages(tr::now));
+		controller->showToast(tr::tf_AiTuneNotEnoughMessages(tr::now));
 		return;
 	}
 	auto tuned = TeleForge::BuildPersonalityCoreFromMessages(*texts);
@@ -95,7 +95,7 @@ void ApplyTunedStyle(
 	}
 	p.updatedAt = QDateTime::currentDateTimeUtc();
 	TeleForge::PersistPersonalityCore(p);
-	controller->showToast(tr::ayu_AiTuneDone(tr::now));
+	controller->showToast(tr::tf_AiTuneDone(tr::now));
 }
 
 // Pulls the account owner's own (outgoing) messages for the given peer from
@@ -160,7 +160,7 @@ void AutoTuneStyleFromServer(
 		}).send();
 	};
 
-	controller->showToast(tr::ayu_AiTuneAnalyzing(tr::now));
+	controller->showToast(tr::tf_AiTuneAnalyzing(tr::now));
 	(*requestNext)(MsgId(0));
 }
 
@@ -170,7 +170,7 @@ void UpsertGlobalDefaults(
 	r.peerId = TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId;
 	r.updatedAt = base::unixtime::now();
 	TeleForge::Storage::upsertPerChatSettings(r);
-	controller->showToast(tr::ayu_AiDefaultsSaved(tr::now));
+	controller->showToast(tr::tf_AiDefaultsSaved(tr::now));
 }
 
 void ShowStringPickMenu(
@@ -215,19 +215,19 @@ void BuildAiTranslation(SectionBuilder &builder, TfSectionBuilder &ayu) {
 				|| !core.lmStudioBaseUrl.trimmed().isEmpty();
 			auto status = QString();
 			if (!configured) {
-				status = tr::ayu_AiTranslationModelMissing(tr::now);
+				status = tr::tf_AiTranslationModelMissing(tr::now);
 			} else {
 				const auto name = model.isEmpty()
-					? tr::ayu_AiLocalModel(tr::now)
+					? tr::tf_AiLocalModel(tr::now)
 					: model;
 				status = Ayu::Translator::AiTranslationAvailable()
-					? tr::ayu_AiTranslationStatus(
+					? tr::tf_AiTranslationStatus(
 						tr::now,
 						lt_model,
 						name,
 						lt_endpoint,
 						endpoint)
-					: tr::ayu_AiTranslationStatusInactive(
+					: tr::tf_AiTranslationStatusInactive(
 						tr::now,
 						lt_model,
 						name,
@@ -240,7 +240,7 @@ void BuildAiTranslation(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 	ayu.addToggle({
 		.id = u"ayu/aiTranslationEnabled"_q,
-		.title = tr::ayu_AiTranslationEnabled(),
+		.title = tr::tf_AiTranslationEnabled(),
 		.getter = [=] {
 			return settings->aiTranslationEnabled();
 		},
@@ -250,7 +250,7 @@ void BuildAiTranslation(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	});
 	ayu.addToggle({
 		.id = u"ayu/aiCompressionEnabled"_q,
-		.title = tr::ayu_AiCompressionEnabled(),
+		.title = tr::tf_AiCompressionEnabled(),
 		.getter = [=] {
 			return settings->aiCompressionEnabled();
 		},
@@ -259,20 +259,20 @@ void BuildAiTranslation(SectionBuilder &builder, TfSectionBuilder &ayu) {
 		},
 	});
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_AiTranslationEnabledDescription());
+	builder.addDividerText(tr::tf_AiTranslationEnabledDescription());
 }
 
 const auto kMeta = BuildHelper({
 	.id = TeleForgeAi::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_CategoryTeleForgeAi,
+	.title = &tr::tf_CategoryTeleForgeAi,
 	.icon = &st::menuIconIpAddress,
 }, [](SectionBuilder &builder) {
 	auto ayu = TfSectionBuilder(builder);
 	const auto controller = builder.controller();
 
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_AiChatSection());
+	builder.addSubsectionTitle(tr::tf_AiChatSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -298,14 +298,14 @@ const auto kMeta = BuildHelper({
 			const auto pickProvider = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiProviderButton(),
+					tr::tf_AiProviderButton(),
 					st::settingsButtonNoIcon));
 			pickProvider->setClickedCallback([=] {
 				const auto items = QStringList{
 					u"OpenAI (https://api.openai.com)"_q,
 					u"LM Studio (http://127.0.0.1:1234)"_q,
 					u"Ollama (http://127.0.0.1:11434)"_q,
-					tr::ayu_AiOwnUrl(tr::now),
+					tr::tf_AiOwnUrl(tr::now),
 				};
 				ShowStringPickMenu(
 					c,
@@ -332,7 +332,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.openAiApiKey }),
 				st::boxRowPadding);
 
-			AddSettingsHint(c, tr::ayu_AiChatModel());
+			AddSettingsHint(c, tr::tf_AiChatModel());
 
 			const auto chatModelIdField = c->add(
 				object_ptr<Ui::InputField>(
@@ -346,7 +346,7 @@ const auto kMeta = BuildHelper({
 			const auto loadChatModels = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiLoadChatModels(),
+					tr::tf_AiLoadChatModels(),
 					st::settingsButtonNoIcon));
 			loadChatModels->setClickedCallback([=] {
 				const auto base = TeleForge::OpenAiOriginBaseForModelsList(
@@ -368,7 +368,7 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			AddSettingsHint(c, tr::ayu_AiLocalGguf());
+			AddSettingsHint(c, tr::tf_AiLocalGguf());
 
 			const auto chatGguf = c->add(
 				object_ptr<Ui::InputField>(
@@ -382,13 +382,13 @@ const auto kMeta = BuildHelper({
 			const auto browseChatGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiBrowseChatModel(),
+					tr::tf_AiBrowseChatModel(),
 					st::settingsButtonNoIcon));
 			browseChatGguf->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					tr::ayu_AiChatModelGgufDialog(tr::now),
-					tr::ayu_GgufFilter(tr::now),
+					tr::tf_AiChatModelGgufDialog(tr::now),
+					tr::tf_GgufFilter(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							chatGguf->setText(result.paths.front());
@@ -399,12 +399,12 @@ const auto kMeta = BuildHelper({
 			const auto pickChatFromModelsDir = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiPickChatFromModels(),
+					tr::tf_AiPickChatFromModels(),
 					st::settingsButtonNoIcon));
 			pickChatFromModelsDir->setClickedCallback([=] {
 				const auto items = TeleForge::TeleForgeListGgufInModelsDirectory();
 				if (items.isEmpty()) {
-					controller->showToast(tr::ayu_AiNoGgufInModels(tr::now));
+					controller->showToast(tr::tf_AiNoGgufInModels(tr::now));
 					return;
 				}
 				ShowStringPickMenu(
@@ -415,7 +415,7 @@ const auto kMeta = BuildHelper({
 					[=](const QString &p) { chatGguf->setText(p); });
 			});
 
-			AddSettingsHint(c, tr::ayu_AiContextMessages());
+			AddSettingsHint(c, tr::tf_AiContextMessages());
 
 			const auto ctxMsgs = c->add(
 				object_ptr<Ui::InputField>(
@@ -429,9 +429,9 @@ const auto kMeta = BuildHelper({
 					}),
 				st::boxRowPadding);
 
-			builder.addSubsectionTitle(tr::ayu_AiEmbeddingsSection());
+			builder.addSubsectionTitle(tr::tf_AiEmbeddingsSection());
 
-			AddSettingsHint(c, tr::ayu_AiEmbeddingUrl());
+			AddSettingsHint(c, tr::tf_AiEmbeddingUrl());
 
 			const auto emb = c->add(
 				object_ptr<Ui::InputField>(
@@ -442,7 +442,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.embeddingEndpointUrl }),
 				st::boxRowPadding);
 
-			AddSettingsHint(c, tr::ayu_AiEmbeddingModel());
+			AddSettingsHint(c, tr::tf_AiEmbeddingModel());
 
 			const auto embModel = c->add(
 				object_ptr<Ui::InputField>(
@@ -456,7 +456,7 @@ const auto kMeta = BuildHelper({
 			const auto loadEmbModels = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiLoadEmbeddingModels(),
+					tr::tf_AiLoadEmbeddingModels(),
 					st::settingsButtonNoIcon));
 			loadEmbModels->setClickedCallback([=] {
 				const auto base = TeleForge::OpenAiOriginBaseForModelsList(
@@ -478,9 +478,9 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			builder.addSubsectionTitle(tr::ayu_AiRerankSection());
+			builder.addSubsectionTitle(tr::tf_AiRerankSection());
 
-			AddSettingsHint(c, tr::ayu_AiRerankUrl());
+			AddSettingsHint(c, tr::tf_AiRerankUrl());
 
 			const auto rerankUrl = c->add(
 				object_ptr<Ui::InputField>(
@@ -491,7 +491,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.rerankEndpointUrl }),
 				st::boxRowPadding);
 
-			AddSettingsHint(c, tr::ayu_AiRerankModel());
+			AddSettingsHint(c, tr::tf_AiRerankModel());
 
 			const auto rerankModel = c->add(
 				object_ptr<Ui::InputField>(
@@ -505,7 +505,7 @@ const auto kMeta = BuildHelper({
 			const auto loadRerankModels = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiLoadRerankModels(),
+					tr::tf_AiLoadRerankModels(),
 					st::settingsButtonNoIcon));
 			loadRerankModels->setClickedCallback([=] {
 				const auto base = TeleForge::OpenAiOriginBaseForModelsList(
@@ -527,7 +527,7 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			AddSettingsHint(c, tr::ayu_AiRerankGguf());
+			AddSettingsHint(c, tr::tf_AiRerankGguf());
 
 			const auto defaultGguf = TeleForge::DefaultTeleForgeRerankGgufPath();
 			const auto rerankPath = c->add(
@@ -546,13 +546,13 @@ const auto kMeta = BuildHelper({
 			const auto browseRerankGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiBrowseRerank(),
+					tr::tf_AiBrowseRerank(),
 					st::settingsButtonNoIcon));
 			browseRerankGguf->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					tr::ayu_AiRerankGgufDialog(tr::now),
-					tr::ayu_GgufFilter(tr::now),
+					tr::tf_AiRerankGgufDialog(tr::now),
+					tr::tf_GgufFilter(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							rerankPath->setText(result.paths.front());
@@ -563,12 +563,12 @@ const auto kMeta = BuildHelper({
 			const auto pickRerankFromModelsDir = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiPickRerankFromModels(),
+					tr::tf_AiPickRerankFromModels(),
 					st::settingsButtonNoIcon));
 			pickRerankFromModelsDir->setClickedCallback([=] {
 				const auto items = TeleForge::TeleForgeListGgufInModelsDirectory();
 				if (items.isEmpty()) {
-					controller->showToast(tr::ayu_AiNoGgufInModels(tr::now));
+					controller->showToast(tr::tf_AiNoGgufInModels(tr::now));
 					return;
 				}
 				ShowStringPickMenu(
@@ -579,7 +579,7 @@ const auto kMeta = BuildHelper({
 					[=](const QString &p) { rerankPath->setText(p); });
 			});
 
-			AddSettingsHint(c, tr::ayu_AiEmbeddingGguf());
+			AddSettingsHint(c, tr::tf_AiEmbeddingGguf());
 
 			const auto embGguf = c->add(
 				object_ptr<Ui::InputField>(
@@ -597,13 +597,13 @@ const auto kMeta = BuildHelper({
 			const auto browseEmbGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiBrowseEmbedding(),
+					tr::tf_AiBrowseEmbedding(),
 					st::settingsButtonNoIcon));
 			browseEmbGguf->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					tr::ayu_AiEmbeddingGgufDialog(tr::now),
-					tr::ayu_GgufFilter(tr::now),
+					tr::tf_AiEmbeddingGgufDialog(tr::now),
+					tr::tf_GgufFilter(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							embGguf->setText(result.paths.front());
@@ -614,13 +614,13 @@ const auto kMeta = BuildHelper({
 			const auto downloadEmbGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiDownloadModel(),
+					tr::tf_AiDownloadModel(),
 					st::settingsButtonNoIcon));
 			downloadEmbGguf->setClickedCallback([=] {
 				auto titles = QStringList();
 				for (const auto &entry : TeleForge::ModelCatalog()) {
 					titles.push_back(TeleForge::ModelDownloaded(entry)
-						? tr::ayu_AiModelAlreadyDownloaded(
+						? tr::tf_AiModelAlreadyDownloaded(
 							tr::now,
 							lt_title,
 							entry.title)
@@ -650,7 +650,7 @@ const auto kMeta = BuildHelper({
 			const auto save = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiSaveConnection(),
+					tr::tf_AiSaveConnection(),
 					st::settingsButtonNoIcon));
 			const auto persistConnection = [=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
@@ -692,17 +692,17 @@ const auto kMeta = BuildHelper({
 			}
 			save->setClickedCallback([=] {
 				persistConnection();
-				controller->showToast(tr::ayu_AiConnectionSaved(tr::now));
+				controller->showToast(tr::tf_AiConnectionSaved(tr::now));
 			});
 
 		}, [](const SearchContext &) {});
 	});
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(tr::ayu_AiDeliverySection());
+	builder.addSubsectionTitle(tr::tf_AiDeliverySection());
 	ayu.addToggle({
 		.id = u"teleforge/autoSend"_q,
-		.title = tr::ayu_AiAutoSend(),
+		.title = tr::tf_AiAutoSend(),
 		.getter = [] {
 			return TeleForge::LoadPersonalityCore().value_or(
 				TeleForge::DefaultPersonalityCore()).autoSendEnabled;
@@ -717,7 +717,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/vision"_q,
-		.title = tr::ayu_AiVision(),
+		.title = tr::tf_AiVision(),
 		.getter = [] {
 			return TeleForge::LoadPersonalityCore().value_or(
 				TeleForge::DefaultPersonalityCore()).visionEnabled;
@@ -733,11 +733,11 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(tr::ayu_AiTranslationSection());
+	builder.addSubsectionTitle(tr::tf_AiTranslationSection());
 	BuildAiTranslation(builder, ayu);
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(tr::ayu_AiSystemPromptSection());
+	builder.addSubsectionTitle(tr::tf_AiSystemPromptSection());
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
 			const auto c = wctx.container;
@@ -755,7 +755,7 @@ const auto kMeta = BuildHelper({
 			const auto save = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiSaveSystemPrompt(),
+					tr::tf_AiSaveSystemPrompt(),
 					st::settingsButtonNoIcon));
 			const auto persistPrompt = [=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
@@ -772,17 +772,17 @@ const auto kMeta = BuildHelper({
 			}, prompt->lifetime());
 			save->setClickedCallback([=] {
 				persistPrompt();
-				controller->showToast(tr::ayu_AiSystemPromptSaved(tr::now));
+				controller->showToast(tr::tf_AiSystemPromptSaved(tr::now));
 			});
 		}, [](const SearchContext &) {});
 	});
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(tr::ayu_AiStyleSection());
+	builder.addSubsectionTitle(tr::tf_AiStyleSection());
 
 	ayu.addSlider({
 		.id = u"teleforge/weight_aggression"_q,
-		.title = tr::ayu_AiStyleAggression(),
+		.title = tr::tf_AiStyleAggression(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -798,7 +798,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_brevity"_q,
-		.title = tr::ayu_AiStyleBrevity(),
+		.title = tr::tf_AiStyleBrevity(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -814,7 +814,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_emojis"_q,
-		.title = tr::ayu_AiStyleEmojis(),
+		.title = tr::tf_AiStyleEmojis(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -830,7 +830,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_toxicity"_q,
-		.title = tr::ayu_AiStyleToxicity(),
+		.title = tr::tf_AiStyleToxicity(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -846,7 +846,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_creativity"_q,
-		.title = tr::ayu_AiStyleCreativity(),
+		.title = tr::tf_AiStyleCreativity(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -867,13 +867,13 @@ const auto kMeta = BuildHelper({
 			const auto autoTune = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiTuneStyle(),
+					tr::tf_AiTuneStyle(),
 					st::settingsButtonNoIcon));
 			autoTune->setClickedCallback([=] {
 				const auto history =
 						controller->activeChatCurrent().owningHistory();
 					if (!history) {
-						controller->showToast(tr::ayu_AiOpenChatToAnalyze(tr::now));
+						controller->showToast(tr::tf_AiOpenChatToAnalyze(tr::now));
 						return;
 					}
 					AutoTuneStyleFromServer(controller, history->peer);
@@ -882,11 +882,11 @@ const auto kMeta = BuildHelper({
 	});
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(tr::ayu_AiDefaultsSection());
+	builder.addSubsectionTitle(tr::tf_AiDefaultsSection());
 
 	ayu.addToggle({
 		.id = u"teleforge/defaultAiAnswer"_q,
-		.title = tr::ayu_AiAllowAnswers(),
+		.title = tr::tf_AiAllowAnswers(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).aiAnswer;
@@ -900,7 +900,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultMemRead"_q,
-		.title = tr::ayu_AiMemoryRead(),
+		.title = tr::tf_AiMemoryRead(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).memoryReadEnabled;
@@ -914,7 +914,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultMemWrite"_q,
-		.title = tr::ayu_AiMemoryWrite(),
+		.title = tr::tf_AiMemoryWrite(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).memoryWriteEnabled;
@@ -928,7 +928,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultWeb"_q,
-		.title = tr::ayu_AiWebAccess(),
+		.title = tr::tf_AiWebAccess(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).webAccess;
@@ -942,7 +942,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultCal"_q,
-		.title = tr::ayu_AiCalendarAccess(),
+		.title = tr::tf_AiCalendarAccess(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).calendarAccess;
@@ -956,7 +956,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultPc"_q,
-		.title = tr::ayu_AiPcAgent(),
+		.title = tr::tf_AiPcAgent(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).pcAgent;
@@ -988,31 +988,31 @@ const auto kMeta = BuildHelper({
 			};
 
 			const auto fGk = addNumRow(
-				tr::ayu_AiGlobalMemoryTopK(tr::now),
+				tr::tf_AiGlobalMemoryTopK(tr::now),
 				QString::number(r.globalMemoryTopK));
 			const auto fCk = addNumRow(
-				tr::ayu_AiChatMemoryTopK(tr::now),
+				tr::tf_AiChatMemoryTopK(tr::now),
 				QString::number(r.chatMemoryTopK));
 			const auto fUk = addNumRow(
-				tr::ayu_AiUserMemoryTopK(tr::now),
+				tr::tf_AiUserMemoryTopK(tr::now),
 				QString::number(r.userMemoryTopK));
 			const auto fAk = addNumRow(
-				tr::ayu_AiMemoryAppendixTopK(tr::now),
+				tr::tf_AiMemoryAppendixTopK(tr::now),
 				QString::number(r.memoryAppendixTopK));
 			const auto fRx = addNumRow(
-				tr::ayu_AiRecentSummariesLimit(tr::now),
+				tr::tf_AiRecentSummariesLimit(tr::now),
 				QString::number(r.recentSummaryLimit));
 			const auto fSy = addNumRow(
-				tr::ayu_AiStableFactsLimit(tr::now),
+				tr::tf_AiStableFactsLimit(tr::now),
 				QString::number(r.stableFactsLimit));
 			const auto fDec = addNumRow(
-				tr::ayu_AiMemoryDecay(tr::now),
+				tr::tf_AiMemoryDecay(tr::now),
 				QString::number(r.memoryDecayPerDay, 'g', 4));
 			const auto fMax = addNumRow(
-				tr::ayu_AiMaxMemoryBlockChars(tr::now),
+				tr::tf_AiMaxMemoryBlockChars(tr::now),
 				QString::number(r.maxMemoryBlockChars));
 
-			AddSettingsHint(c, tr::ayu_AiDirectoryWhitelist());
+			AddSettingsHint(c, tr::tf_AiDirectoryWhitelist());
 			const auto fWl = c->add(
 				object_ptr<Ui::InputField>(
 					c,
@@ -1026,7 +1026,7 @@ const auto kMeta = BuildHelper({
 			const auto saveNums = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_AiSaveNumeric(),
+					tr::tf_AiSaveNumeric(),
 					st::settingsButtonNoIcon));
 			saveNums->setClickedCallback([=] {
 				auto next = TeleForge::Storage::effectivePerChatSettings(
@@ -1081,7 +1081,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TeleForgeAi::title() {
-	return tr::ayu_CategoryTeleForgeAi();
+	return tr::tf_CategoryTeleForgeAi();
 }
 
 TeleForgeAi::TeleForgeAi(

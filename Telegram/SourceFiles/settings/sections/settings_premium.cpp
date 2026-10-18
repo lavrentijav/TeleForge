@@ -1507,7 +1507,7 @@ base::weak_qptr<Ui::RpWidget> Premium::createPinnedToTop(
 
 		const auto &settings = TfSettings::getInstance();
 		if (settings.localPremium()) {
-			return tr::ayu_LocalPremiumNotice(tr::rich);
+			return tr::tf_LocalPremiumNotice(tr::rich);
 		}
 
 		return rpl::conditional(

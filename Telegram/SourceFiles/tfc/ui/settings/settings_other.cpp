@@ -41,18 +41,18 @@ namespace {
 void BuildCrashReporting(SectionBuilder &builder, TfSectionBuilder &ayu) {
 #ifndef TDESKTOP_DISABLE_AUTOUPDATE
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_CategoryOther());
+	builder.addSubsectionTitle(tr::tf_CategoryOther());
 
 	ayu.addSettingToggle({
 		.id = u"ayu/crashReporting"_q,
 		.altIds = { u"ayu/crashlytics"_q },
-		.title = tr::ayu_CrashReporting(),
+		.title = tr::tf_CrashReporting(),
 		.getter = &TfSettings::crashReporting,
 		.setter = &TfSettings::setCrashReporting,
 		.icon = { &st::menuIconReport },
 	});
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_CrashReportingDescription());
+	builder.addDividerText(tr::tf_CrashReportingDescription());
 #endif
 }
 
@@ -62,7 +62,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 	builder.addSkip();
 	builder.addButton({
 		.id = u"ayu/registerUrlScheme"_q,
-		.title = tr::ayu_RegisterURLScheme(),
+		.title = tr::tf_RegisterURLScheme(),
 		.icon = { &st::menuIconLink },
 		.onClick = [=] {
 			Core::Application::RegisterUrlScheme();
@@ -71,11 +71,11 @@ void BuildOtherThings(SectionBuilder &builder) {
 	});
 	builder.addButton({
 		.id = u"ayu/resetSettings"_q,
-		.title = tr::ayu_ResetSettings(),
+		.title = tr::tf_ResetSettings(),
 		.icon = { &st::menuIconRestore },
 		.onClick = [=] {
 			controller->show(Ui::MakeConfirmBox({
-				.text = tr::ayu_ResetSettingsConfirmation(tr::rich),
+				.text = tr::tf_ResetSettingsConfirmation(tr::rich),
 				.confirmed = [=](Fn<void()> &&close) {
 					TfSettings::reset();
 					controller->showToast(tr::lng_box_done(tr::now));
@@ -91,7 +91,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 const auto kMeta = BuildHelper({
 	.id = TfOther::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_CategoryOther,
+	.title = &tr::tf_CategoryOther,
 	.icon = &st::menuIconFave,
 }, [](SectionBuilder &builder) {
 	auto ayu = TfSectionBuilder(builder);
@@ -104,7 +104,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TfOther::title() {
-	return tr::ayu_CategoryOther();
+	return tr::tf_CategoryOther();
 }
 
 TfOther::TfOther(

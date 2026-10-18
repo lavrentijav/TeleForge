@@ -143,7 +143,7 @@ void PinMessageBox(
 		box->addRow(
 			object_ptr<Ui::FlatLabel>(
 				box,
-				tr::ayu_GhostOnlineWarnPinBox(),
+				tr::tf_GhostOnlineWarnPinBox(),
 				st::boxLabel),
 			style::margins(
 				st::boxPadding.left(),

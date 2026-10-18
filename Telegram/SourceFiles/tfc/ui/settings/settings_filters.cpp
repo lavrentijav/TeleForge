@@ -45,11 +45,11 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	auto *settings = &TfSettings::getInstance();
 
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_RegexFilters());
+	builder.addSubsectionTitle(tr::tf_RegexFilters());
 
 	const auto enabledButton = builder.addButton({
 		.id = u"ayu/filtersEnabled"_q,
-		.title = tr::ayu_RegexFiltersEnable(),
+		.title = tr::tf_RegexFiltersEnable(),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->filtersEnabled()),
 	});
@@ -67,7 +67,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	const auto sharedButton = builder.addButton({
 		.id = u"ayu/filtersEnabledInChats"_q,
 		.altIds = { u"ayu/filtersInChats"_q },
-		.title = tr::ayu_RegexFiltersEnableSharedInChats(),
+		.title = tr::tf_RegexFiltersEnableSharedInChats(),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->filtersEnabledInChats()),
 	});
@@ -84,7 +84,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 
 	const auto blockedButton = builder.addButton({
 		.id = u"ayu/hideFromBlocked"_q,
-		.title = tr::ayu_FiltersHideFromBlocked(),
+		.title = tr::tf_FiltersHideFromBlocked(),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->hideFromBlocked()),
 	});
@@ -109,7 +109,7 @@ void BuildShared(SectionBuilder &builder) {
 	const auto controller = builder.controller();
 	builder.addButton({
 		.id = u"ayu/sharedFilters"_q,
-		.title = tr::ayu_RegexFiltersShared(),
+		.title = tr::tf_RegexFiltersShared(),
 		.st = &st::settingsButtonNoIcon,
 		.onClick = [=] {
 			controller->dialogId = std::nullopt;
@@ -125,7 +125,7 @@ void BuildShadowBan(SectionBuilder &builder) {
 	builder.addButton({
 		.id = u"ayu/shadowBanIds"_q,
 		.altIds = { u"ayu/shadowBanList"_q },
-		.title = tr::ayu_FiltersShadowBan(),
+		.title = tr::tf_FiltersShadowBan(),
 		.st = &st::settingsButtonNoIcon,
 		.onClick = [=] {
 			controller->dialogId = std::nullopt;
@@ -173,7 +173,7 @@ void BuildPerDialog(SectionBuilder &builder) {
 const auto kMeta = BuildHelper({
 	.id = TfFilters::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_CategoryFilters,
+	.title = &tr::tf_CategoryFilters,
 	.icon = &st::menuIconTagFilter,
 }, [](SectionBuilder &builder) {
 	BuildFiltersSettings(builder);
@@ -185,12 +185,12 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TfFilters::title() {
-	return tr::ayu_CategoryFilters();
+	return tr::tf_CategoryFilters();
 }
 
 void TfFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	addAction(
-		tr::ayu_FiltersMenuSelectChat(tr::now),
+		tr::tf_FiltersMenuSelectChat(tr::now),
 		[=] {
 			if (const auto window = Core::App().activeWindow()) {
 				if (const auto controller = window->sessionController()) {
@@ -208,7 +208,7 @@ void TfFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 							controller->showSettings(TfFiltersList::Id());
 							return true;
 						},
-						tr::ayu_FiltersMenuSelectChat(),
+						tr::tf_FiltersMenuSelectChat(),
 						nullptr,
 						types);
 				}
@@ -217,7 +217,7 @@ void TfFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		&st::menuIconSearch);
 	addAction({ .isSeparator = true });
 	addAction(
-		tr::ayu_FiltersMenuImport(tr::now),
+		tr::tf_FiltersMenuImport(tr::now),
 		[=] {
 			auto box = Box(Ui::FillImportFiltersBox, true);
 			Ui::show(std::move(box));
@@ -225,7 +225,7 @@ void TfFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		&st::menuIconArchive);
 	if (TfDatabase::hasFilters()) {
 		addAction(
-			tr::ayu_FiltersMenuExport(tr::now),
+			tr::tf_FiltersMenuExport(tr::now),
 			[=] {
 				auto box = Box(Ui::FillImportFiltersBox, false);
 				Ui::show(std::move(box));
@@ -234,7 +234,7 @@ void TfFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	}
 	addAction({ .isSeparator = true });
 	addAction(
-		tr::ayu_FiltersMenuClear(tr::now),
+		tr::tf_FiltersMenuClear(tr::now),
 		[=] {
 			auto callback = [=](Fn<void()> &&close) {
 				TfDatabase::deleteAllFilters();
@@ -244,9 +244,9 @@ void TfFilters::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 				close();
 			};
 			auto box = Ui::MakeConfirmBox({
-				.text = tr::ayu_FiltersClearPopupText(),
+				.text = tr::tf_FiltersClearPopupText(),
 				.confirmed = callback,
-				.confirmText = tr::ayu_FiltersClearPopupActionText()
+				.confirmText = tr::tf_FiltersClearPopupActionText()
 			});
 			Ui::show(std::move(box));
 		},

@@ -28,7 +28,7 @@ namespace Ui {
 void FillImportFiltersBox(not_null<Ui::GenericBox*> box, bool import) {
 	box->setStyle(st::giveawayGiftCodeBox);
 	box->setNoContentMargin(true);
-	box->setTitle(import ? tr::ayu_FiltersMenuImport() : tr::ayu_FiltersMenuExport());
+	box->setTitle(import ? tr::tf_FiltersMenuImport() : tr::tf_FiltersMenuExport());
 	box->verticalLayout()->resizeToWidth(box->width());
 
 	const auto container = box->verticalLayout();
@@ -79,8 +79,8 @@ void FillImportFiltersBox(not_null<Ui::GenericBox*> box, bool import) {
 			importURLWrap->hide(anim::type::instant);
 		}
 	};
-	addOption(false, import ? tr::ayu_FiltersImportClipboard(tr::now) : tr::ayu_FiltersExportClipboard(tr::now));
-	addOption(true, import ? tr::ayu_FiltersImportURL(tr::now) : tr::ayu_FiltersExportURL(tr::now));
+	addOption(false, import ? tr::tf_FiltersImportClipboard(tr::now) : tr::tf_FiltersExportClipboard(tr::now));
+	addOption(true, import ? tr::tf_FiltersImportURL(tr::now) : tr::tf_FiltersExportURL(tr::now));
 
 	intoURL->setChangedCallback([=](bool value)
 	{
@@ -90,7 +90,7 @@ void FillImportFiltersBox(not_null<Ui::GenericBox*> box, bool import) {
 	});
 
 	const auto actionButton = box->addButton(
-		import ? tr::ayu_FiltersMenuImport() : tr::ayu_FiltersMenuExport(),
+		import ? tr::tf_FiltersMenuImport() : tr::tf_FiltersMenuExport(),
 		[=]
 		{
 			const auto isURL = intoURL.get()->current();

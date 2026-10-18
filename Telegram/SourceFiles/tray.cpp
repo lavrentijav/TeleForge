@@ -129,8 +129,8 @@ void Tray::rebuildMenu() {
 			std::move(ghostActiveChanges)
 		) | rpl::map([=](auto, bool active) {
 			return active
-				? tr::ayu_DisableGhostModeTray(tr::now)
-				: tr::ayu_EnableGhostModeTray(tr::now);
+				? tr::tf_DisableGhostModeTray(tr::now)
+				: tr::tf_EnableGhostModeTray(tr::now);
 		});
 		_tray.addAction(
 			std::move(turnGhostModeText),
@@ -149,8 +149,8 @@ void Tray::rebuildMenu() {
 				bool streamerModeEnabled = TfFeatures::StreamerMode::isEnabled();
 
 				return streamerModeEnabled
-						   ? tr::ayu_DisableStreamerModeTray(tr::now)
-						   : tr::ayu_EnableStreamerModeTray(tr::now);
+						   ? tr::tf_DisableStreamerModeTray(tr::now)
+						   : tr::tf_EnableStreamerModeTray(tr::now);
 			});
 		_tray.addAction(
 			std::move(turnStreamerModeText),

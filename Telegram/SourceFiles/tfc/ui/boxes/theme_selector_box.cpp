@@ -45,7 +45,7 @@ void ThemeSelectorBox::prepare() {
 void ThemeSelectorBox::setupContent() {
 	using namespace Settings;
 
-	setTitle(tr::ayu_MessageShotThemeSelectTitle());
+	setTitle(tr::tf_MessageShotThemeSelectTitle());
 
 	auto wrap2 = object_ptr<Ui::VerticalLayout>(this);
 	const auto container = wrap2.data();
@@ -174,13 +174,13 @@ void ThemeSelectorBox::setupContent() {
 								 const auto type = TfFeatures::MessageShot::getSelectedFromDefault();
 								 const auto name = (type != Window::Theme::EmbeddedType(-1))
 									 ? TfFeatures::MessageShot::embeddedThemeDisplayName(type)
-									 : tr::ayu_MessageShotThemeDefault(tr::now);
+									 : tr::tf_MessageShotThemeDefault(tr::now);
 								 _themeNames.fire(QString(name));
 								 _selectedPalette = palette;
 							 },
 							 lifetime());
 
-	addButton(tr::ayu_MessageShotThemeApply(),
+	addButton(tr::tf_MessageShotThemeApply(),
 			  [=]
 			  {
 				  _palettes.fire(std::move(_selectedPalette));

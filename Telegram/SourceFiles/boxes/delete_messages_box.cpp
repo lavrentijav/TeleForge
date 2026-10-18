@@ -246,11 +246,11 @@ void DeleteMessagesBox::prepare() {
 		if (TfDelete::AnyMessageSupportsStubReplace(_session, _ids)) {
 			_deleteWithStub.create(
 				this,
-				tr::ayu_DeleteWithContentReplacement(tr::now),
+				tr::tf_DeleteWithContentReplacement(tr::now),
 				false,
 				st::defaultBoxCheckbox);
 			appendDetails({
-				tr::ayu_DeleteWithContentReplacementAbout(tr::now)
+				tr::tf_DeleteWithContentReplacementAbout(tr::now)
 			});
 		}
 	}

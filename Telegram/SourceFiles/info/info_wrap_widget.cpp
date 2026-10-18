@@ -510,7 +510,7 @@ void WrapWidget::setupTopBarMenuToggle() {
 							TfSettings::getInstance().addShadowBan(realId);
 							return true;
 						},
-						tr::ayu_FiltersMenuSelectChat(),
+						tr::tf_FiltersMenuSelectChat(),
 						nullptr,
 						types
 					);

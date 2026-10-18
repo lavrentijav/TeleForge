@@ -26,7 +26,7 @@ GhostOnlineBar::GhostOnlineBar(
 
 	const auto label = Ui::CreateChild<Ui::FlatLabel>(
 		widget,
-		tr::ayu_GhostOnlineWarnBar(),
+		tr::tf_GhostOnlineWarnBar(),
 		st::historyTranslateLabel);
 	const auto icon = Ui::CreateChild<Ui::RpWidget>(widget);
 	label->setAttribute(Qt::WA_TransparentForMouseEvents);

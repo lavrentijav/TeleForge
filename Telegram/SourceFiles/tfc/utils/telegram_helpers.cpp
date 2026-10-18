@@ -160,7 +160,7 @@ Fn<void()> badgeClickHandler(not_null<PeerData*> peer) {
 			return;
 		}
 
-		const auto text = tr::ayu_OfficialResourcePopup(
+		const auto text = tr::tf_OfficialResourcePopup(
 			tr::now,
 			lt_item,
 			TextWithEntities{peer->name()},
@@ -330,7 +330,7 @@ void readHistory(not_null<HistoryItem*> message) {
 
 QString formatTTL(int time, bool isDoc) {
 	if (time == 0x7FFFFFFF) {
-		return isDoc ? tr::ayu_OnePlayTTL(tr::now) : tr::ayu_OneViewTTL(tr::now);
+		return isDoc ? tr::tf_OnePlayTTL(tr::now) : tr::tf_OneViewTTL(tr::now);
 	}
 
 	return QString("%1s").arg(time);
@@ -1294,7 +1294,7 @@ void getUserRegistrationDateInner(
 
 			if (flag == "EXACT" || flag == "INTERPOLATED") {
 				if (!isSelf) {
-					resultText = tr::ayu_CreationDateUserApproximately(
+					resultText = tr::tf_CreationDateUserApproximately(
 						tr::now,
 						lt_item1,
 						TextWithEntities{userName},
@@ -1303,7 +1303,7 @@ void getUserRegistrationDateInner(
 						tr::rich
 					);
 				} else {
-					resultText = tr::ayu_CreationDateSelfApproximately(
+					resultText = tr::tf_CreationDateSelfApproximately(
 						tr::now,
 						lt_item,
 						TextWithEntities{formattedDate},
@@ -1312,7 +1312,7 @@ void getUserRegistrationDateInner(
 				}
 			} else if (flag == "LT") {
 				if (!isSelf) {
-					resultText = tr::ayu_CreationDateUserEarlier(
+					resultText = tr::tf_CreationDateUserEarlier(
 						tr::now,
 						lt_item1,
 						TextWithEntities{userName},
@@ -1321,7 +1321,7 @@ void getUserRegistrationDateInner(
 						tr::rich
 					);
 				} else {
-					resultText = tr::ayu_CreationDateSelfEarlier(
+					resultText = tr::tf_CreationDateSelfEarlier(
 						tr::now,
 						lt_item,
 						TextWithEntities{formattedDate},
@@ -1330,7 +1330,7 @@ void getUserRegistrationDateInner(
 				}
 			} else if (flag == "ET") {
 				if (!isSelf) {
-					resultText = tr::ayu_CreationDateUserLater(
+					resultText = tr::tf_CreationDateUserLater(
 						tr::now,
 						lt_item1,
 						TextWithEntities{userName},
@@ -1339,7 +1339,7 @@ void getUserRegistrationDateInner(
 						tr::rich
 					);
 				} else {
-					resultText = tr::ayu_CreationDateSelfLater(
+					resultText = tr::tf_CreationDateSelfLater(
 						tr::now,
 						lt_item,
 						TextWithEntities{formattedDate},
@@ -1367,7 +1367,7 @@ void getChannelJoinOrCreateDate(not_null<ChannelData*> channel, Fn<void(TextWith
 
 	if (channel->inviteDate) {
 		const auto formattedDate = langDayOfMonthFull(base::unixtime::parse(channel->inviteDate).date());
-		result = tr::ayu_JoinDateChat(
+		result = tr::tf_JoinDateChat(
 			tr::now,
 			lt_item1,
 			TextWithEntities{channel->name()},
@@ -1377,7 +1377,7 @@ void getChannelJoinOrCreateDate(not_null<ChannelData*> channel, Fn<void(TextWith
 		);
 	} else if (channel->date) {
 		const auto formattedDate = langDayOfMonthFull(base::unixtime::parse(channel->date).date());
-		result = tr::ayu_CreationDateChat(
+		result = tr::tf_CreationDateChat(
 			tr::now,
 			lt_item1,
 			TextWithEntities{channel->name()},
@@ -1397,7 +1397,7 @@ void getChatCreateDate(not_null<ChatData*> chat, Fn<void(TextWithEntities)> call
 
 	if (chat->date) {
 		const auto formattedDate = langDayOfMonthFull(base::unixtime::parse(chat->date).date());
-		result = tr::ayu_CreationDateChat(
+		result = tr::tf_CreationDateChat(
 			tr::now,
 			lt_item1,
 			TextWithEntities{chat->name()},

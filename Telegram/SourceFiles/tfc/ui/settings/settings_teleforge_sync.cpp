@@ -124,18 +124,18 @@ void ShowPickMenu(
 const auto kMeta = BuildHelper({
 	.id = TeleForgeSync::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_CategoryTeleForgeSync,
+	.title = &tr::tf_CategoryTeleForgeSync,
 	.icon = &st::menuIconDownload,
 }, [](SectionBuilder &builder) {
 	auto ayu = TfSectionBuilder(builder);
 	const auto controller = builder.controller();
 
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_SyncDevicesSection());
+	builder.addSubsectionTitle(tr::tf_SyncDevicesSection());
 
 	ayu.addToggle({
 		.id = u"teleforge/memorySync"_q,
-		.title = tr::ayu_SyncViaTelegram(),
+		.title = tr::tf_SyncViaTelegram(),
 		.getter = [=] {
 			return TeleForge::LoadPersonalityCore().value_or(
 				TeleForge::DefaultPersonalityCore()).memorySyncEnabled;
@@ -162,7 +162,7 @@ const auto kMeta = BuildHelper({
 			const auto syncNow = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					tr::ayu_SyncNow(),
+					tr::tf_SyncNow(),
 					st::settingsButtonNoIcon));
 			syncNow->setClickedCallback([=] {
 				TeleForge::Sync::syncNow(&controller->session(), [=](QString msg) {
@@ -173,7 +173,7 @@ const auto kMeta = BuildHelper({
 	});
 
 	builder.addSkip();
-	builder.addSubsectionTitle(tr::ayu_SyncCloudSection());
+	builder.addSubsectionTitle(tr::tf_SyncCloudSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -191,14 +191,14 @@ const auto kMeta = BuildHelper({
 					? u"PostgreSQL"_q
 					: (b == 2)
 					? u"MySQL / MariaDB"_q
-					: tr::ayu_SyncBackendTelegram(tr::now);
+					: tr::tf_SyncBackendTelegram(tr::now);
 			};
 
 			// --- Provider selector (Telegram / MySQL / PostgreSQL) ---
 			const auto providerBtn = c->add(object_ptr<Ui::SettingsButton>(
 				c,
 				provider->value() | rpl::map([=](int b) {
-					return tr::ayu_SyncProvider(
+					return tr::tf_SyncProvider(
 						tr::now,
 						lt_backend,
 						backendName(b));
@@ -210,7 +210,7 @@ const auto kMeta = BuildHelper({
 					providerBtn->mapToGlobal(
 						QPoint(0, providerBtn->height())),
 					{
-						tr::ayu_SyncBackendTelegram(tr::now),
+						tr::tf_SyncBackendTelegram(tr::now),
 						u"MySQL / MariaDB"_q,
 						u"PostgreSQL"_q,
 					},
@@ -242,7 +242,7 @@ const auto kMeta = BuildHelper({
 				object_ptr<Ui::SettingsButton>(
 					versionInner,
 					pgVersion->value() | rpl::map([](const QString &v) {
-						return tr::ayu_SyncPgVersion(
+						return tr::tf_SyncPgVersion(
 							tr::now,
 							lt_version,
 							v);
@@ -282,7 +282,7 @@ const auto kMeta = BuildHelper({
 				row,
 				st::defaultInputField,
 				Ui::InputField::Mode::SingleLine,
-				rpl::single(tr::ayu_SyncHostPlaceholder(tr::now)),
+				rpl::single(tr::tf_SyncHostPlaceholder(tr::now)),
 				TextWithTags{ parsed.host });
 			const auto colon = Ui::CreateChild<Ui::FlatLabel>(
 				row,
@@ -292,7 +292,7 @@ const auto kMeta = BuildHelper({
 				row,
 				st::defaultInputField,
 				Ui::InputField::Mode::SingleLine,
-				rpl::single(tr::ayu_SyncPortPlaceholder(tr::now)),
+				rpl::single(tr::tf_SyncPortPlaceholder(tr::now)),
 				TextWithTags{ parsed.port });
 			rpl::combine(
 				row->widthValue(),
@@ -321,7 +321,7 @@ const auto kMeta = BuildHelper({
 					inner,
 					st::defaultInputField,
 					Ui::InputField::Mode::SingleLine,
-					rpl::single(tr::ayu_SyncDatabasePlaceholder(tr::now)),
+					rpl::single(tr::tf_SyncDatabasePlaceholder(tr::now)),
 					TextWithTags{ parsed.db }),
 				st::boxRowPadding);
 			const auto user = inner->add(
@@ -329,7 +329,7 @@ const auto kMeta = BuildHelper({
 					inner,
 					st::defaultInputField,
 					Ui::InputField::Mode::SingleLine,
-					rpl::single(tr::ayu_SyncUserPlaceholder(tr::now)),
+					rpl::single(tr::tf_SyncUserPlaceholder(tr::now)),
 					TextWithTags{ parsed.user }),
 				st::boxRowPadding);
 			const auto password = inner->add(
@@ -337,7 +337,7 @@ const auto kMeta = BuildHelper({
 					inner,
 					st::defaultInputField,
 					Ui::InputField::Mode::SingleLine,
-					rpl::single(tr::ayu_SyncPasswordPlaceholder(tr::now)),
+					rpl::single(tr::tf_SyncPasswordPlaceholder(tr::now)),
 					TextWithTags{ parsed.password }),
 				st::boxRowPadding);
 
@@ -353,7 +353,7 @@ const auto kMeta = BuildHelper({
 
 			const auto save = inner->add(object_ptr<Ui::SettingsButton>(
 				inner,
-				tr::ayu_SyncSaveConnection(),
+				tr::tf_SyncSaveConnection(),
 				st::settingsButtonNoIcon));
 			save->setClickedCallback([=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
@@ -361,20 +361,20 @@ const auto kMeta = BuildHelper({
 				p.pgConnString = ComposeConnString(collect());
 				p.updatedAt = QDateTime::currentDateTimeUtc();
 				TeleForge::PersistPersonalityCore(p);
-				controller->showToast(tr::ayu_SyncConnectionSaved(tr::now));
+				controller->showToast(tr::tf_SyncConnectionSaved(tr::now));
 			});
 
 			const auto test = inner->add(object_ptr<Ui::SettingsButton>(
 				inner,
-				tr::ayu_SyncTestConnection(),
+				tr::tf_SyncTestConnection(),
 				st::settingsButtonNoIcon));
 			test->setClickedCallback([=] {
 				const auto text = ComposeConnString(collect());
 				const auto cb = [=](bool ok, QString error) {
 					controller->showToast(ok
-						? tr::ayu_SyncConnectionOk(tr::now)
+						? tr::tf_SyncConnectionOk(tr::now)
 						: (error.isEmpty()
-							? tr::ayu_SyncConnectionFailed(tr::now)
+							? tr::tf_SyncConnectionFailed(tr::now)
 							: error));
 				};
 				if (provider->current() == 2) {
@@ -387,7 +387,7 @@ const auto kMeta = BuildHelper({
 			const auto exportAll = inner->add(
 				object_ptr<Ui::SettingsButton>(
 					inner,
-					tr::ayu_SyncExportAll(),
+					tr::tf_SyncExportAll(),
 					st::settingsButtonNoIcon));
 			exportAll->setClickedCallback([=] {
 				TeleForge::UI::ShowUploadProgress(0, 1);
@@ -405,13 +405,13 @@ const auto kMeta = BuildHelper({
 			// --- SSH tunnel (optional; applies to whichever DB backend is
 			// active above, so the DB itself never needs a public port). ---
 			ayu.base().addSkip();
-			AddSettingsHint(inner, tr::ayu_SyncSshHint());
+			AddSettingsHint(inner, tr::tf_SyncSshHint());
 
 			const auto sshEnabled = inner->lifetime()
 				.make_state<rpl::variable<bool>>(core.sshTunnelEnabled);
 			AddToggle(
 				inner,
-				tr::ayu_SyncSshToggle(),
+				tr::tf_SyncSshToggle(),
 				[=] { return sshEnabled->current(); },
 				[=](bool v) {
 					*sshEnabled = v;
@@ -428,7 +428,7 @@ const auto kMeta = BuildHelper({
 					object_ptr<Ui::VerticalLayout>(inner)));
 			const auto sshInner = sshWrap->entity();
 
-			AddSettingsHint(sshInner, tr::ayu_SyncSshTarget());
+			AddSettingsHint(sshInner, tr::tf_SyncSshTarget());
 			const auto sshTarget = sshInner->add(
 				object_ptr<Ui::InputField>(
 					sshInner,
@@ -438,7 +438,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.sshTunnelTarget }),
 				st::boxRowPadding);
 
-			AddSettingsHint(sshInner, tr::ayu_SyncSshIdentity());
+			AddSettingsHint(sshInner, tr::tf_SyncSshIdentity());
 			const auto sshIdentity = sshInner->add(
 				object_ptr<Ui::InputField>(
 					sshInner,
@@ -450,13 +450,13 @@ const auto kMeta = BuildHelper({
 			const auto browseIdentity = sshInner->add(
 				object_ptr<Ui::SettingsButton>(
 					sshInner,
-					tr::ayu_SyncBrowseKey(),
+					tr::tf_SyncBrowseKey(),
 					st::settingsButtonNoIcon));
 			browseIdentity->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					tr::ayu_SyncSshKeyDialog(tr::now),
-					tr::ayu_FileFilterAllFiles(tr::now),
+					tr::tf_SyncSshKeyDialog(tr::now),
+					tr::tf_FileFilterAllFiles(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							sshIdentity->setText(result.paths.front());
@@ -485,7 +485,7 @@ const auto kMeta = BuildHelper({
 			sshWrap->finishAnimating();
 
 			ayu.base().addSkip();
-			ayu.base().addDividerText(tr::ayu_SyncSshHintLong());
+			ayu.base().addDividerText(tr::tf_SyncSshHintLong());
 
 			connWrap->toggleOn(provider->value() | rpl::map([](int b) {
 				return b != 0;
@@ -498,7 +498,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TeleForgeSync::title() {
-	return tr::ayu_CategoryTeleForgeSync();
+	return tr::tf_CategoryTeleForgeSync();
 }
 
 TeleForgeSync::TeleForgeSync(

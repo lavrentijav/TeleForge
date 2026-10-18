@@ -170,7 +170,7 @@ Fn<void()> DeleteMyMessagesHandler(not_null<Window::SessionController*> controll
 	{
 		if (!controller->showFrozenError()) {
 			controller->show(Ui::MakeConfirmBox({
-				.text = tr::ayu_DeleteOwnMessagesConfirmation(tr::now),
+				.text = tr::tf_DeleteOwnMessagesConfirmation(tr::now),
 				.confirmed =
 				[=](Fn<void()> &&close)
 				{
@@ -209,7 +209,7 @@ void AddDeletedMessagesActions(PeerData *peerData,
 	// }
 
 	addCallback(
-		tr::ayu_ViewDeletedMenuText(tr::now),
+		tr::tf_ViewDeletedMenuText(tr::now),
 		[=]
 		{
 			sessionController->session().tryResolveWindow()
@@ -274,7 +274,7 @@ void AddJumpToBeginningAction(PeerData *peerData,
 	};
 
 	addCallback(
-		tr::ayu_JumpToBeginning(tr::now),
+		tr::tf_JumpToBeginning(tr::now),
 		[=]
 		{
 			if (user) {
@@ -350,8 +350,8 @@ void AddShadowBanAction(PeerData *peerData,
 
 	addCallback({
 		.text = (shadowBanned
-					 ? tr::ayu_FiltersQuickUnshadowBan(tr::now)
-					 : tr::ayu_FiltersQuickShadowBan(tr::now)),
+					 ? tr::tf_FiltersQuickUnshadowBan(tr::now)
+					 : tr::tf_FiltersQuickShadowBan(tr::now)),
 		.handler = toggleShadowBan,
 		.icon = shadowBanned ? &st::menuIconShowInChat : &st::menuIconStealth,
 	});
@@ -376,13 +376,13 @@ void AddAiModeAction(PeerData *peerData,
 		r.updatedAt = base::unixtime::now();
 		TeleForge::Storage::upsertPerChatSettings(r);
 		sessionController->showToast(r.aiAnswer
-			? tr::ayu_ContextAiModeOn(tr::now)
-			: tr::ayu_ContextAiModeOff(tr::now));
+			? tr::tf_ContextAiModeOn(tr::now)
+			: tr::tf_ContextAiModeOff(tr::now));
 	};
 	addCallback({
 		.text = enabled
-			? tr::ayu_ContextAiModeEnabled(tr::now)
-			: tr::ayu_ContextAiModeDisabled(tr::now),
+			? tr::tf_ContextAiModeEnabled(tr::now)
+			: tr::tf_ContextAiModeDisabled(tr::now),
 		.handler = toggle,
 		.icon = &st::menuIconBot,
 	});
@@ -416,7 +416,7 @@ void AddTeleForgePeerSubmenu(
 				record.peerId = peerStorageId;
 				record.updatedAt = base::unixtime::now();
 				TeleForge::Storage::upsertPerChatSettings(record);
-				controller->showToast(tr::ayu_ContextChatSettingsSaved(tr::now));
+				controller->showToast(tr::tf_ContextChatSettingsSaved(tr::now));
 			};
 			const auto snapshot =
 				TeleForge::Storage::effectivePerChatSettings(peerStorageId);
@@ -433,19 +433,19 @@ void AddTeleForgePeerSubmenu(
 			};
 			// "AI replies" (aiAnswer) is intentionally omitted here — it lives
 			// as the standalone top-level "AI mode" item (AddAiModeAction).
-			item(tr::ayu_ContextReadMemory(tr::now), snapshot.memoryReadEnabled,
+			item(tr::tf_ContextReadMemory(tr::now), snapshot.memoryReadEnabled,
 				[](Record &r, bool v) { r.memoryReadEnabled = v; });
-			item(tr::ayu_ContextWriteMemory(tr::now), snapshot.memoryWriteEnabled,
+			item(tr::tf_ContextWriteMemory(tr::now), snapshot.memoryWriteEnabled,
 				[](Record &r, bool v) { r.memoryWriteEnabled = v; });
 			if (userId) {
 				const auto spyOn = TeleForge::Spy::isSpyTargetEnabled(userId);
 				menu->addAction(spyOn
-					? (tr::ayu_ContextTrackOnline(tr::now) + u"  ✓"_q)
-					: tr::ayu_ContextTrackOnline(tr::now), [=] {
+					? (tr::tf_ContextTrackOnline(tr::now) + u"  ✓"_q)
+					: tr::tf_ContextTrackOnline(tr::now), [=] {
 					TeleForge::Spy::setSpyTargetEnabled(userId, !spyOn);
 					controller->showToast(!spyOn
-						? tr::ayu_ContextTrackOnlineOn(tr::now)
-						: tr::ayu_ContextTrackOnlineOff(tr::now));
+						? tr::tf_ContextTrackOnlineOn(tr::now)
+						: tr::tf_ContextTrackOnlineOff(tr::now));
 				});
 			}
 		},
@@ -475,7 +475,7 @@ void AddDeleteOwnMessagesAction(PeerData *peerData,
 		return;
 	}
 	addCallback(
-		tr::ayu_DeleteOwnMessages(tr::now),
+		tr::tf_DeleteOwnMessages(tr::now),
 		DeleteMyMessagesHandler(sessionController, peerData),
 		&st::menuIconTTL);
 }
@@ -494,7 +494,7 @@ void AddHistoryAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	}
 
 	menu->addAction(
-		tr::ayu_EditsHistoryMenuText(tr::now),
+		tr::tf_EditsHistoryMenuText(tr::now),
 		[=]
 		{
 			item->history()->session().tryResolveWindow()
@@ -517,7 +517,7 @@ void AddHideMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	const auto history = item->history();
 	const auto owner = &history->owner();
 	menu->addAction(
-		tr::ayu_ContextHideMessage(tr::now),
+		tr::tf_ContextHideMessage(tr::now),
 		[=]()
 		{
 			const auto ids = owner->itemOrItsGroup(item);
@@ -540,7 +540,7 @@ void AddUserMessagesAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 
 	if (item->history()->peer->isChat() || item->history()->peer->isMegagroup()) {
 		menu->addAction(
-			tr::ayu_UserMessagesMenuText(tr::now),
+			tr::tf_UserMessagesMenuText(tr::now),
 			[=]
 			{
 				if (const auto controller = item->history()->session().tryResolveWindow()) {
@@ -625,7 +625,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	const auto callback = Ui::Menu::CreateAddActionCallback(menu);
 
 	callback(Window::PeerMenuCallback::Args{
-		.text = tr::ayu_MessageDetailsPC(tr::now),
+		.text = tr::tf_MessageDetailsPC(tr::now),
 		.handler = nullptr,
 		.icon = &st::menuIconInfo,
 		.fillSubmenu = [&](not_null<Ui::PopupMenu*> menu2)
@@ -635,7 +635,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconShowInChat,
-						tr::ayu_MessageDetailsViewsPC(tr::now),
+						tr::tf_MessageDetailsViewsPC(tr::now),
 						messageViews
 					));
 				}
@@ -644,7 +644,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconViewReplies,
-						tr::ayu_MessageDetailsSharesPC(tr::now),
+						tr::tf_MessageDetailsSharesPC(tr::now),
 						messageForwards
 					));
 				}
@@ -662,7 +662,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 			menu2->addAction(Ui::ContextActionWithSubText(
 				menu2->menu(),
 				st::menuIconSchedule,
-				tr::ayu_MessageDetailsDatePC(tr::now),
+				tr::tf_MessageDetailsDatePC(tr::now),
 				formatDateTime(messageDate)
 			));
 
@@ -670,7 +670,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 				menu2->addAction(Ui::ContextActionWithSubText(
 					menu2->menu(),
 					st::menuIconEdit,
-					tr::ayu_MessageDetailsEditedDatePC(tr::now),
+					tr::tf_MessageDetailsEditedDatePC(tr::now),
 					formatDateTime(messageEditDate)
 				));
 			}
@@ -679,7 +679,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 				menu2->addAction(Ui::ContextActionWithSubText(
 					menu2->menu(),
 					st::menuIconTTL,
-					tr::ayu_MessageDetailsForwardedDatePC(tr::now),
+					tr::tf_MessageDetailsForwardedDatePC(tr::now),
 					formatDateTime(messageForwardedDate)
 				));
 			}
@@ -691,7 +691,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconDownload,
-						tr::ayu_MessageDetailsFileSizePC(tr::now),
+						tr::tf_MessageDetailsFileSizePC(tr::now),
 						mediaSize
 					));
 				}
@@ -702,7 +702,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconShowAll,
-						tr::ayu_MessageDetailsMimeTypePC(tr::now),
+						tr::tf_MessageDetailsMimeTypePC(tr::now),
 						mime.name()
 					));
 				}
@@ -713,7 +713,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::tfEditsHistoryIcon,
-						tr::ayu_MessageDetailsFileNamePC(tr::now),
+						tr::tf_MessageDetailsFileNamePC(tr::now),
 						shortified,
 						[=]
 						{
@@ -726,7 +726,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconStats,
-						tr::ayu_MessageDetailsResolutionPC(tr::now),
+						tr::tf_MessageDetailsResolutionPC(tr::now),
 						mediaResolution
 					));
 				}
@@ -735,7 +735,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
 						st::menuIconBoosts,
-						tr::ayu_MessageDetailsDatacenterPC(tr::now),
+						tr::tf_MessageDetailsDatacenterPC(tr::now),
 						mediaDC
 					));
 				}
@@ -788,7 +788,7 @@ void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	const auto session = &history->session();
 
 	menu->addAction(
-		tr::ayu_RepeatMessage(tr::now),
+		tr::tf_RepeatMessage(tr::now),
 		[=]
 		{
 			auto sendOptions = Api::SendOptions{
@@ -846,7 +846,7 @@ void AddReadUntilAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	}
 
 	menu->addAction(
-		tr::ayu_ReadUntilMenuText(tr::now),
+		tr::tf_ReadUntilMenuText(tr::now),
 		[=]
 		{
 			readHistory(item);
@@ -880,7 +880,7 @@ void AddBurnAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 	}
 
 	menu->addAction(
-		tr::ayu_ExpireMediaContextMenuText(tr::now),
+		tr::tf_ExpireMediaContextMenuText(tr::now),
 		[=]
 		{
 			const auto ids = MTP_vector<MTPint>(1, MTP_int(item->id));
@@ -912,7 +912,7 @@ void AddCreateFilterAction(not_null<Ui::PopupMenu*> menu,
 	}
 
 	menu->addAction(
-		tr::ayu_RegexFilterQuickAdd(tr::now),
+		tr::tf_RegexFilterQuickAdd(tr::now),
 		[=]
 		{
 			RegexFilter filter;

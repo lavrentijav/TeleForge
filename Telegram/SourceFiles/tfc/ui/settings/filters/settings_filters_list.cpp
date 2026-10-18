@@ -37,10 +37,10 @@ namespace Settings {
 
 rpl::producer<QString> TfFiltersList::title() {
 	if (shadowBan) {
-		return tr::ayu_FiltersShadowBan();
+		return tr::tf_FiltersShadowBan();
 	}
 	if (!dialogId.has_value()) {
-		return tr::ayu_RegexFiltersShared();
+		return tr::tf_RegexFiltersShared();
 	}
 
 	const auto did = abs(dialogId.value());
@@ -56,7 +56,7 @@ rpl::producer<QString> TfFiltersList::title() {
 		}
 		res = name;
 	} else {
-		res = tr::ayu_RegexFiltersHeader(tr::now) + " (" + QString::number(did) + ")";
+		res = tr::tf_RegexFiltersHeader(tr::now) + " (" + QString::number(did) + ")";
 	}
 
 	return rpl::single(res);
@@ -100,7 +100,7 @@ void TfFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 		_contextMenu->setAttribute(Qt::WA_DeleteOnClose);
 
 		_contextMenu->addAction(
-			tr::ayu_Edit(tr::now),
+			tr::tf_Edit(tr::now),
 			[=]
 			{
 				_controller->show(
@@ -113,7 +113,7 @@ void TfFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 			&st::menuIconEdit);
 
 		_contextMenu->addAction(
-			state->enabled ? tr::ayu_Disable(tr::now) : tr::ayu_Enable(tr::now),
+			state->enabled ? tr::tf_Disable(tr::now) : tr::tf_Enable(tr::now),
 			[=]
 			{
 				state->enabled = !state->enabled;
@@ -126,7 +126,7 @@ void TfFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 		_contextMenu->addSeparator();
 
 		_contextMenu->addAction(
-			tr::ayu_Delete(tr::now),
+			tr::tf_Delete(tr::now),
 			[=]
 			{
 				TfDatabase::deleteFilter(state->id);
@@ -177,7 +177,7 @@ void TfFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 		_contextMenu->setAttribute(Qt::WA_DeleteOnClose);
 
 		_contextMenu->addAction(
-			tr::ayu_Delete(tr::now),
+			tr::tf_Delete(tr::now),
 			[=, this]
 			{
 				Expects(dialogId.has_value());
@@ -238,7 +238,7 @@ void TfFiltersList::initializeSharedFilters(
 
 	if (!filters.empty()) {
 		AddSkip(container);
-		filtersTitle = AddSubsectionTitle(container, tr::ayu_RegexFiltersHeader());
+		filtersTitle = AddSubsectionTitle(container, tr::tf_RegexFiltersHeader());
 
 		for (const auto &filter : filters) {
 			addNewFilter(filter);
@@ -250,7 +250,7 @@ void TfFiltersList::initializeSharedFilters(
 			AddSectionDivider(container);
 		}
 
-		excludedTitle = AddSubsectionTitle(container, tr::ayu_RegexFiltersExcluded());
+		excludedTitle = AddSubsectionTitle(container, tr::tf_RegexFiltersExcluded());
 
 		for (const auto &exclusion : exclusions) {
 			addNewFilter(exclusion, true);
@@ -258,7 +258,7 @@ void TfFiltersList::initializeSharedFilters(
 	}
 
 	if (filters.empty() && exclusions.empty()) {
-		Ui::AddDividerText(container, tr::ayu_RegexFiltersListEmpty());
+		Ui::AddDividerText(container, tr::tf_RegexFiltersListEmpty());
 	}
 }
 
@@ -280,7 +280,7 @@ void TfFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container)
 	if (TfSettings::getInstance().shadowBanIds().size() > 0) {
 		AddSkip(container);
 
-		filtersTitle = AddSubsectionTitle(container, tr::ayu_RegexFiltersHeader());
+		filtersTitle = AddSubsectionTitle(container, tr::tf_RegexFiltersHeader());
 		const auto content = container->add(std::move(list));
 
 		AddSkip(container);
@@ -289,7 +289,7 @@ void TfFiltersList::initializeShadowBan(not_null<Ui::VerticalLayout*> container)
 		delegate->setContent(content->entity());
 		ctrl->setDelegate(delegate);
 	} else {
-		Ui::AddDividerText(container, tr::ayu_RegexFiltersListEmpty());
+		Ui::AddDividerText(container, tr::tf_RegexFiltersListEmpty());
 	}
 }
 

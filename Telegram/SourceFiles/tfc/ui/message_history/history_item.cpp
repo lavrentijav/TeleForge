@@ -110,7 +110,7 @@ void GenerateItems(
 					? QString::fromStdString(sourceMessage.postAuthor)
 					: from
 						? QString()
-						: tr::ayu_UnknownUser(
+						: tr::tf_UnknownUser(
 							tr::now,
 							lt_id,
 							QString::number(sourceMessage.fromId)),

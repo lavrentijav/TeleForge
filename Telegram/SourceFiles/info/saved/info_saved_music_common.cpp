@@ -110,8 +110,8 @@ void SetupSavedMusic(
 
 											  contextMenu->addAction(
 												  settings.adaptiveCoverColor()
-													  ? tr::ayu_DisableColorfulCover(tr::now)
-													  : tr::ayu_EnableColorfulCover(tr::now),
+													  ? tr::tf_DisableColorfulCover(tr::now)
+													  : tr::tf_EnableColorfulCover(tr::now),
 												  [=]
 												  {
 													  TfSettings::getInstance().setAdaptiveCoverColor(!TfSettings::getInstance().adaptiveCoverColor());

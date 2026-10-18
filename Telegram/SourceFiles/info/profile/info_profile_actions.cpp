@@ -1896,7 +1896,7 @@ Section DetailsFiller::makeInfo() {
 			auto idInfo = addInfoOneLine(
 				rpl::single(idLabel),
 				std::move(idDrawableText),
-				tr::ayu_ContextCopyID(tr::now)
+				tr::tf_ContextCopyID(tr::now)
 			);
 
 			idInfo.text->setClickHandlerFilter([=](auto &&...)
@@ -1904,7 +1904,7 @@ Section DetailsFiller::makeInfo() {
 				const auto idText = IDString(user);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
-					controller->showToast(tr::ayu_IDCopiedToast(tr::now));
+					controller->showToast(tr::tf_IDCopiedToast(tr::now));
 				}
 				return false;
 			});

@@ -36,7 +36,7 @@ constexpr auto BACKUP_VERSION = 2;
 
 void FilterUtils::importFromLink(const QString &link) {
 	if (link.isEmpty()) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailFetch(tr::now));
+		Ui::Toast::Show(tr::tf_FiltersToastFailFetch(tr::now));
 		return;
 	}
 
@@ -61,7 +61,7 @@ void FilterUtils::importFromLink(const QString &link) {
 
 			if (jsonString.isNull()) {
 				LOG(("FilterUtils: Invalid response."));
-				Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+				Ui::Toast::Show(tr::tf_FiltersToastFailImport(tr::now));
 
 				_reply->deleteLater();
 				return;
@@ -135,7 +135,7 @@ void FilterUtils::publishFilters() {
 			} else {
 				LOG(("Failed to publish filters to dpaste, error: %1").arg(_reply->errorString()));
 
-				Ui::Toast::Show(tr::ayu_FiltersToastFailPublish(tr::now));
+				Ui::Toast::Show(tr::tf_FiltersToastFailPublish(tr::now));
 			}
 			_reply->deleteLater();
 		});
@@ -146,20 +146,20 @@ bool FilterUtils::importFromJson(const QByteArray &json) {
 	const auto document = QJsonDocument::fromJson(json, &error);
 
 	if (error.error != QJsonParseError::NoError) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+		Ui::Toast::Show(tr::tf_FiltersToastFailImport(tr::now));
 		LOG(("FilterUtils: Failed to parse JSON, error: %1"
 		).arg(error.errorString()));
 		return false;
 	}
 	if (!document.isObject()) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailImport(tr::now));
+		Ui::Toast::Show(tr::tf_FiltersToastFailImport(tr::now));
 		LOG(("FilterUtils: not an object received in JSON"));
 		return false;
 	}
 	const auto changes = prepareChanges(document.object());
 
 	if (changes == ApplyChanges{}) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailNoChanges(tr::now));
+		Ui::Toast::Show(tr::tf_FiltersToastFailNoChanges(tr::now));
 		LOG(("FilterUtils: received empty changes"));
 		return false;
 	}
@@ -169,7 +169,7 @@ bool FilterUtils::importFromJson(const QByteArray &json) {
 		empty();
 
 	if (!any) {
-		Ui::Toast::Show(tr::ayu_FiltersToastFailNoChanges(tr::now));
+		Ui::Toast::Show(tr::tf_FiltersToastFailNoChanges(tr::now));
 		return false;
 	}
 
@@ -437,7 +437,7 @@ bool FilterUtils::handleResponse(const QByteArray &response) {
 
 void FilterUtils::gotFailure(const QNetworkReply::NetworkError &error) {
 	LOG(("FilterUtils: Error %1").arg(error));
-	Ui::Toast::Show(tr::ayu_FiltersToastFailFetch(tr::now));
+	Ui::Toast::Show(tr::tf_FiltersToastFailFetch(tr::now));
 }
 
 namespace {

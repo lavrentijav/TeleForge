@@ -106,13 +106,13 @@ void PerDialogFiltersListController::prepare() {
 		auto row = std::make_unique<PerDialogFiltersListRow>(peerId);
 		auto status = QString();
 		if (count.filters > 0) {
-			status += tr::ayu_RegexFiltersAmount(tr::now, lt_count, count.filters);
+			status += tr::tf_RegexFiltersAmount(tr::now, lt_count, count.filters);
 			if (count.exclusions > 0) {
 				status += ", ";
 			}
 		}
 		if (count.exclusions > 0) {
-			status += tr::ayu_RegexFiltersExcludedAmount(tr::now, lt_count, count.exclusions);
+			status += tr::tf_RegexFiltersExcludedAmount(tr::now, lt_count, count.exclusions);
 		}
 
 		row->setCustomStatus(status, false);
@@ -142,7 +142,7 @@ void PerDialogFiltersListController::rowClicked(not_null<PeerListRow*> peer) {
 		_contextMenu->setAttribute(Qt::WA_DeleteOnClose);
 
 		_contextMenu->addAction(
-			tr::ayu_Delete(tr::now),
+			tr::tf_Delete(tr::now),
 			[=]
 			{
 				if (TfSettings::getInstance().isShadowBanned(did)) {

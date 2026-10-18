@@ -74,7 +74,7 @@ void BuildVersionInfo(SectionBuilder &builder) {
 		return {
 			.widget = object_ptr<Ui::FlatLabel>(
 				ctx.container,
-				rpl::single(tr::ayu_VersionLine(
+				rpl::single(tr::tf_VersionLine(
 					tr::now,
 					lt_version,
 					QString::fromLatin1(AppVersionStr))),
@@ -95,55 +95,55 @@ void BuildCategories(SectionBuilder &builder) {
 	builder.addDivider();
 	builder.addSkip();
 
-	builder.addSubsectionTitle(tr::ayu_CategoriesHeader());
+	builder.addSubsectionTitle(tr::tf_CategoriesHeader());
 
 	builder.addSectionButton({
-		.title = tr::ayu_GhostModeToggle(),
+		.title = tr::tf_GhostModeToggle(),
 		.targetSection = TfGhost::Id(),
 		.icon = { &st::menuIconGroupReactions },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategorySpy(),
+		.title = tr::tf_CategorySpy(),
 		.targetSection = TfSpy::Id(),
 		.icon = { &st::menuIconShowAll },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryGeneral(),
+		.title = tr::tf_CategoryGeneral(),
 		.targetSection = TfGeneral::Id(),
 		.icon = { &st::menuIconShowAll },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryChats(),
+		.title = tr::tf_CategoryChats(),
 		.targetSection = TfChats::Id(),
 		.icon = { &st::menuIconChatBubble },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryAppearance(),
+		.title = tr::tf_CategoryAppearance(),
 		.targetSection = TfAppearance::Id(),
 		.icon = { &st::menuIconPalette },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryFilters(),
+		.title = tr::tf_CategoryFilters(),
 		.targetSection = TfFilters::Id(),
 		.icon = { &st::menuIconTagFilter },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryTeleForgeAi(),
+		.title = tr::tf_CategoryTeleForgeAi(),
 		.targetSection = TeleForgeAi::Id(),
 		.icon = { &st::menuIconIpAddress },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryTeleForgePlugins(),
+		.title = tr::tf_CategoryTeleForgePlugins(),
 		.targetSection = TeleForgePlugins::Id(),
 		.icon = { &st::menuIconBot },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryTeleForgeSync(),
+		.title = tr::tf_CategoryTeleForgeSync(),
 		.targetSection = TeleForgeSync::Id(),
 		.icon = { &st::menuIconDownload },
 	});
 	builder.addSectionButton({
-		.title = tr::ayu_CategoryOther(),
+		.title = tr::tf_CategoryOther(),
 		.targetSection = TfOther::Id(),
 		.icon = { &st::menuIconFave },
 	});
@@ -154,18 +154,18 @@ void BuildLinks(SectionBuilder &builder) {
 	builder.addDivider();
 	builder.addSkip();
 
-	builder.addSubsectionTitle(tr::ayu_LinksHeader());
+	builder.addSubsectionTitle(tr::tf_LinksHeader());
 
 	const auto controller = builder.controller();
 	for (const auto &entry : TeleForge::OfficialResources::kEntries) {
 		const auto title = [&] {
 			using Type = TeleForge::OfficialResources::Type;
 			if (entry.type == Type::Channel) {
-				return tr::ayu_LinksChannel();
+				return tr::tf_LinksChannel();
 			} else if (entry.type == Type::Chat) {
-				return tr::ayu_LinksChats();
+				return tr::tf_LinksChats();
 			}
-			return tr::ayu_LinksDocumentation();
+			return tr::tf_LinksDocumentation();
 		}();
 		const auto icon = [&] {
 			using Type = TeleForge::OfficialResources::Type;
@@ -200,7 +200,7 @@ void BuildLinks(SectionBuilder &builder) {
 const auto kMeta = BuildHelper({
 	.id = TfMain::Id(),
 	.parentId = MainId(),
-	.title = &tr::ayu_AyuPreferences,
+	.title = &tr::tf_AyuPreferences,
 	.icon = &st::menuIconPremium,
 }, [](SectionBuilder &builder) {
 	BuildLogo(builder);
@@ -213,7 +213,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TfMain::title() {
-	return tr::ayu_AyuPreferences();
+	return tr::tf_AyuPreferences();
 }
 
 TfMain::TfMain(

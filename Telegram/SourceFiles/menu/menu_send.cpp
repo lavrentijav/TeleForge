@@ -754,7 +754,7 @@ FillMenuResult FillSendMenu(
 			: TfSettings::ghost();
 		const auto sendWithoutSound = ghost.sendWithoutSound();
 		menu->addAction(
-			sendWithoutSound ? tr::ayu_SendWithSound(tr::now) : tr::lng_send_silent_message(tr::now),
+			sendWithoutSound ? tr::tf_SendWithSound(tr::now) : tr::lng_send_silent_message(tr::now),
 			[=] { action({ Api::SendOptions{ .silent = true } }, details); },
 			sendWithoutSound ? &icons.menuUnmute : &icons.menuMute);
 	}

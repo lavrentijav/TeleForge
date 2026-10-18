@@ -293,7 +293,7 @@ QString embeddedThemeDisplayName(Window::Theme::EmbeddedType type) {
 	case Window::Theme::EmbeddedType::NightGreen:
 		return tr::lng_settings_theme_night(tr::now);
 	}
-	return tr::ayu_MessageShotThemeDefault(tr::now);
+	return tr::tf_MessageShotThemeDefault(tr::now);
 }
 
 QString resolveThemeName() {
@@ -305,7 +305,7 @@ QString resolveThemeName() {
 		const auto type = static_cast<Window::Theme::EmbeddedType>(shot.embeddedThemeType());
 		return embeddedThemeDisplayName(type);
 	}
-	return tr::ayu_MessageShotThemeDefault(tr::now);
+	return tr::tf_MessageShotThemeDefault(tr::now);
 }
 
 std::shared_ptr<style::palette> getPersistedPalette() {

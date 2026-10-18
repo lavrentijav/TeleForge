@@ -539,7 +539,7 @@ void GifsListWidget::selectInlineResult(
 			const auto &settings = TfSettings::getInstance();
 			if (settings.gifConfirmation()) {
 				Ui::show(Ui::MakeConfirmBox({
-					.text = tr::ayu_ConfirmationGIF(),
+					.text = tr::tf_ConfirmationGIF(),
 					.confirmed = sendGIFCallback,
 					.confirmText = tr::lng_send_button()
 				}));

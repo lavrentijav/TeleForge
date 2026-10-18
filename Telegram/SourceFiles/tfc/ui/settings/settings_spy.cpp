@@ -31,13 +31,13 @@ namespace {
 
 [[nodiscard]] QString FormatDurationLabel(int seconds) {
 	if (seconds < 60) {
-		return tr::ayu_SpyDurationSeconds(
+		return tr::tf_SpyDurationSeconds(
 			tr::now,
 			lt_value,
 			QString::number(seconds));
 	}
 	if (seconds < 3600) {
-		return tr::ayu_SpyDurationMinutes(
+		return tr::tf_SpyDurationMinutes(
 			tr::now,
 			lt_value,
 			QString::number(seconds / 60));
@@ -45,13 +45,13 @@ namespace {
 	const auto hours = seconds / 3600;
 	const auto mins = (seconds % 3600) / 60;
 	return mins
-		? tr::ayu_SpyDurationHoursMinutes(
+		? tr::tf_SpyDurationHoursMinutes(
 			tr::now,
 			lt_hours,
 			QString::number(hours),
 			lt_minutes,
 			QString::number(mins))
-		: tr::ayu_SpyDurationHours(
+		: tr::tf_SpyDurationHours(
 			tr::now,
 			lt_hours,
 			QString::number(hours));
@@ -69,11 +69,11 @@ void BuildPollIntervalSettings(TfSectionBuilder &ayu) {
 
 	ayu.addCollapsibleSection({
 		.id = u"teleforge/archivePollIntervals"_q,
-		.title = tr::ayu_SpyPollIntervals(),
+		.title = tr::tf_SpyPollIntervals(),
 		.fill = [&](not_null<Ui::VerticalLayout*> inner) {
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archiveChatRefresh"_q,
-				.title = tr::ayu_SpyChatRefresh(),
+				.title = tr::tf_SpyChatRefresh(),
 				.steps = 59,
 				.current = IndexForValue(
 					settings.archiveChatRefreshSeconds(),
@@ -87,7 +87,7 @@ void BuildPollIntervalSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archiveKnownUserOnline"_q,
-				.title = tr::ayu_SpyKnownUserOnline(),
+				.title = tr::tf_SpyKnownUserOnline(),
 				.steps = 40,
 				.current = IndexForValue(
 					settings.archiveKnownUserOnlineSeconds(),
@@ -101,7 +101,7 @@ void BuildPollIntervalSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archivePrivateOnline"_q,
-				.title = tr::ayu_SpyPrivateOnline(),
+				.title = tr::tf_SpyPrivateOnline(),
 				.steps = 24,
 				.current = IndexForValue(
 					settings.archivePrivateOnlineSeconds(),
@@ -115,7 +115,7 @@ void BuildPollIntervalSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archivePrivateProfile"_q,
-				.title = tr::ayu_SpyPrivateProfile(),
+				.title = tr::tf_SpyPrivateProfile(),
 				.steps = 119,
 				.current = IndexForValue(
 					settings.archivePrivateProfileSeconds(),
@@ -129,7 +129,7 @@ void BuildPollIntervalSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archiveOtherProfile"_q,
-				.title = tr::ayu_SpyOtherProfile(),
+				.title = tr::tf_SpyOtherProfile(),
 				.steps = 72,
 				.current = IndexForValue(
 					settings.archiveOtherProfileSeconds(),
@@ -145,7 +145,7 @@ void BuildPollIntervalSettings(TfSectionBuilder &ayu) {
 	});
 
 	ayu.base().addSkip();
-	ayu.base().addDividerText(tr::ayu_SpyPollIntervalsHint());
+	ayu.base().addDividerText(tr::tf_SpyPollIntervalsHint());
 }
 
 void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
@@ -153,11 +153,11 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 
 	ayu.addCollapsibleSection({
 		.id = u"teleforge/archiveScan"_q,
-		.title = tr::ayu_SpyArchiveScan(),
+		.title = tr::tf_SpyArchiveScan(),
 		.fill = [&](not_null<Ui::VerticalLayout*> inner) {
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveBackgroundCrawl"_q,
-				.title = tr::ayu_SpyBackgroundCrawl(),
+				.title = tr::tf_SpyBackgroundCrawl(),
 				.getter = [] {
 					return TfSettings::getInstance().archiveBackgroundCrawl();
 				},
@@ -167,7 +167,7 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveScanParticipants"_q,
-				.title = tr::ayu_SpyScanParticipants(),
+				.title = tr::tf_SpyScanParticipants(),
 				.getter = [] {
 					return TfSettings::getInstance().archiveScanParticipants();
 				},
@@ -177,7 +177,7 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveScanBroadcasts"_q,
-				.title = tr::ayu_SpyScanBroadcasts(),
+				.title = tr::tf_SpyScanBroadcasts(),
 				.getter = [] {
 					return TfSettings::getInstance().archiveScanBroadcasts();
 				},
@@ -187,7 +187,7 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveSaveUserpics"_q,
-				.title = tr::ayu_SpySaveUserpics(),
+				.title = tr::tf_SpySaveUserpics(),
 				.getter = [] {
 					return TfSettings::getInstance().archiveSaveUserpics();
 				},
@@ -197,7 +197,7 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addToggleTo(inner, {
 				.id = u"teleforge/archiveFollowLinks"_q,
-				.title = tr::ayu_SpyFollowLinks(),
+				.title = tr::tf_SpyFollowLinks(),
 				.getter = [] {
 					return TfSettings::getInstance().archiveFollowLinks();
 				},
@@ -207,7 +207,7 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archiveHistoryScanLimit"_q,
-				.title = tr::ayu_SpyHistoryScanLimit(),
+				.title = tr::tf_SpyHistoryScanLimit(),
 				.steps = 40,
 				.current = IndexForValue(
 					settings.archiveHistoryScanLimit(),
@@ -218,12 +218,12 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 					TfSettings::getInstance().setArchiveHistoryScanLimit(value);
 				},
 				.formatLabel = [](int x) {
-					return x ? QString::number(x) : tr::ayu_SpyLimitNone(tr::now);
+					return x ? QString::number(x) : tr::tf_SpyLimitNone(tr::now);
 				},
 			});
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archiveCrawlBatchSize"_q,
-				.title = tr::ayu_SpyCrawlBatchSize(),
+				.title = tr::tf_SpyCrawlBatchSize(),
 				.steps = 39,
 				.current = IndexForValue(
 					settings.archiveCrawlBatchSize(),
@@ -237,7 +237,7 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 			});
 			ayu.addSliderTo(inner, {
 				.id = u"teleforge/archiveMaxParticipants"_q,
-				.title = tr::ayu_SpyMaxParticipants(),
+				.title = tr::tf_SpyMaxParticipants(),
 				.steps = 40,
 				.current = IndexForValue(
 					settings.archiveMaxParticipants(),
@@ -248,25 +248,25 @@ void BuildArchiveScanSettings(TfSectionBuilder &ayu) {
 					TfSettings::getInstance().setArchiveMaxParticipants(value);
 				},
 				.formatLabel = [](int x) {
-					return x ? QString::number(x) : tr::ayu_SpyLimitNone(tr::now);
+					return x ? QString::number(x) : tr::tf_SpyLimitNone(tr::now);
 				},
 			});
 		},
 	});
 
 	ayu.base().addSkip();
-	ayu.base().addDividerText(tr::ayu_SpyArchiveScanHint());
+	ayu.base().addDividerText(tr::tf_SpyArchiveScanHint());
 }
 
 void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 
-	builder.addSubsectionTitle(tr::ayu_SpyEssentialsHeader());
+	builder.addSubsectionTitle(tr::tf_SpyEssentialsHeader());
 
 	ayu.addToggle({
 		.id = u"teleforge/spyMode"_q,
 		.altIds = { u"ayu/spyMode"_q },
-		.title = tr::ayu_SpyModeGlobal(),
+		.title = tr::tf_SpyModeGlobal(),
 		.getter = [] {
 			return TeleForge::Spy::spyModeGloballyEnabled();
 		},
@@ -276,11 +276,11 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	});
 
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_SpyModeGlobalHint());
+	builder.addDividerText(tr::tf_SpyModeGlobalHint());
 
 	ayu.addSlider({
 		.id = u"teleforge/spyRetentionDays"_q,
-		.title = tr::ayu_SpyRetentionDays(),
+		.title = tr::tf_SpyRetentionDays(),
 		.steps = 365,
 		.current = TeleForge::Spy::retentionDays() - 1,
 		.indexToValue = [](int index) { return index + 1; },
@@ -293,7 +293,7 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 	ayu.addToggle({
 		.id = u"teleforge/peerArchive"_q,
-		.title = tr::ayu_SpyPeerArchive(),
+		.title = tr::tf_SpyPeerArchive(),
 		.getter = [] {
 			return TfSettings::getInstance().peerArchiveEnabled();
 		},
@@ -304,42 +304,42 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 	builder.addButton({
 		.id = u"teleforge/archiveUsersBrowse"_q,
-		.title = tr::ayu_SpyBrowseUsers(),
+		.title = tr::tf_SpyBrowseUsers(),
 		.onClick = [=] {
 			TeleForge::PeerArchive::ShowArchiveUsersBox(controller);
 		},
 	});
 
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_SpyPeerArchiveHint());
+	builder.addDividerText(tr::tf_SpyPeerArchiveHint());
 
 	BuildPollIntervalSettings(ayu);
 	BuildArchiveScanSettings(ayu);
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(tr::ayu_SpyMessageSaving());
+	builder.addSubsectionTitle(tr::tf_SpyMessageSaving());
 
 	ayu.addSettingToggle({
 		.id = u"ayu/saveDeletedMessages"_q,
-		.title = tr::ayu_SaveDeletedMessages(),
+		.title = tr::tf_SaveDeletedMessages(),
 		.getter = &TfSettings::saveDeletedMessages,
 		.setter = &TfSettings::setSaveDeletedMessages,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/saveMessagesHistory"_q,
-		.title = tr::ayu_SaveMessagesHistory(),
+		.title = tr::tf_SaveMessagesHistory(),
 		.getter = &TfSettings::saveMessagesHistory,
 		.setter = &TfSettings::setSaveMessagesHistory,
 	});
 	ayu.addSettingToggle({
 		.id = u"teleforge/showDeletedInChat"_q,
-		.title = tr::ayu_SpyShowDeletedInChat(),
+		.title = tr::tf_SpyShowDeletedInChat(),
 		.getter = &TfSettings::showDeletedInChat,
 		.setter = &TfSettings::setShowDeletedInChat,
 	});
 	ayu.addSlider({
 		.id = u"teleforge/deletedRestoreLimit"_q,
-		.title = tr::ayu_SpyDeletedRestoreLimit(),
+		.title = tr::tf_SpyDeletedRestoreLimit(),
 		.steps = 40,
 		.current = TfSettings::getInstance().deletedRestoreLimit() / 50,
 		.indexToValue = [](int index) { return index * 50; },
@@ -347,54 +347,54 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 			TfSettings::getInstance().setDeletedRestoreLimit(value);
 		},
 		.formatLabel = [](int x) {
-			return x ? QString::number(x) : tr::ayu_SpyOff(tr::now);
+			return x ? QString::number(x) : tr::tf_SpyOff(tr::now);
 		},
 	});
 
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_SpyDeletedHint());
+	builder.addDividerText(tr::tf_SpyDeletedHint());
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(tr::ayu_SpyGhostDiagnostics());
+	builder.addSubsectionTitle(tr::tf_SpyGhostDiagnostics());
 
 	ayu.addSettingToggle({
 		.id = u"teleforge/ghostPassthroughMentions"_q,
-		.title = tr::ayu_SpyPassthroughMentions(),
+		.title = tr::tf_SpyPassthroughMentions(),
 		.getter = &TfSettings::ghostPassthroughMentions,
 		.setter = &TfSettings::setGhostPassthroughMentions,
 	});
 
 	builder.addButton({
 		.id = u"teleforge/ghostWakeSignals"_q,
-		.title = tr::ayu_SpyWakeSignals(),
+		.title = tr::tf_SpyWakeSignals(),
 		.onClick = [=] {
 			auto lines = TeleForge::Ghost::recentWakeSignals();
 			if (lines.isEmpty()) {
-				controller->showToast(tr::ayu_SpyNoWakeSignals(tr::now));
+				controller->showToast(tr::tf_SpyNoWakeSignals(tr::now));
 				return;
 			}
 			std::reverse(lines.begin(), lines.end());
 			controller->show(Ui::MakeInformBox({
 				.text = lines.mid(0, 40).join('\n'),
-				.title = tr::ayu_SpyWakeSignalsTitle(tr::now),
+				.title = tr::tf_SpyWakeSignalsTitle(tr::now),
 			}));
 		},
 	});
 
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_SpyWakeSignalsHint());
+	builder.addDividerText(tr::tf_SpyWakeSignalsHint());
 
 	ayu.addSectionDivider();
 
 	ayu.addSettingToggle({
 		.id = u"ayu/saveForBots"_q,
-		.title = tr::ayu_MessageSavingSaveForBots(),
+		.title = tr::tf_MessageSavingSaveForBots(),
 		.getter = &TfSettings::saveForBots,
 		.setter = &TfSettings::setSaveForBots,
 	});
 
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_DeleteStubTextDescription());
+	builder.addDividerText(tr::tf_DeleteStubTextDescription());
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
 			const auto c = wctx.container;
@@ -403,7 +403,7 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 					c,
 					st::defaultInputField,
 					Ui::InputField::Mode::SingleLine,
-					tr::ayu_DeleteStubText(),
+					tr::tf_DeleteStubText(),
 					TextWithTags{
 						TfSettings::getInstance().deleteStubText(),
 					}),
@@ -420,7 +420,7 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 const auto kMeta = BuildHelper({
 	.id = TfSpy::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_CategorySpy,
+	.title = &tr::tf_CategorySpy,
 	.icon = &st::menuIconShowAll,
 }, [](SectionBuilder &builder) {
 	auto ayu = TfSectionBuilder(builder);
@@ -432,7 +432,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TfSpy::title() {
-	return tr::ayu_CategorySpy();
+	return tr::tf_CategorySpy();
 }
 
 TfSpy::TfSpy(

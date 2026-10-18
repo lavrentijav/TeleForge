@@ -630,7 +630,7 @@ void AddForceTranslateChatAction(
 		return;
 	}
 	addCallback(
-		tr::ayu_ForceTranslateChat(tr::now),
+		tr::tf_ForceTranslateChat(tr::now),
 		[=] {
 			Ayu::Translator::ForceTranslateChat(history);
 		},
@@ -657,7 +657,7 @@ void AddForceTranslateMessageActions(
 	const auto boxMsgId = mediaHasTextForCopy ? MsgId() : msgId;
 
 	if (Ui::SkipTranslate(translate)) {
-		menu->addAction(tr::ayu_ForceTranslateMessage(tr::now), [=] {
+		menu->addAction(tr::tf_ForceTranslateMessage(tr::now), [=] {
 			Ayu::Translator::ShowForceTranslateBox(
 				controller,
 				peer,
@@ -667,7 +667,7 @@ void AddForceTranslateMessageActions(
 		}, &st::menuIconTranslate);
 	}
 	if (Ayu::Translator::AiTranslationAvailable()) {
-		menu->addAction(tr::ayu_AiTranslateMessage(tr::now), [=] {
+		menu->addAction(tr::tf_AiTranslateMessage(tr::now), [=] {
 			Ayu::Translator::ShowAiTranslateBox(
 				controller,
 				peer,
@@ -677,7 +677,7 @@ void AddForceTranslateMessageActions(
 		}, &st::menuIconTranslate);
 	}
 	if (Ayu::Translator::AiCompressionAvailable()) {
-		menu->addAction(tr::ayu_AiCompressMessage(tr::now), [=] {
+		menu->addAction(tr::tf_AiCompressMessage(tr::now), [=] {
 			Ayu::Translator::ShowAiCompressBox(
 				controller,
 				peer,
@@ -700,7 +700,7 @@ void AddForceTranslateSelectedActions(
 	}
 	const auto peer = item->history()->peer;
 	if (Ui::SkipTranslate(selectedText)) {
-		menu->addAction(tr::ayu_ForceTranslateSelected(tr::now), [=] {
+		menu->addAction(tr::tf_ForceTranslateSelected(tr::now), [=] {
 			Ayu::Translator::ShowForceTranslateBox(
 				controller,
 				peer,
@@ -710,7 +710,7 @@ void AddForceTranslateSelectedActions(
 		}, &st::menuIconTranslate);
 	}
 	if (Ayu::Translator::AiTranslationAvailable()) {
-		menu->addAction(tr::ayu_AiTranslateSelected(tr::now), [=] {
+		menu->addAction(tr::tf_AiTranslateSelected(tr::now), [=] {
 			Ayu::Translator::ShowAiTranslateBox(
 				controller,
 				peer,

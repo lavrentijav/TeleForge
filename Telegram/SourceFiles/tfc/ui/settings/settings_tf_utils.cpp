@@ -36,7 +36,7 @@ void AddBetaBadge(not_null<Button*> parent) {
 		parent.get(),
 		object_ptr<Ui::FlatLabel>(
 			parent,
-			rpl::single(tr::ayu_BetaBadge(tr::now)),
+			rpl::single(tr::tf_BetaBadge(tr::now)),
 			st::settingsPremiumNewBadge),
 		st::tfBetaBadgePadding);
 	badge->show();

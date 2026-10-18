@@ -776,7 +776,7 @@ void MainMenu::setupMenu() {
 		});
 		if (settings.showLReadToggleInDrawer()) {
 			addAction(
-				tr::ayu_LReadMessages(),
+				tr::tf_LReadMessages(),
 				{&st::tfLReadMenuIcon}
 			)->setClickedCallback([=]() mutable
 			{
@@ -810,14 +810,14 @@ void MainMenu::setupMenu() {
 			};
 
 			addAction(
-				tr::ayu_SReadMessages(),
+				tr::tf_SReadMessages(),
 				{&st::tfSReadMenuIcon}
 			)->setClickedCallback([=]
 			{
 				auto box = Ui::MakeConfirmBox({
-					.text = tr::ayu_ReadConfirmationBoxQuestion(),
+					.text = tr::tf_ReadConfirmationBoxQuestion(),
 					.confirmed = callback,
-					.confirmText = tr::ayu_ReadConfirmationBoxActionText()
+					.confirmText = tr::tf_ReadConfirmationBoxActionText()
 				});
 				Ui::show(std::move(box));
 			});
@@ -926,7 +926,7 @@ void MainMenu::setupMenu() {
 			| rpl::flatten_latest();
 
 		const auto ghostModeToggle = addAction(
-			tr::ayu_GhostModeToggle(),
+			tr::tf_GhostModeToggle(),
 			{&st::tfGhostIcon}
 		)->toggleOn(std::move(ghostActiveChanges));
 
@@ -942,7 +942,7 @@ void MainMenu::setupMenu() {
 
 	if (settings.showStreamerToggleInDrawer()) {
 		const auto streamerModeToggle = addAction(
-			tr::ayu_StreamerModeToggle(),
+			tr::tf_StreamerModeToggle(),
 			{&st::tfStreamerModeMenuIcon}
 		)->toggleOn(rpl::single(TfFeatures::StreamerMode::isEnabled()));
 

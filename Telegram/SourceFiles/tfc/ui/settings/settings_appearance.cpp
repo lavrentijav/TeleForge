@@ -54,7 +54,7 @@ bool HasDrawerBots(not_null<Window::SessionController*> controller) {
 void BuildAppIcon(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle({
 		.id = u"ayu/appIcon"_q,
-		.title = tr::ayu_AppIconHeader(),
+		.title = tr::tf_AppIconHeader(),
 	});
 
 	builder.add([](const WidgetContext &ctx) -> SectionBuilder::WidgetToAdd {
@@ -69,12 +69,12 @@ void BuildAppIcon(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSkip();
 	ayu.addSettingToggle({
 		.id = u"ayu/hideNotificationBadge"_q,
-		.title = tr::ayu_HideNotificationBadge(),
+		.title = tr::tf_HideNotificationBadge(),
 		.getter = &TfSettings::hideNotificationBadge,
 		.setter = &TfSettings::setHideNotificationBadge,
 	});
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_HideNotificationBadgeDescription());
+	builder.addDividerText(tr::tf_HideNotificationBadgeDescription());
 	builder.addSkip();
 #else
     builder.addDivider();
@@ -89,9 +89,9 @@ void BuildAvatarCorners(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	const auto mapRadius = [](int val)
 	{
 		if (val == 0) {
-			return tr::ayu_AvatarCornersSquare(tr::now).toUpper();
+			return tr::tf_AvatarCornersSquare(tr::now).toUpper();
 		} else if (val == TfUiSettings::kMaxAvatarCorners) {
-			return tr::ayu_AvatarCornersCircle(tr::now).toUpper();
+			return tr::tf_AvatarCornersCircle(tr::now).toUpper();
 		}
 		return QString::number(val);
 	};
@@ -100,7 +100,7 @@ void BuildAvatarCorners(SectionBuilder &builder, TfSectionBuilder &ayu) {
 		const auto container = ctx.container;
 		auto title = object_ptr<Ui::FlatLabel>(
 			container,
-			tr::ayu_AvatarCorners(),
+			tr::tf_AvatarCorners(),
 			st::defaultSubsectionTitle);
 		const auto titleRaw = title.data();
 
@@ -138,7 +138,7 @@ void BuildAvatarCorners(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	}, [] {
 		return SearchEntry{
 			.id = u"ayu/avatarCorners"_q,
-			.title = tr::ayu_AvatarCorners(tr::now),
+			.title = tr::tf_AvatarCorners(tr::now),
 		};
 	});
 
@@ -183,39 +183,39 @@ void BuildAvatarCorners(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 	ayu.addSettingToggle({
 		.id = u"ayu/singleCornerRadius"_q,
-		.title = tr::ayu_SingleCornerRadius(),
+		.title = tr::tf_SingleCornerRadius(),
 		.getter = &TfSettings::singleCornerRadius,
 		.setter = &TfSettings::setSingleCornerRadius,
 	});
 
 	builder.addSkip();
-	builder.addDividerText(tr::ayu_SingleCornerRadiusDescription());
+	builder.addDividerText(tr::tf_SingleCornerRadiusDescription());
 	builder.addSkip();
 }
 
 void BuildAppearance(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	auto *settings = &TfSettings::getInstance();
 
-	builder.addSubsectionTitle(tr::ayu_CategoryAppearance());
+	builder.addSubsectionTitle(tr::tf_CategoryAppearance());
 
 	ayu.addSettingToggle({
 		.id = u"ayu/materialSwitches"_q,
 		.altIds = { u"ayu/newSwitchStyle"_q },
-		.title = tr::ayu_MaterialSwitches(),
+		.title = tr::tf_MaterialSwitches(),
 		.getter = &TfSettings::materialSwitches,
 		.setter = &TfSettings::setMaterialSwitches,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/disableCustomBackgrounds"_q,
 		.altIds = { u"ayu/customThemes"_q },
-		.title = tr::ayu_DisableCustomBackgrounds(),
+		.title = tr::tf_DisableCustomBackgrounds(),
 		.getter = &TfSettings::disableCustomBackgrounds,
 		.setter = &TfSettings::setDisableCustomBackgrounds,
 	});
 
 	ayu.addSettingToggle({
 		.id = u"ayu/hidePremiumStatuses"_q,
-		.title = tr::ayu_HidePremiumStatuses(),
+		.title = tr::tf_HidePremiumStatuses(),
 		.getter = &TfSettings::hidePremiumStatuses,
 		.setter = &TfSettings::setHidePremiumStatuses,
 	});
@@ -223,11 +223,11 @@ void BuildAppearance(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 	builder.addButton({
 		.id = u"ayu/monoFont"_q,
-		.title = tr::ayu_MonospaceFont(),
+		.title = tr::tf_MonospaceFont(),
 		.st = &st::settingsButtonNoIcon,
 		.label = rpl::single(
 			settings->monoFont().isEmpty()
-				? tr::ayu_FontDefault(tr::now)
+				? tr::tf_FontDefault(tr::now)
 				: settings->monoFont()),
 		.onClick = [=] {
 			TfUi::FontSelectorBox::Show(
@@ -242,19 +242,19 @@ void BuildAppearance(SectionBuilder &builder, TfSectionBuilder &ayu) {
 }
 
 void BuildChatFolders(SectionBuilder &builder, TfSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_ChatFoldersHeader());
+	builder.addSubsectionTitle(tr::tf_ChatFoldersHeader());
 
 	ayu.addSettingToggle({
 		.id = u"ayu/hideNotificationCounters"_q,
 		.altIds = { u"ayu/tabCounter"_q },
-		.title = tr::ayu_HideNotificationCounters(),
+		.title = tr::tf_HideNotificationCounters(),
 		.getter = &TfSettings::hideNotificationCounters,
 		.setter = &TfSettings::setHideNotificationCounters,
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/hideAllChatsFolder"_q,
 		.altIds = { u"ayu/hideAllChats"_q },
-		.title = tr::ayu_HideAllChats(),
+		.title = tr::tf_HideAllChats(),
 		.getter = &TfSettings::hideAllChatsFolder,
 		.setter = &TfSettings::setHideAllChatsFolder,
 	});
@@ -263,11 +263,11 @@ void BuildChatFolders(SectionBuilder &builder, TfSectionBuilder &ayu) {
 }
 
 void BuildTrayElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_TrayElementsHeader());
+	builder.addSubsectionTitle(tr::tf_TrayElementsHeader());
 
 	ayu.addSettingToggle({
 		.id = u"ayu/showGhostToggleInTray"_q,
-		.title = tr::ayu_EnableGhostModeTray(),
+		.title = tr::tf_EnableGhostModeTray(),
 		.getter = &TfSettings::showGhostToggleInTray,
 		.setter = &TfSettings::setShowGhostToggleInTray,
 	});
@@ -275,7 +275,7 @@ void BuildTrayElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 #if defined Q_OS_WIN || defined Q_OS_MAC
 	ayu.addSettingToggle({
 		.id = u"ayu/showStreamerToggleInTray"_q,
-		.title = tr::ayu_EnableStreamerModeTray(),
+		.title = tr::tf_EnableStreamerModeTray(),
 		.getter = &TfSettings::showStreamerToggleInTray,
 		.setter = &TfSettings::setShowStreamerToggleInTray,
 	});
@@ -285,7 +285,7 @@ void BuildTrayElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 }
 
 void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
-	builder.addSubsectionTitle(tr::ayu_DrawerElementsHeader());
+	builder.addSubsectionTitle(tr::tf_DrawerElementsHeader());
 
 	ayu.addSettingToggle({
 		.id = u"ayu/showMyProfileInDrawer"_q,
@@ -343,14 +343,14 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showLReadToggleInDrawer"_q,
-		.title = tr::ayu_LReadMessages(),
+		.title = tr::tf_LReadMessages(),
 		.getter = &TfSettings::showLReadToggleInDrawer,
 		.setter = &TfSettings::setShowLReadToggleInDrawer,
 		.icon = { &st::tfLReadMenuIcon },
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showSReadToggleInDrawer"_q,
-		.title = tr::ayu_SReadMessages(),
+		.title = tr::tf_SReadMessages(),
 		.getter = &TfSettings::showSReadToggleInDrawer,
 		.setter = &TfSettings::setShowSReadToggleInDrawer,
 		.icon = { &st::tfSReadMenuIcon },
@@ -364,7 +364,7 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showGhostToggleInDrawer"_q,
-		.title = tr::ayu_GhostModeToggle(),
+		.title = tr::tf_GhostModeToggle(),
 		.getter = &TfSettings::showGhostToggleInDrawer,
 		.setter = &TfSettings::setShowGhostToggleInDrawer,
 		.icon = { &st::tfGhostIcon },
@@ -373,7 +373,7 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 #if defined Q_OS_WIN || defined Q_OS_MAC
 	ayu.addSettingToggle({
 		.id = u"ayu/showStreamerToggleInDrawer"_q,
-		.title = tr::ayu_StreamerModeToggle(),
+		.title = tr::tf_StreamerModeToggle(),
 		.getter = &TfSettings::showStreamerToggleInDrawer,
 		.setter = &TfSettings::setShowStreamerToggleInDrawer,
 		.icon = { &st::tfStreamerModeMenuIcon },
@@ -386,7 +386,7 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 const auto kMeta = BuildHelper({
 	.id = TfAppearance::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_CategoryAppearance,
+	.title = &tr::tf_CategoryAppearance,
 	.icon = &st::menuIconPalette,
 }, [](SectionBuilder &builder) {
 	auto ayu = TfSectionBuilder(builder);
@@ -403,7 +403,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TfAppearance::title() {
-	return tr::ayu_CategoryAppearance();
+	return tr::tf_CategoryAppearance();
 }
 
 TfAppearance::TfAppearance(

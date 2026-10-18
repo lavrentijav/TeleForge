@@ -210,8 +210,8 @@ ActionStickerPackAuthor::ActionStickerPackAuthor(not_null<Menu::Menu*> menu,
 						[=]
 						{
 						},
-						tr::ayu_MessageDetailsPackOwnerPC(tr::now),
-						QString(tr::ayu_MessageDetailsPackOwnerFetchingPC(tr::now))),
+						tr::tf_MessageDetailsPackOwnerPC(tr::now),
+						QString(tr::tf_MessageDetailsPackOwnerFetchingPC(tr::now))),
 	  _session(session) {
 	searchAuthor(authorId);
 }
@@ -237,14 +237,14 @@ void ActionStickerPackAuthor::searchAuthor(ID authorId) {
 			}
 
 			if (username.isEmpty() && !user) {
-				strong->_subText = QString(tr::ayu_MessageDetailsPackOwnerNotFoundPC(tr::now));
+				strong->_subText = QString(tr::tf_MessageDetailsPackOwnerNotFoundPC(tr::now));
 				strong->setActionTriggered(
 					[authorId, session]
 					{
 						QGuiApplication::clipboard()->setText(QString::number(authorId));
 						if (const auto window = session->tryResolveWindow()) {
 							if (const auto mainWidget = window->widget()->sessionController()) {
-								mainWidget->showToast(tr::ayu_IDCopiedToast(tr::now));
+								mainWidget->showToast(tr::tf_IDCopiedToast(tr::now));
 							}
 						}
 					});

@@ -757,8 +757,8 @@ void Filler::addToggleUnreadBadgeExclude() {
 	const auto excluded = TfSettings::getInstance().isUnreadBadgeExcluded(
 		peer->id.value);
 	const auto label = excluded
-		? tr::ayu_UnreadBadgeInclude(tr::now)
-		: tr::ayu_UnreadBadgeExclude(tr::now);
+		? tr::tf_UnreadBadgeInclude(tr::now)
+		: tr::tf_UnreadBadgeExclude(tr::now);
 	_addAction(label, [=] {
 		TfSettings::getInstance().toggleUnreadBadgeExcluded(peer->id.value);
 	}, &st::menuIconMute);

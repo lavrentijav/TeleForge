@@ -701,7 +701,7 @@ void Content::setupContent(
 				st::membersAbout.style.font->height * 9)));
 	const auto label = Ui::CreateChild<Ui::FlatLabel>(
 		empty->entity(),
-		rpl::single(tr::ayu_NoFontsFound(tr::now)),
+		rpl::single(tr::tf_NoFontsFound(tr::now)),
 		st::membersAbout);
 	empty->entity()->sizeValue(
 	) | rpl::on_next([=](QSize size)
@@ -868,7 +868,7 @@ void TfUi::FontSelectorBox::prepare() {
 				  closeBox();
 			  });
 
-	addLeftButton(tr::ayu_BoxActionReset(),
+	addLeftButton(tr::tf_BoxActionReset(),
 				  [=]
 				  {
 					  _hook(qs(""));
@@ -887,7 +887,7 @@ void TfUi::FontSelectorBox::prepare() {
 					  closeBox();
 				  });
 
-	setTitle(tr::ayu_CustomizeFontTitle());
+	setTitle(tr::tf_CustomizeFontTitle());
 
 	const auto topContainer = Ui::CreateChild<Ui::VerticalLayout>(this);
 	setupTop(topContainer);

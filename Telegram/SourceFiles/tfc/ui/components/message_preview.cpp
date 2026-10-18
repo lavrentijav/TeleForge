@@ -77,7 +77,7 @@ MessagePreview::MessagePreview(
 		history,
 		history->session().userPeerId(),
 		FullMsgId(),
-		tr::ayu_MessagePreviewSampleReply(tr::now));
+		tr::tf_MessagePreviewSampleReply(tr::now));
 
 	const auto previewUser = HistoryView::GenerateUser(
 		history,
@@ -92,7 +92,7 @@ MessagePreview::MessagePreview(
 			.messageId = _state->reply->data()->fullId(),
 		},
 		.date = base::unixtime::now(),
-	}, TextWithEntities{ tr::ayu_MessagePreviewSampleText(tr::now) },
+	}, TextWithEntities{ tr::tf_MessagePreviewSampleText(tr::now) },
 	MTP_messageMediaEmpty());
 
 	messageItem->setDeleted();
@@ -104,7 +104,7 @@ MessagePreview::MessagePreview(
 	auto edition = HistoryMessageEdition();
 	edition.editDate = base::unixtime::now();
 	edition.textWithEntities = TextWithEntities{
-		tr::ayu_MessagePreviewSampleText(tr::now),
+		tr::tf_MessagePreviewSampleText(tr::now),
 	};
 	edition.useSameViews = true;
 	edition.useSameForwards = true;

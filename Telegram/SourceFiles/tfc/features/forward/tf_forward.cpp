@@ -113,7 +113,7 @@ std::pair<QString, QString> stateName(const PeerId &id) {
 
 	const auto state = fwState->second;
 
-	QString messagesString = tr::ayu_AyuForwardStatusSentCount(tr::now,
+	QString messagesString = tr::tf_AyuForwardStatusSentCount(tr::now,
 															   lt_count1,
 															   QString::number(state->sentMessages),
 															   lt_count2,
@@ -121,7 +121,7 @@ std::pair<QString, QString> stateName(const PeerId &id) {
 
 	);
 
-	QString chunkString = tr::ayu_AyuForwardStatusChunkCount(tr::now,
+	QString chunkString = tr::tf_AyuForwardStatusChunkCount(tr::now,
 															 lt_count1,
 															 QString::number(state->currentChunk + 1),
 															 lt_count2,
@@ -134,14 +134,14 @@ std::pair<QString, QString> stateName(const PeerId &id) {
 	QString status;
 
 	if (state->state == ForwardState::State::Preparing) {
-		status = tr::ayu_AyuForwardStatusPreparing(tr::now);
+		status = tr::tf_AyuForwardStatusPreparing(tr::now);
 	} else if (state->state == ForwardState::State::Downloading) {
-		return std::make_pair(tr::ayu_AyuForwardStatusLoadingMedia(tr::now), "");
+		return std::make_pair(tr::tf_AyuForwardStatusLoadingMedia(tr::now), "");
 	} else if (state->state == ForwardState::State::Sending) {
-		status = tr::ayu_AyuForwardStatusForwarding(tr::now);
+		status = tr::tf_AyuForwardStatusForwarding(tr::now);
 	} else {
 		// ForwardState::State::Finished
-		status = tr::ayu_AyuForwardStatusFinished(tr::now);
+		status = tr::tf_AyuForwardStatusFinished(tr::now);
 	}
 
 

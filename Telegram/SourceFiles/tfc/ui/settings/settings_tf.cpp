@@ -226,7 +226,7 @@ QString GetAccountName(uint64 userId) {
 
 QString PickerLabel(uint64 userId) {
 	return (userId == 0)
-		? tr::ayu_GhostModeGlobalSettings(tr::now)
+		? tr::tf_GhostModeGlobalSettings(tr::now)
 		: GetAccountName(userId);
 }
 
@@ -248,8 +248,8 @@ void selectGhostProfile(GhostPickerState *state, uint64 userId) {
 
 	if (wasGlobal != nowGlobal) {
 		Ui::Toast::Show(nowGlobal
-			? tr::ayu_GhostModeSwitchedToGlobalSettings(tr::now)
-			: tr::ayu_GhostModeSwitchedToIndividualSettings(tr::now));
+			? tr::tf_GhostModeSwitchedToGlobalSettings(tr::now)
+			: tr::tf_GhostModeSwitchedToIndividualSettings(tr::now));
 	}
 }
 
@@ -294,7 +294,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			const auto state = container->lifetime().make_state<GhostPickerState>();
 			state->selectedUserId = initialUserId;
 
-			const auto title = AddSubsectionTitle(container, tr::ayu_GhostEssentialsHeader());
+			const auto title = AddSubsectionTitle(container, tr::tf_GhostEssentialsHeader());
 
 			const auto pickerButton = Ui::CreateChild<Ui::LinkButton>(
 				container.get(),
@@ -335,35 +335,35 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 
 			std::vector checkboxes{
 				NestedEntry{
-					tr::ayu_DontReadMessages(tr::now),
+					tr::tf_DontReadMessages(tr::now),
 					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendReadMessages(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadMessages(!v); },
 					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendReadMessagesLocked(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadMessagesLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_DontReadStories(tr::now),
+					tr::tf_DontReadStories(tr::now),
 					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendReadStories(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadStories(!v); },
 					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendReadStoriesLocked(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendReadStoriesLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_DontSendOnlinePackets(tr::now),
+					tr::tf_DontSendOnlinePackets(tr::now),
 					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendOnlinePackets(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendOnlinePackets(!v); },
 					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendOnlinePacketsLocked(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendOnlinePacketsLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_DontSendUploadProgress(tr::now),
+					tr::tf_DontSendUploadProgress(tr::now),
 					[state] { return !TfSettings::ghost(state->selectedUserId.current()).sendUploadProgress(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendUploadProgress(!v); },
 					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendUploadProgressLocked(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendUploadProgressLocked(v); }
 				},
 				NestedEntry{
-					tr::ayu_SendOfflinePacketAfterOnline(tr::now),
+					tr::tf_SendOfflinePacketAfterOnline(tr::now),
 					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnline(); },
 					[state](bool v) { TfSettings::ghost(state->selectedUserId.current()).setSendOfflinePacketAfterOnline(v); },
 					[state] { return TfSettings::ghost(state->selectedUserId.current()).sendOfflinePacketAfterOnlineLocked(); },
@@ -374,7 +374,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			// WHY: same rule as isGhostModeActive() - any checked option
 			// already makes the switch report the mode as on.
 			auto collapsible = AddCollapsibleToggle(
-				container, tr::ayu_GhostModeToggle(), std::move(checkboxes), false);
+				container, tr::tf_GhostModeToggle(), std::move(checkboxes), false);
 			state->refreshCheckboxes = std::move(collapsible.refresh);
 			if (wctx.highlights && collapsible.widget) {
 				wctx.highlights->push_back(std::make_pair(
@@ -384,7 +384,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 
 			const auto markReadButton = AddButtonWithIcon(
 				container,
-				tr::ayu_MarkReadAfterAction(),
+				tr::tf_MarkReadAfterAction(),
 				st::settingsButtonNoIcon
 			);
 			if (wctx.highlights) {
@@ -412,12 +412,12 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 				container->lifetime());
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_MarkReadAfterActionDescription());
+			AddDividerText(container, tr::tf_MarkReadAfterActionDescription());
 
 			AddSkip(container);
 			const auto scheduleButton = AddButtonWithIcon(
 				container,
-				tr::ayu_UseScheduledMessages(),
+				tr::tf_UseScheduledMessages(),
 				st::settingsButtonNoIcon
 			);
 			if (wctx.highlights) {
@@ -445,12 +445,12 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 				container->lifetime());
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_UseScheduledMessagesDescription());
+			AddDividerText(container, tr::tf_UseScheduledMessagesDescription());
 
 			AddSkip(container);
 			const auto silentButton = AddButtonWithIcon(
 				container,
-				tr::ayu_SendWithoutSoundByDefault(),
+				tr::tf_SendWithoutSoundByDefault(),
 				st::settingsButtonNoIcon
 			);
 			if (wctx.highlights) {
@@ -474,7 +474,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 				},
 				container->lifetime());
 			AddSkip(container);
-			AddDividerText(container, tr::ayu_SendWithoutSoundByDefaultDescription());
+			AddDividerText(container, tr::tf_SendWithoutSoundByDefaultDescription());
 
 			auto showMenu = [=] {
 				state->menu = base::make_unique_q<Ui::PopupMenu>(
@@ -485,7 +485,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 					base::make_unique_q<GlobalAction>(
 						state->menu->menu(),
 						st::defaultPopupMenu.menu,
-						tr::ayu_GhostModeGlobalSettings(tr::now),
+						tr::tf_GhostModeGlobalSettings(tr::now),
 						[=] { selectGhostProfile(state, 0); }));
 
 				for (const auto &account : Core::App().domain().orderedAccounts()) {
@@ -511,22 +511,22 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 		}, [&](const SearchContext &sctx) {
 			sctx.entries->push_back({
 				.id = u"ayu/ghostModeToggle"_q,
-				.title = tr::ayu_GhostModeToggle(tr::now),
+				.title = tr::tf_GhostModeToggle(tr::now),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
 				.id = u"ayu/markReadAfterAction"_q,
-				.title = tr::ayu_MarkReadAfterAction(tr::now),
+				.title = tr::tf_MarkReadAfterAction(tr::now),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
 				.id = u"ayu/useScheduledMessages"_q,
-				.title = tr::ayu_UseScheduledMessages(tr::now),
+				.title = tr::tf_UseScheduledMessages(tr::now),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
 				.id = u"ayu/sendWithoutSound"_q,
-				.title = tr::ayu_SendWithoutSoundByDefault(tr::now),
+				.title = tr::tf_SendWithoutSoundByDefault(tr::now),
 				.section = sctx.sectionId,
 			});
 		});
@@ -536,7 +536,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 const auto kMeta = BuildHelper({
 	.id = TfGhost::Id(),
 	.parentId = TfMain::Id(),
-	.title = &tr::ayu_GhostModeToggle,
+	.title = &tr::tf_GhostModeToggle,
 	.icon = &st::menuIconGroupReactions,
 }, [](SectionBuilder &builder) {
 	builder.addSkip();
@@ -547,7 +547,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TfGhost::title() {
-	return tr::ayu_GhostModeToggle();
+	return tr::tf_GhostModeToggle();
 }
 
 TfGhost::TfGhost(

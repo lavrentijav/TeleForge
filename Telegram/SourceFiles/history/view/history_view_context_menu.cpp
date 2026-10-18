@@ -3033,7 +3033,7 @@ void AddSelectRestrictionAction(
 		((addIcon && !user)
 			? st::historySponsoredAboutMenuLabelPosition
 			: st::historyHasCustomEmojiPosition),
-		tr::ayu_UnforwardableContextMenuText(
+		tr::tf_UnforwardableContextMenuText(
 			tr::now,
 			tr::rich),
 		(addIcon && !user) ? &st::menuIconCopyright : nullptr);
