@@ -38,7 +38,7 @@ void AddBetaBadge(not_null<Button*> parent) {
 			parent,
 			rpl::single(tr::ayu_BetaBadge(tr::now)),
 			st::settingsPremiumNewBadge),
-		st::ayuBetaBadgePadding);
+		st::tfBetaBadgePadding);
 	badge->show();
 	badge->setAttribute(Qt::WA_TransparentForMouseEvents);
 	badge->paintRequest() | rpl::on_next([=] {
@@ -46,7 +46,7 @@ void AddBetaBadge(not_null<Button*> parent) {
 		auto hq = PainterHighQualityEnabler(p);
 		p.setPen(Qt::NoPen);
 		p.setBrush(st::windowBgActive);
-		const auto r = st::ayuBetaBadgePadding.left();
+		const auto r = st::tfBetaBadgePadding.left();
 		p.drawRoundedRect(badge->rect(), r, r);
 	}, badge->lifetime());
 

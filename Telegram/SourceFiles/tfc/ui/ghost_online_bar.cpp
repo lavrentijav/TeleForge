@@ -31,10 +31,10 @@ GhostOnlineBar::GhostOnlineBar(
 	const auto icon = Ui::CreateChild<Ui::RpWidget>(widget);
 	label->setAttribute(Qt::WA_TransparentForMouseEvents);
 	icon->setAttribute(Qt::WA_TransparentForMouseEvents);
-	icon->resize(st::ayuGhostIcon.size());
+	icon->resize(st::tfGhostIcon.size());
 	icon->paintRequest() | rpl::on_next([=] {
 		auto p = QPainter(icon);
-		st::ayuGhostIcon.paint(p, 0, 0, icon->width());
+		st::tfGhostIcon.paint(p, 0, 0, icon->width());
 	}, icon->lifetime());
 
 	const auto updateGeometry = [=] {

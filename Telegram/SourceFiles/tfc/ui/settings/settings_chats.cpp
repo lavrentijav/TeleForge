@@ -327,7 +327,7 @@ void BuildContextMenuElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.initialSelection = static_cast<int>(settings->showRepeatMessageInContextMenu()),
 		.options = options,
 		.setter = [](int i) { AyuSettings::getInstance().setShowRepeatMessageInContextMenu(static_cast<ContextMenuVisibility>(i)); },
-		.icon = { &st::ayuRepeatMenuIcon },
+		.icon = { &st::tfRepeatMenuIcon },
 	});
 	if (settings->filtersEnabled()) {
 		ayu.addChooseButton({

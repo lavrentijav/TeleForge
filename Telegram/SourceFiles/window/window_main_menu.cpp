@@ -777,7 +777,7 @@ void MainMenu::setupMenu() {
 		if (settings.showLReadToggleInDrawer()) {
 			addAction(
 				tr::ayu_LReadMessages(),
-				{&st::ayuLReadMenuIcon}
+				{&st::tfLReadMenuIcon}
 			)->setClickedCallback([=]() mutable
 			{
 				auto &ghost = AyuSettings::ghost(&controller->session());
@@ -811,7 +811,7 @@ void MainMenu::setupMenu() {
 
 			addAction(
 				tr::ayu_SReadMessages(),
-				{&st::ayuSReadMenuIcon}
+				{&st::tfSReadMenuIcon}
 			)->setClickedCallback([=]
 			{
 				auto box = Ui::MakeConfirmBox({
@@ -927,7 +927,7 @@ void MainMenu::setupMenu() {
 
 		const auto ghostModeToggle = addAction(
 			tr::ayu_GhostModeToggle(),
-			{&st::ayuGhostIcon}
+			{&st::tfGhostIcon}
 		)->toggleOn(std::move(ghostActiveChanges));
 
 		ghostModeToggle->toggledChanges(
@@ -943,7 +943,7 @@ void MainMenu::setupMenu() {
 	if (settings.showStreamerToggleInDrawer()) {
 		const auto streamerModeToggle = addAction(
 			tr::ayu_StreamerModeToggle(),
-			{&st::ayuStreamerModeMenuIcon}
+			{&st::tfStreamerModeMenuIcon}
 		)->toggleOn(rpl::single(AyuFeatures::StreamerMode::isEnabled()));
 
 		streamerModeToggle->toggledChanges(

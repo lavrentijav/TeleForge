@@ -112,12 +112,12 @@ ghostPickerButton: LinkButton(defaultLinkButton) {
 	overFont: font(boxFontSize);
 }
 
-ayuBetaBadgePadding: margins(4px, 1px, 4px, 1px);
+tfBetaBadgePadding: margins(4px, 1px, 4px, 1px);
 
-ayuGhostChipBg: windowBgOver;
-ayuGhostChipFg: windowActiveTextFg;
-ayuGhostChipFont: font(11px semibold);
-ayuGhostChipHeight: 16px;
-ayuGhostChipRounding: 4px;
-ayuGhostChipPadding: margins(5px, 0px, 6px, 0px);
-ayuGhostChipSkip: 6px;
+tfGhostChipBg: windowBgOver;
+tfGhostChipFg: windowActiveTextFg;
+tfGhostChipFont: font(11px semibold);
+tfGhostChipHeight: 16px;
+tfGhostChipRounding: 4px;
+tfGhostChipPadding: margins(5px, 0px, 6px, 0px);
+tfGhostChipSkip: 6px;

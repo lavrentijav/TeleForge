@@ -726,7 +726,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			nametop,
 			namewidth);
 		if (ghostChip) {
-			namewidth -= ghostChip->width() + st::ayuGhostChipSkip;
+			namewidth -= ghostChip->width() + st::tfGhostChipSkip;
 		}
 
 		const auto badgeWidth = _titleBadge.drawGetWidth(p, {
@@ -786,32 +786,32 @@ std::optional<QRect> TopBarWidget::ghostChipRect(
 	if (!AyuSettings::ghost(&session()).isGhostModeActive()) {
 		return std::nullopt;
 	}
-	const auto &font = st::ayuGhostChipFont;
+	const auto &font = st::tfGhostChipFont;
 	const auto chipWidth = font->width(u"GHOST"_q)
-		+ st::ayuGhostChipPadding.left()
-		+ st::ayuGhostChipPadding.right();
-	if ((availableWidth < chipWidth + st::ayuGhostChipSkip)
+		+ st::tfGhostChipPadding.left()
+		+ st::tfGhostChipPadding.right();
+	if ((availableWidth < chipWidth + st::tfGhostChipSkip)
 		|| (right < chipWidth)) {
 		return std::nullopt;
 	}
 	return QRect(
 		right - chipWidth,
-		top + (st::msgNameStyle.font->height - st::ayuGhostChipHeight) / 2,
+		top + (st::msgNameStyle.font->height - st::tfGhostChipHeight) / 2,
 		chipWidth,
-		st::ayuGhostChipHeight);
+		st::tfGhostChipHeight);
 }
 
 void TopBarWidget::paintGhostChip(Painter &p, const QRect &rect) {
 	p.save();
 	p.setPen(Qt::NoPen);
-	p.setBrush(st::ayuGhostChipBg);
-	p.setFont(st::ayuGhostChipFont);
+	p.setBrush(st::tfGhostChipBg);
+	p.setFont(st::tfGhostChipFont);
 	p.setRenderHint(QPainter::Antialiasing);
 	p.drawRoundedRect(
 		rect,
-		st::ayuGhostChipRounding,
-		st::ayuGhostChipRounding);
-	p.setPen(st::ayuGhostChipFg);
+		st::tfGhostChipRounding,
+		st::tfGhostChipRounding);
+	p.setPen(st::tfGhostChipFg);
 	p.drawText(rect, Qt::AlignCenter, u"GHOST"_q);
 	p.restore();
 }

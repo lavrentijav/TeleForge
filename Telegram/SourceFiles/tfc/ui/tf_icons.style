@@ -11,13 +11,13 @@ using "ui/colors.palette";
 using "ui/widgets/widgets.style";
 using "dialogs/dialogs.style";
 
-ayuGhostIcon: icon {{ "tf/ghost", menuIconColor }};
-ayuEditsHistoryIcon: icon {{ "tf/edits_history", menuIconColor }};
-ayuLReadMenuIcon: icon {{ "tf/lread", menuIconColor }};
-ayuSReadMenuIcon: icon {{ "tf/sread", menuIconColor }};
-ayuStreamerModeMenuIcon: icon {{ "tf/streamer", menuIconColor }};
-ayuToBeginningMenuIcon: icon {{ "tf/to_beginning", menuIconColor }};
-ayuRepeatMenuIcon: icon {{ "tf/repeat", menuIconColor }};
+tfGhostIcon: icon {{ "tf/ghost", menuIconColor }};
+tfEditsHistoryIcon: icon {{ "tf/edits_history", menuIconColor }};
+tfLReadMenuIcon: icon {{ "tf/lread", menuIconColor }};
+tfSReadMenuIcon: icon {{ "tf/sread", menuIconColor }};
+tfStreamerModeMenuIcon: icon {{ "tf/streamer", menuIconColor }};
+tfToBeginningMenuIcon: icon {{ "tf/to_beginning", menuIconColor }};
+tfRepeatMenuIcon: icon {{ "tf/repeat", menuIconColor }};
 
 messageFieldAttachIcon: icon {{ "tf/message_field/attach", menuIconColor }};
 messageFieldCommandsIcon: icon {{ "tf/message_field/commands", menuIconColor }};

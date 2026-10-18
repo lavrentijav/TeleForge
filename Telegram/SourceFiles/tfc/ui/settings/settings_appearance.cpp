@@ -110,7 +110,7 @@ void BuildAvatarCorners(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 				container,
 				settings->avatarCornersValue() | rpl::map(mapRadius),
 				st::settingsPremiumNewBadge),
-			st::ayuBetaBadgePadding);
+			st::tfBetaBadgePadding);
 		badge->show();
 		badge->setAttribute(Qt::WA_TransparentForMouseEvents);
 		badge->paintRequest() | rpl::on_next([=] {
@@ -118,7 +118,7 @@ void BuildAvatarCorners(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 			auto hq = PainterHighQualityEnabler(p);
 			p.setPen(Qt::NoPen);
 			p.setBrush(st::windowBgActive);
-			const auto r = st::ayuBetaBadgePadding.left();
+			const auto r = st::tfBetaBadgePadding.left();
 			p.drawRoundedRect(badge->rect(), r, r);
 		}, badge->lifetime());
 
@@ -346,14 +346,14 @@ void BuildDrawerElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.title = tr::ayu_LReadMessages(),
 		.getter = &AyuSettings::showLReadToggleInDrawer,
 		.setter = &AyuSettings::setShowLReadToggleInDrawer,
-		.icon = { &st::ayuLReadMenuIcon },
+		.icon = { &st::tfLReadMenuIcon },
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showSReadToggleInDrawer"_q,
 		.title = tr::ayu_SReadMessages(),
 		.getter = &AyuSettings::showSReadToggleInDrawer,
 		.setter = &AyuSettings::setShowSReadToggleInDrawer,
-		.icon = { &st::ayuSReadMenuIcon },
+		.icon = { &st::tfSReadMenuIcon },
 	});
 	ayu.addSettingToggle({
 		.id = u"ayu/showNightModeToggleInDrawer"_q,
@@ -367,7 +367,7 @@ void BuildDrawerElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.title = tr::ayu_GhostModeToggle(),
 		.getter = &AyuSettings::showGhostToggleInDrawer,
 		.setter = &AyuSettings::setShowGhostToggleInDrawer,
-		.icon = { &st::ayuGhostIcon },
+		.icon = { &st::tfGhostIcon },
 	});
 
 #if defined Q_OS_WIN || defined Q_OS_MAC
@@ -376,7 +376,7 @@ void BuildDrawerElements(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 		.title = tr::ayu_StreamerModeToggle(),
 		.getter = &AyuSettings::showStreamerToggleInDrawer,
 		.setter = &AyuSettings::setShowStreamerToggleInDrawer,
-		.icon = { &st::ayuStreamerModeMenuIcon },
+		.icon = { &st::tfStreamerModeMenuIcon },
 	});
 #endif
 

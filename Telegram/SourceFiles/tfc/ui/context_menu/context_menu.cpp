@@ -300,7 +300,7 @@ void AddJumpToBeginningAction(PeerData *peerData,
 				}
 			}
 		},
-		&st::ayuToBeginningMenuIcon);
+		&st::tfToBeginningMenuIcon);
 }
 
 void AddOpenChannelAction(PeerData *peerData,
@@ -501,7 +501,7 @@ void AddHistoryAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 				->showSection(
 					std::make_shared<MessageHistory::SectionMemento>(item->history()->peer, item, 0));
 		},
-		&st::ayuEditsHistoryIcon);
+		&st::tfEditsHistoryIcon);
 }
 
 void AddHideMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
@@ -712,7 +712,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 
 					menu2->addAction(Ui::ContextActionWithSubText(
 						menu2->menu(),
-						st::ayuEditsHistoryIcon,
+						st::tfEditsHistoryIcon,
 						tr::ayu_MessageDetailsFileNamePC(tr::now),
 						shortified,
 						[=]
@@ -832,7 +832,7 @@ void AddRepeatMessageAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 				session->api().forwardMessages(std::move(resolvedDraft), action, [] {});
 			}
 		},
-		&st::ayuRepeatMenuIcon);
+		&st::tfRepeatMenuIcon);
 }
 
 void AddReadUntilAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
