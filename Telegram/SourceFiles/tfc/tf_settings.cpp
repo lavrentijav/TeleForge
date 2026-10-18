@@ -5,7 +5,6 @@
 //
 // Copyright @Radolyn, 2026
 #include "tfc/tf_settings.h"
-#include "tfc/features/sync/teleforge_sync_crypto.h"
 
 #include "lang_auto.h"
 #include "tray.h"
@@ -1112,23 +1111,6 @@ void TfSettings::setArchiveBackgroundCrawl(bool val) {
 	save();
 }
 
-QString TfSettings::syncArchivePassphrase() const {
-	const auto stored = _syncArchivePassphrase.current();
-	return stored.isEmpty()
-		? QString()
-		: TeleForge::Sync::UnprotectSecret(stored);
-}
-
-void TfSettings::setSyncArchivePassphrase(const QString &value) {
-	const auto stored = value.isEmpty()
-		? QString()
-		: TeleForge::Sync::ProtectSecret(value);
-	if (_syncArchivePassphrase.current() == stored) {
-		return;
-	}
-	_syncArchivePassphrase = stored;
-	TfSettings::save();
-}
 void TfSettings::setGhostPassthroughMentions(bool val) {
 	if (_ghostPassthroughMentions.current() == val) return;
 	_ghostPassthroughMentions = val;
@@ -1192,7 +1174,6 @@ void to_json(nlohmann::json &j, const TfSettings &s) {
 		{"saveDeletedMessages", s._saveDeletedMessages.current()},
 		{"showDeletedInChat", s._showDeletedInChat.current()},
 		{"ghostPassthroughMentions", s._ghostPassthroughMentions.current()},
-		{"syncArchivePassphrase", s._syncArchivePassphrase.current()},
 		{"deletedRestoreLimit", s._deletedRestoreLimit.current()},
 		{"saveMessagesHistory", s._saveMessagesHistory.current()},
 		{"saveForBots", s._saveForBots.current()},
@@ -1334,12 +1315,6 @@ void from_json(const nlohmann::json &j, TfSettings &s) {
 	s._saveDeletedMessages = ReadField(j, "saveDeletedMessages", defaults._saveDeletedMessages.current());
 	s._showDeletedInChat = ReadField(j, "showDeletedInChat", defaults._showDeletedInChat.current());
 	s._ghostPassthroughMentions = ReadField(j, "ghostPassthroughMentions", defaults._ghostPassthroughMentions.current());
-	// Kept exactly as stored: decrypting here would run the crypto layer while
-	// the settings are still loading, before the working directory is known.
-	s._syncArchivePassphrase = ReadField(
-		j,
-		"syncArchivePassphrase",
-		defaults._syncArchivePassphrase.current());
 	s._deletedRestoreLimit = ReadField(j, "deletedRestoreLimit", defaults._deletedRestoreLimit.current());
 	s._saveMessagesHistory = ReadField(j, "saveMessagesHistory", defaults._saveMessagesHistory.current());
 	s._saveForBots = ReadField(j, "saveForBots", defaults._saveForBots.current());

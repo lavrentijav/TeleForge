@@ -2907,27 +2907,6 @@ elseif (LINUX)
         target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_PYTHON=1)
         target_include_directories(Telegram PRIVATE ${Python3_INCLUDE_DIRS})
         target_link_libraries(Telegram PRIVATE Python3::Python)
-    else()
-        # find_package refuses a half-installed pair (a 3.12 interpreter next to
-        # 3.11 headers is a common image layout), but embedding only needs the
-        # headers and the shared library to agree with each other.
-        execute_process(
-            COMMAND python3.11 -c "import sysconfig; print(sysconfig.get_paths()[\"include\"])"
-            OUTPUT_VARIABLE _tf_py_include
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET)
-        find_library(_tf_py_lib NAMES python3.11 PATHS /usr/lib64 /usr/lib /usr/local/lib NO_DEFAULT_PATH)
-        # Opt-in only: linking the distribution Python makes the binary depend on
-        # one exact soname (libpython3.11.so.1.0), which Debian trixie, Arch and
-        # Fedora 41 no longer ship. Until Python is bundled statically the way
-        # the Windows build does it, a portable Linux binary cannot embed it.
-        option(TELEFORGE_USE_SYSTEM_PYTHON "Link the distribution Python (not portable)" OFF)
-        if (TELEFORGE_USE_SYSTEM_PYTHON AND _tf_py_include AND EXISTS "${_tf_py_include}/Python.h" AND _tf_py_lib)
-            message(STATUS "TeleForge: embedding Python from ${_tf_py_include} (${_tf_py_lib})")
-            target_compile_definitions(Telegram PRIVATE TELEFORGE_WITH_PYTHON=1)
-            target_include_directories(Telegram PRIVATE "${_tf_py_include}")
-            target_link_libraries(Telegram PRIVATE "${_tf_py_lib}")
-        endif()
     endif()
     target_link_options(Telegram PRIVATE $<$<CONFIG:Release>:-s>)
 

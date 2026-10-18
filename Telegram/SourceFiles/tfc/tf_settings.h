@@ -247,9 +247,6 @@ public:
 	[[nodiscard]] bool saveDeletedMessages() const { return _saveDeletedMessages.current(); }
 	[[nodiscard]] bool showDeletedInChat() const { return _showDeletedInChat.current(); }
 	[[nodiscard]] bool ghostPassthroughMentions() const { return _ghostPassthroughMentions.current(); }
-
-	[[nodiscard]] QString syncArchivePassphrase() const;
-	void setSyncArchivePassphrase(const QString &value);
 	[[nodiscard]] int deletedRestoreLimit() const { return _deletedRestoreLimit.current(); }
 	[[nodiscard]] bool saveMessagesHistory() const { return _saveMessagesHistory.current(); }
 	[[nodiscard]] bool saveForBots() const { return _saveForBots.current(); }
@@ -665,10 +662,6 @@ private:
 	rpl::variable<bool> _saveDeletedMessages = true;
 	rpl::variable<bool> _showDeletedInChat = true;
 	rpl::variable<bool> _ghostPassthroughMentions = false;
-
-	// Archive passphrase: when set, the cloud bundle key is derived from it, so
-	// any device that logs in can read the archive instead of one machine.
-	rpl::variable<QString> _syncArchivePassphrase = QString();
 	rpl::variable<int> _deletedRestoreLimit = 200;
 	rpl::variable<bool> _saveMessagesHistory = true;
 	rpl::variable<bool> _saveForBots = false;

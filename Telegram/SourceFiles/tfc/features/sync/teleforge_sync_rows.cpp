@@ -191,7 +191,7 @@ constexpr auto kPayloadCompressionLevel = 6;
 	row.edited = edited;
 	row.date = m.date;
 	row.editDate = m.editDate;
-	row.payload = EncryptBundleForWrite(PackPayload(SerializeMessage(m)), key);
+	row.payload = EncryptBundle(PackPayload(SerializeMessage(m)), key);
 	return row;
 }
 

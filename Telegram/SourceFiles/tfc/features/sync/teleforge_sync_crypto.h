@@ -20,31 +20,6 @@ namespace TeleForge::Sync {
 	const QByteArray &optionalExportKey = {},
 	const QByteArray &accountBinding = {});
 
-// Account key: derived from a passphrase the user remembers, so any device
-// where that account logs in can read the archive without moving key material
-// between machines. Argon2id, salted with the account binding, so the server
-// (which never sees the passphrase) cannot derive it.
-[[nodiscard]] QByteArray DeriveAccountKey(
-	const QByteArray &passphrase,
-	const QByteArray &accountBinding);
-
-// Parameters recorded next to encrypted data so any device can reproduce the
-// key: mode tells which derivation was used, salt is public, cost is fixed.
-enum class KeyMode {
-	LegacyV1,
-	DeviceV2,
-	AccountArgon2id,
-};
-[[nodiscard]] QByteArray KdfSalt();
-
-// Stable per-account salt: identical on every device that logs into the same
-// account, which is what makes the passphrase key reproducible elsewhere.
-[[nodiscard]] QByteArray AccountSalt(const QByteArray &accountBinding);
-[[nodiscard]] QByteArray DeriveForMode(
-	KeyMode mode,
-	const QByteArray &secret,
-	const QByteArray &accountBinding,
-	const QByteArray &salt = {});
 // 32 random bytes stored once per install (DPAPI-wrapped on Windows).
 [[nodiscard]] QByteArray DeviceSecret();
 
@@ -79,32 +54,6 @@ void MarkSyncMigrationComplete();
 	const std::vector<float> &vector,
 	const QByteArray &key);
 [[nodiscard]] QByteArray EncryptBundle(const QByteArray &plain, const QByteArray &key);
-
-// Self-describing bundle: the header records which derivation produced the key
-// and the salt used, so another device can rebuild the key from the passphrase
-// without any side channel. Older bundles keep the short header and are read as
-// LegacyV1/DeviceV2 depending on the key that opens them.
-[[nodiscard]] QByteArray EncryptBundleEx(
-	const QByteArray &plain,
-	const QByteArray &key,
-	KeyMode mode,
-	const QByteArray &salt);
-
-// Write-side default: when a passphrase mode is active, every bundle written
-// through EncryptBundle records the mode and salt in its header, so another
-// device can rebuild the key. DeviceV2 keeps the short legacy header.
-void SetDefaultKeyMode(KeyMode mode, const QByteArray &salt);
-[[nodiscard]] QByteArray EncryptBundleForWrite(
-	const QByteArray &plain,
-	const QByteArray &key);
-[[nodiscard]] KeyMode DefaultKeyMode();
-[[nodiscard]] QByteArray DefaultKeySalt();
-// Reads the header of a bundle without decrypting it.
-[[nodiscard]] bool ReadBundleParams(
-	const QByteArray &encrypted,
-	KeyMode *mode,
-	QByteArray *salt);
-
 [[nodiscard]] std::optional<QByteArray> DecryptBundle(
 	const QByteArray &encrypted,
 	const QByteArray &key);

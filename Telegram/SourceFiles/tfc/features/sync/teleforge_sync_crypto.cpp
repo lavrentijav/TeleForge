@@ -4,10 +4,7 @@
 #include "logs.h"
 #include "settings.h"
 
-#include <openssl/core_names.h>
 #include <openssl/evp.h>
-#include <openssl/kdf.h>
-#include <openssl/params.h>
 #include <openssl/rand.h>
 
 #include <QtCore/QCryptographicHash>
@@ -30,8 +27,6 @@ namespace TeleForge::Sync {
 namespace {
 
 const auto kMagic = QByteArray("TFSYNC1\0", 8);
-const auto kMagic2 = QByteArray("TFSYNC2\0", 8);
-constexpr auto kModeSize = 1;
 constexpr auto kNonceSize = 12;
 constexpr auto kTagSize = 16;
 constexpr auto kKeySize = 32;
@@ -297,98 +292,6 @@ QByteArray DeriveLegacySyncKey(const QByteArray &masterMaterial) {
 		QByteArray("account"));
 }
 
-namespace {
-
-// Argon2id through OpenSSL's KDF provider (3.2+). Memory cost is kept at 64 MiB
-// and three passes: heavy enough to make offline guessing expensive, light
-// enough for a phone-class device to derive once at unlock.
-[[nodiscard]] QByteArray Argon2id(
-		const QByteArray &passphrase,
-		const QByteArray &salt) {
-	auto kdf = EVP_KDF_fetch(nullptr, "ARGON2ID", nullptr);
-	if (!kdf) {
-		return {};
-	}
-	auto ctx = EVP_KDF_CTX_new(kdf);
-	EVP_KDF_free(kdf);
-	if (!ctx) {
-		return {};
-	}
-	auto memcost = std::uint32_t(65536);
-	auto iterations = std::uint32_t(3);
-	auto lanes = std::uint32_t(1);
-	auto threads = std::uint32_t(1);
-	OSSL_PARAM params[] = {
-		OSSL_PARAM_construct_octet_string(
-			"pass",
-			const_cast<char*>(passphrase.constData()),
-			passphrase.size()),
-		OSSL_PARAM_construct_octet_string(
-			"salt",
-			const_cast<char*>(salt.constData()),
-			salt.size()),
-		OSSL_PARAM_construct_uint("memcost", &memcost),
-		OSSL_PARAM_construct_uint("iter", &iterations),
-		OSSL_PARAM_construct_uint("lanes", &lanes),
-		OSSL_PARAM_construct_uint("threads", &threads),
-		OSSL_PARAM_construct_end(),
-	};
-	auto result = QByteArray(kKeySize, Qt::Uninitialized);
-	const auto ok = (EVP_KDF_derive(
-		ctx,
-		reinterpret_cast<unsigned char*>(result.data()),
-		result.size(),
-		params) == 1);
-	EVP_KDF_CTX_free(ctx);
-	return ok ? result : QByteArray();
-}
-
-} // namespace
-
-QByteArray AccountSalt(const QByteArray &accountBinding) {
-	return QCryptographicHash::hash(
-		QByteArray("TeleForge-Archive-v1") + accountBinding,
-		QCryptographicHash::Sha256).left(kSaltSize);
-}
-
-QByteArray DeriveAccountKey(
-		const QByteArray &passphrase,
-		const QByteArray &accountBinding) {
-	if (passphrase.isEmpty()) {
-		return {};
-	}
-	return Argon2id(passphrase, AccountSalt(accountBinding));
-}
-
-QByteArray KdfSalt() {
-	auto salt = g_stateSalt;
-	if (salt.size() == kSaltSize) {
-		return salt;
-	}
-
-	// No persisted salt yet: derive a stable one from the configured state.
-	return QCryptographicHash::hash(
-		QByteArray("TeleForge-Kdf-Salt-v1"),
-		QCryptographicHash::Sha256).left(kSaltSize);
-}
-
-QByteArray DeriveForMode(
-		KeyMode mode,
-		const QByteArray &secret,
-		const QByteArray &accountBinding,
-		const QByteArray &salt) {
-	switch (mode) {
-	case KeyMode::LegacyV1:
-		return DeriveLegacySyncKey(accountBinding);
-	case KeyMode::AccountArgon2id:
-		return Argon2id(
-			secret,
-			salt.size() == kSaltSize ? salt : AccountSalt(accountBinding));
-	case KeyMode::DeviceV2:
-	default:
-		return DeriveSyncKey(secret, {}, accountBinding);
-	}
-}
 QByteArray DeriveSyncKey(
 		const QByteArray &secret,
 		const QByteArray &optionalExportKey,
@@ -559,102 +462,23 @@ QByteArray EncryptBundle(const QByteArray &plain, const QByteArray &key) {
 
 namespace {
 
-auto g_writeMode = KeyMode::DeviceV2;
-auto g_writeSalt = QByteArray();
-auto g_writeMutex = std::mutex();
-
-} // namespace
-
-void SetDefaultKeyMode(KeyMode mode, const QByteArray &salt) {
-	auto lock = std::unique_lock(g_writeMutex);
-	g_writeMode = mode;
-	g_writeSalt = salt;
-}
-
-KeyMode DefaultKeyMode() {
-	auto lock = std::unique_lock(g_writeMutex);
-	return g_writeMode;
-}
-
-QByteArray DefaultKeySalt() {
-	auto lock = std::unique_lock(g_writeMutex);
-	return g_writeSalt;
-}
-
-QByteArray EncryptBundleForWrite(
-		const QByteArray &plain,
-		const QByteArray &key) {
-	const auto mode = DefaultKeyMode();
-	if (mode == KeyMode::DeviceV2) {
-		return EncryptBundle(plain, key);
-	}
-	return EncryptBundleEx(plain, key, mode, DefaultKeySalt());
-}
-QByteArray EncryptBundleEx(
-		const QByteArray &plain,
-		const QByteArray &key,
-		KeyMode mode,
-		const QByteArray &salt) {
-	const auto inner = EncryptBundle(plain, key);
-	if (inner.isEmpty()) {
-		return {};
-	}
-	auto header = QByteArray(kMagic2);
-	header.append(char(int(mode)));
-	auto normalized = salt.left(kSaltSize);
-	normalized = normalized.leftJustified(kSaltSize, char(0));
-	header.append(normalized);
-	return header + inner.mid(kMagic.size());
-}
-
-bool ReadBundleParams(
-		const QByteArray &encrypted,
-		KeyMode *mode,
-		QByteArray *salt) {
-	if (encrypted.startsWith(kMagic2)) {
-		if (mode) {
-			*mode = KeyMode(int(encrypted[kMagic2.size()]));
-		}
-		if (salt) {
-			*salt = encrypted.mid(kMagic2.size() + kModeSize, kSaltSize);
-		}
-		return true;
-	} else if (encrypted.startsWith(kMagic)) {
-		if (mode) {
-			*mode = KeyMode::DeviceV2;
-		}
-		if (salt) {
-			salt->clear();
-		}
-		return true;
-	}
-	return false;
-}
-
-namespace {
-
-[[nodiscard]] int HeaderSize(const QByteArray &encrypted) {
-	if (encrypted.startsWith(kMagic2)) {
-		return kMagic2.size() + kModeSize + kSaltSize;
-	}
-	return encrypted.startsWith(kMagic) ? kMagic.size() : 0;
-}
-
 [[nodiscard]] std::optional<QByteArray> DecryptBundleWithKey(
 		const QByteArray &encrypted,
 		const QByteArray &key) {
-	const auto header = HeaderSize(encrypted);
-	if (!header || encrypted.size() < header + kNonceSize + kTagSize + 1) {
+	if (encrypted.size() < kMagic.size() + kNonceSize + kTagSize + 1) {
+		return std::nullopt;
+	}
+	if (!encrypted.startsWith(kMagic)) {
 		return std::nullopt;
 	}
 	if (key.size() != kKeySize) {
 		return std::nullopt;
 	}
-	const auto nonce = encrypted.mid(header, kNonceSize);
+	const auto nonce = encrypted.mid(kMagic.size(), kNonceSize);
 	const auto tag = encrypted.right(kTagSize);
 	const auto ciphertext = encrypted.mid(
-		header + kNonceSize,
-		encrypted.size() - header - kNonceSize - kTagSize);
+		kMagic.size() + kNonceSize,
+		encrypted.size() - kMagic.size() - kNonceSize - kTagSize);
 
 	auto ctx = EVP_CIPHER_CTX_new();
 	if (!ctx) {
