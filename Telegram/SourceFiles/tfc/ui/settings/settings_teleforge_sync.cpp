@@ -366,51 +366,6 @@ const auto kMeta = BuildHelper({
 				controller->showToast(tr::tf_SyncConnectionSaved(tr::now));
 			});
 
-			// Archive password: the key that makes the same data readable on every
-			// device while staying useless to whoever dumps the database.
-			const auto passField = inner->add(
-				object_ptr<Ui::InputField>(
-					inner,
-					st::defaultInputField,
-					Ui::InputField::Mode::SingleLine,
-					rpl::single(tr::tf_SyncArchivePassphrase(tr::now)),
-					TextWithTags{
-						TfSettings::getInstance().syncArchivePassphrase() }),
-				st::boxRowPadding);
-			const auto passHint = inner->add(
-				object_ptr<Ui::FlatLabel>(
-					inner,
-					rpl::single(tr::tf_SyncArchivePassphraseHint(tr::now)),
-					st::boxDividerLabel),
-				st::boxRowPadding);
-			const auto passSave = inner->add(object_ptr<Ui::SettingsButton>(
-				inner,
-				tr::tf_SyncArchivePassphraseSave(),
-				st::settingsButtonNoIcon));
-			passSave->setClickedCallback([=] {
-				const auto value = passField->getLastText().trimmed();
-				TfSettings::getInstance().setSyncArchivePassphrase(value);
-				controller->showToast(tr::tf_SyncArchivePassphraseSaved(tr::now));
-			});
-			const auto reencrypt = inner->add(object_ptr<Ui::SettingsButton>(
-				inner,
-				tr::tf_SyncReencryptArchive(),
-				st::settingsButtonNoIcon));
-			reencrypt->setClickedCallback([=] {
-				const auto value = passField->getLastText().trimmed();
-				TfSettings::getInstance().setSyncArchivePassphrase(value);
-				controller->showToast(tr::tf_SyncReencryptStarted(tr::now));
-				TeleForge::UI::ShowUploadProgress(0, 1);
-				TeleForge::Sync::uploadNow(
-					&controller->session(),
-					[=](QString msg) {
-						controller->showToast(msg);
-						TeleForge::UI::HideUploadProgress();
-					},
-					[=](int done, int total) {
-						TeleForge::UI::ShowUploadProgress(done, total);
-					});
-			});
 			const auto test = inner->add(object_ptr<Ui::SettingsButton>(
 				inner,
 				tr::tf_SyncTestConnection(),
