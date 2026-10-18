@@ -53,7 +53,7 @@ case "$CARCH" in
 esac
 
 source=("TeleForge-${pkgver}-${_artifact_arch}.tar.xz::https://github.com/lavrentijav/TeleForge/releases/download/v${pkgver}/TeleForge-${pkgver}-${_artifact_arch}.tar.xz")
-sha256sums_x86_64=('772c0c0ed07f0d021c417a9477db37a3d83e8e92a4e0bff2d0a6a480bf9917e8')
+sha256sums_x86_64=('48482a63c773d63b00c62d18794b60b159264442b0aef883cb8ff2dca046880c')
 # No aarch64 release artifact exists yet; replace SKIP with its checksum when
 # one is published.
 sha256sums_aarch64=('SKIP')
