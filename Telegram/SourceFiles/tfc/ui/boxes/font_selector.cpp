@@ -6,6 +6,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/boxes/font_selector.h"
 
+#include "lang_auto.h"
+
 #include "tfc/tf_settings.h"
 #include "tfc/tf_ui_settings.h"
 #include "boxes/premium_preview_box.h"

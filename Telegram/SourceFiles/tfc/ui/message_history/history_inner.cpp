@@ -246,7 +246,7 @@ InnerWidget::InnerWidget(
 	not_null<Window::SessionController*> controller,
 	not_null<PeerData*> peer,
 	HistoryItem *item,
-	ID topicId)
+	TfId topicId)
 	: RpWidget(parent),
 	  _controller(controller),
 	  _peer(peer),

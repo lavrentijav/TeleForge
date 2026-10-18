@@ -23,7 +23,7 @@ namespace {
 
 constexpr auto kOfflinePacketDelay = crl::time(3000);
 
-std::unordered_map<ID, bool> scheduled;
+std::unordered_map<TfId, bool> scheduled;
 
 void runOnce();
 

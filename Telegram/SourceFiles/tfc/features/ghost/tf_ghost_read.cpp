@@ -37,7 +37,7 @@ constexpr auto kFlushMaxPerRun = 200;
 constexpr auto kFloodWaitMargin = crl::time(1000);
 
 struct Target {
-	ID accountId = 0;
+	TfId accountId = 0;
 	PeerId peerId;
 	MsgId till;
 };
@@ -54,13 +54,13 @@ struct FlushState {
 	return value;
 }
 
-[[nodiscard]] base::flat_set<ID> &AccountsWithRows() {
-	static auto value = base::flat_set<ID>();
+[[nodiscard]] base::flat_set<TfId> &AccountsWithRows() {
+	static auto value = base::flat_set<TfId>();
 	return value;
 }
 
-[[nodiscard]] base::flat_set<ID> &AccountsChecked() {
-	static auto value = base::flat_set<ID>();
+[[nodiscard]] base::flat_set<TfId> &AccountsChecked() {
+	static auto value = base::flat_set<TfId>();
 	return value;
 }
 
@@ -73,8 +73,8 @@ void runBatch();
 	return timer;
 }
 
-[[nodiscard]] ID AccountOf(not_null<Main::Session*> session) {
-	return ID(session->userId().bare);
+[[nodiscard]] TfId AccountOf(not_null<Main::Session*> session) {
+	return TfId(session->userId().bare);
 }
 
 [[nodiscard]] bool Recording(not_null<Main::Session*> session) {
@@ -82,7 +82,7 @@ void runBatch();
 	return ghost.isGhostModeActive() && !ghost.sendReadMessages();
 }
 
-[[nodiscard]] bool HasPendingRows(ID accountId) {
+[[nodiscard]] bool HasPendingRows(TfId accountId) {
 	auto &withRows = AccountsWithRows();
 	if (withRows.contains(accountId)) {
 		return true;
@@ -98,7 +98,7 @@ void runBatch();
 	return false;
 }
 
-void RefreshPending(ID accountId) {
+void RefreshPending(TfId accountId) {
 	if (!AccountsWithRows().contains(accountId)) {
 		return;
 	}
@@ -107,7 +107,7 @@ void RefreshPending(ID accountId) {
 	}
 }
 
-[[nodiscard]] Main::Session *SessionForAccount(ID accountId) {
+[[nodiscard]] Main::Session *SessionForAccount(TfId accountId) {
 	for (const auto &[index, account] : Core::App().domain().accounts()) {
 		if (const auto session = account->maybeSession()) {
 			if (AccountOf(session) == accountId) {
@@ -118,8 +118,8 @@ void RefreshPending(ID accountId) {
 	return nullptr;
 }
 
-[[nodiscard]] std::map<ID, int> MaxTillsForAccount(ID accountId) {
-	auto result = std::map<ID, int>();
+[[nodiscard]] std::map<TfId, int> MaxTillsForAccount(TfId accountId) {
+	auto result = std::map<TfId, int>();
 	for (const auto &row : TfDatabase::loadGhostReadForAccount(accountId)) {
 		if (row.msgId <= 0) {
 			continue;
@@ -169,7 +169,7 @@ void runBatch() {
 		for (const auto &target : state.issued) {
 			TfDatabase::eraseGhostReadUpTo(
 				target.accountId,
-				ID(target.peerId.value),
+				TfId(target.peerId.value),
 				int(target.till.bare));
 			RefreshPending(target.accountId);
 		}
@@ -245,7 +245,7 @@ void rememberShownTill(
 		return;
 	}
 	const auto accountId = AccountOf(session);
-	const auto peerId = ID(history->peer->id.value);
+	const auto peerId = TfId(history->peer->id.value);
 	const auto now = base::unixtime::now();
 
 	auto ids = std::set<int>();
@@ -298,7 +298,7 @@ void applyServerEntry(
 	if (!HasPendingRows(accountId)) {
 		return;
 	}
-	const auto peerId = ID(history->peer->id.value);
+	const auto peerId = TfId(history->peer->id.value);
 	auto till = MsgId(0);
 	auto consumed = 0;
 	for (const auto &row : TfDatabase::loadGhostReadForPeer(accountId, peerId)) {
@@ -353,7 +353,7 @@ bool hasPending(not_null<Main::Session*> session) {
 
 void forgetPeer(not_null<Main::Session*> session, PeerId peerId) {
 	const auto accountId = AccountOf(session);
-	TfDatabase::eraseGhostReadForPeer(accountId, ID(peerId.value));
+	TfDatabase::eraseGhostReadForPeer(accountId, TfId(peerId.value));
 	RefreshPending(accountId);
 }
 

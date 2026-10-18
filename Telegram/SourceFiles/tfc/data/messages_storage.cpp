@@ -51,7 +51,7 @@ std::vector<TfMessageBase> convertToBase(const std::vector<DerivedMessage> &mess
 }
 
 void map(not_null<HistoryItem*> item, TfMessageBase &message) {
-	const ID userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
+	const TfId userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
 
 	message.userId = userId;
 	message.dialogId = getDialogIdFromPeer(item->history()->peer);
@@ -116,8 +116,8 @@ void addEditedMessage(not_null<HistoryItem *> item) {
 	TfDatabase::addEditedMessage(message);
 }
 
-std::vector<TfMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit) {
-	const ID userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
+std::vector<TfMessageBase> getEditedMessages(not_null<HistoryItem*> item, TfId minId, TfId maxId, int totalLimit) {
+	const TfId userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
 	const auto dialogId = getDialogIdFromPeer(item->history()->peer);
 	const auto msgId = item->id.bare;
 
@@ -125,7 +125,7 @@ std::vector<TfMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID min
 }
 
 bool hasRevisions(not_null<HistoryItem*> item) {
-	const ID userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
+	const TfId userId = item->history()->owner().session().userId().bare & PeerId::kChatTypeMask;
 	const auto dialogId = getDialogIdFromPeer(item->history()->peer);
 	const auto msgId = item->id.bare;
 
@@ -170,14 +170,14 @@ void addDeletedMessage(not_null<HistoryItem*> item) {
 }
 
 std::vector<TfMessageBase>
-getDeletedMessages(not_null<PeerData*> peer, ID topicId, ID minId, ID maxId, int totalLimit, const QString &searchQuery) {
-	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
+getDeletedMessages(not_null<PeerData*> peer, TfId topicId, TfId minId, TfId maxId, int totalLimit, const QString &searchQuery) {
+	const TfId userId = peer->session().userId().bare & PeerId::kChatTypeMask;
 	return convertToBase(
 		TfDatabase::getDeletedMessages(userId, getDialogIdFromPeer(peer), topicId, minId, maxId, totalLimit, searchQuery.toStdString()));
 }
 
-bool hasDeletedMessages(not_null<PeerData*> peer, ID topicId) {
-	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
+bool hasDeletedMessages(not_null<PeerData*> peer, TfId topicId) {
+	const TfId userId = peer->session().userId().bare & PeerId::kChatTypeMask;
 	return TfDatabase::hasDeletedMessages(userId, getDialogIdFromPeer(peer), topicId);
 }
 
@@ -185,7 +185,7 @@ std::vector<TfMessageBase> buildDeletedMessageTimeline(
 		not_null<PeerData*> peer,
 		const TfMessageBase &deletedMessage,
 		int totalLimit) {
-	const ID userId = peer->session().userId().bare & PeerId::kChatTypeMask;
+	const TfId userId = peer->session().userId().bare & PeerId::kChatTypeMask;
 	const auto dialogId = getDialogIdFromPeer(peer);
 	auto revisions = TfDatabase::getEditedMessages(
 		userId,

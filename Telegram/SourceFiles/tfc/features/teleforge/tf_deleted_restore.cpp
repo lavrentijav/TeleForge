@@ -34,13 +34,13 @@ constexpr auto kRestoreDelayMs = crl::time(400);
 // the server id space, which means the stored row is the only stable identity
 // we can use to keep a second pass from duplicating what is already on screen.
 [[nodiscard]] auto &RestoredRows() {
-	static auto value = std::map<PeerId, base::flat_set<ID>>();
+	static auto value = std::map<PeerId, base::flat_set<TfId>>();
 	return value;
 }
 
 [[nodiscard]] PeerData *ResolveAuthor(
 		not_null<History*> history,
-		ID fromId) {
+		TfId fromId) {
 	if (!fromId) {
 		return nullptr;
 	}

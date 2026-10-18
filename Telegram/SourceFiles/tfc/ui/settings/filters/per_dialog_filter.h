@@ -53,7 +53,7 @@ private:
 		int exclusions = 0;
 	};
 
-	std::unordered_map<ID, FilterCounts> countsByDialogIds;
+	std::unordered_map<TfId, FilterCounts> countsByDialogIds;
 
 	const not_null<Main::Session*> _session;
 	not_null<Window::SessionController*> _controller;

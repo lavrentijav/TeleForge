@@ -32,7 +32,7 @@ QString PerDialogFiltersListRow::generateName() {
 		this->setPeer(from);
 		return PeerListRow::generateName();
 	}
-	return QString("UNKNOWN (ID: %1)").arg(QString::number(peerId.value & PeerId::kChatTypeMask));
+	return QString("UNKNOWN (TfId: %1)").arg(QString::number(peerId.value & PeerId::kChatTypeMask));
 }
 
 PaintRoundImageCallback PerDialogFiltersListRow::generatePaintUserpicCallback(bool forceRound) {
@@ -126,9 +126,9 @@ void PerDialogFiltersListController::prepare() {
 }
 
 void PerDialogFiltersListController::rowClicked(not_null<PeerListRow*> peer) {
-	ID did;
+	TfId did;
 	if (peer->special()) {
-		const ID pred = peer->id() & PeerId::kChatTypeMask;
+		const TfId pred = peer->id() & PeerId::kChatTypeMask;
 		if (countsByDialogIds.contains(pred)) {
 			did = pred;
 		} else {

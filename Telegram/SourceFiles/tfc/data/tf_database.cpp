@@ -155,7 +155,7 @@ void addEditedMessage(const EditedMessage &message) {
 	}
 }
 
-std::vector<EditedMessage> getEditedMessages(ID userId, ID dialogId, ID messageId, ID minId, ID maxId, int totalLimit) {
+std::vector<EditedMessage> getEditedMessages(TfId userId, TfId dialogId, TfId messageId, TfId minId, TfId maxId, int totalLimit) {
 	return db().get_all<EditedMessage>(
 		where(
 			column<EditedMessage>(&EditedMessage::userId) == userId and
@@ -169,7 +169,7 @@ std::vector<EditedMessage> getEditedMessages(ID userId, ID dialogId, ID messageI
 	);
 }
 
-bool hasRevisions(ID userId, ID dialogId, ID messageId) {
+bool hasRevisions(TfId userId, TfId dialogId, TfId messageId) {
 	try {
 		return !db().select(
 			columns(column<EditedMessage>(&EditedMessage::messageId)),
@@ -200,7 +200,7 @@ void addDeletedMessage(const DeletedMessage &message) {
 	}
 }
 
-std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicId, ID minId, ID maxId, int totalLimit, const std::string &searchQuery) {
+std::vector<DeletedMessage> getDeletedMessages(TfId userId, TfId dialogId, TfId topicId, TfId minId, TfId maxId, int totalLimit, const std::string &searchQuery) {
 	if (searchQuery.empty()) {
 		return db().get_all<DeletedMessage>(
 			where(
@@ -238,7 +238,7 @@ std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicI
 	);
 }
 
-bool hasDeletedMessages(ID userId, ID dialogId, ID topicId) {
+bool hasDeletedMessages(TfId userId, TfId dialogId, TfId topicId) {
 	try {
 		return !db().select(
 			columns(column<DeletedMessage>(&DeletedMessage::dialogId)),
@@ -273,7 +273,7 @@ std::vector<RegexFilterGlobalExclusion> getAllFiltersExclusions() {
 	return getAllT<RegexFilterGlobalExclusion>();
 }
 
-std::vector<RegexFilter> getExcludedByDialogId(ID dialogId) {
+std::vector<RegexFilter> getExcludedByDialogId(TfId dialogId) {
 	try {
 		return db().get_all<RegexFilter>(
 			where(in(&RegexFilter::id,
@@ -319,7 +319,7 @@ std::vector<RegexFilter> getShared() {
 	}
 }
 
-std::vector<RegexFilter> getByDialogId(ID dialogId) {
+std::vector<RegexFilter> getByDialogId(TfId dialogId) {
 	try {
 		return db().get_all<RegexFilter>(
 			where(column<RegexFilter>(&RegexFilter::dialogId) == dialogId)
@@ -388,7 +388,7 @@ void deleteExclusionsByFilterId(const std::vector<char> &id) {
 	}
 }
 
-void deleteExclusion(ID dialogId, std::vector<char> filterId) {
+void deleteExclusion(TfId dialogId, std::vector<char> filterId) {
 	try {
 		db().remove_all<RegexFilterGlobalExclusion>(
 			where(column<RegexFilterGlobalExclusion>(&RegexFilterGlobalExclusion::filterId) == filterId and
@@ -454,7 +454,7 @@ void insertOnlineEvent(const OnlineEvent &event) {
 	}
 }
 
-std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs) {
+std::vector<OnlineEvent> loadOnlineEventsForUser(TfId userId, int sinceTs) {
 	try {
 		return db().get_all<OnlineEvent>(
 			where(
@@ -468,7 +468,7 @@ std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs) {
 	}
 }
 
-std::optional<int> manualLastSeenForUser(ID userId) {
+std::optional<int> manualLastSeenForUser(TfId userId) {
 	try {
 		const auto rows = db().select(
 			columns(column<OnlineEvent>(&OnlineEvent::manualLastSeen)),
@@ -487,7 +487,7 @@ std::optional<int> manualLastSeenForUser(ID userId) {
 	}
 }
 
-void upsertSpyTarget(ID userId, bool enabled) {
+void upsertSpyTarget(TfId userId, bool enabled) {
 	try {
 		SpyTarget row{ userId, enabled, base::unixtime::now() };
 		db().replace(row);
@@ -496,7 +496,7 @@ void upsertSpyTarget(ID userId, bool enabled) {
 	}
 }
 
-bool hasSpyTargetOverride(ID userId) {
+bool hasSpyTargetOverride(TfId userId) {
 	try {
 		return db().get_pointer<SpyTarget>(userId) != nullptr;
 	} catch (const std::exception &ex) {
@@ -505,7 +505,7 @@ bool hasSpyTargetOverride(ID userId) {
 	}
 }
 
-bool isSpyTargetEnabled(ID userId) {
+bool isSpyTargetEnabled(TfId userId) {
 	try {
 		if (const auto row = db().get_pointer<SpyTarget>(userId)) {
 			return row->enabled;
@@ -530,11 +530,11 @@ void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows) {
 		return;
 	}
 	try {
-		auto peers = std::set<std::pair<ID, ID>>();
+		auto peers = std::set<std::pair<TfId, TfId>>();
 		for (const auto &row : rows) {
 			peers.emplace(row.accountId, row.peerId);
 		}
-		auto seen = std::set<std::tuple<ID, ID, int>>();
+		auto seen = std::set<std::tuple<TfId, TfId, int>>();
 		for (const auto &[accountId, peerId] : peers) {
 			const auto existing = db().get_all<GhostReadMessage>(
 				where(
@@ -557,7 +557,7 @@ void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows) {
 	}
 }
 
-bool hasGhostRead(ID accountId) {
+bool hasGhostRead(TfId accountId) {
 	try {
 		return !db().select(
 			columns(column<GhostReadMessage>(&GhostReadMessage::fakeId)),
@@ -569,7 +569,7 @@ bool hasGhostRead(ID accountId) {
 	}
 }
 
-std::vector<GhostReadMessage> loadGhostReadForAccount(ID accountId) {
+std::vector<GhostReadMessage> loadGhostReadForAccount(TfId accountId) {
 	try {
 		return db().get_all<GhostReadMessage>(
 			where(column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId),
@@ -580,7 +580,7 @@ std::vector<GhostReadMessage> loadGhostReadForAccount(ID accountId) {
 	}
 }
 
-std::vector<GhostReadMessage> loadGhostReadForPeer(ID accountId, ID peerId) {
+std::vector<GhostReadMessage> loadGhostReadForPeer(TfId accountId, TfId peerId) {
 	try {
 		return db().get_all<GhostReadMessage>(
 			where(
@@ -593,7 +593,7 @@ std::vector<GhostReadMessage> loadGhostReadForPeer(ID accountId, ID peerId) {
 	}
 }
 
-void eraseGhostReadForPeer(ID accountId, ID peerId) {
+void eraseGhostReadForPeer(TfId accountId, TfId peerId) {
 	try {
 		db().remove_all<GhostReadMessage>(
 			where(
@@ -604,7 +604,7 @@ void eraseGhostReadForPeer(ID accountId, ID peerId) {
 	}
 }
 
-void eraseGhostReadUpTo(ID accountId, ID peerId, int msgId) {
+void eraseGhostReadUpTo(TfId accountId, TfId peerId, int msgId) {
 	try {
 		db().remove_all<GhostReadMessage>(
 			where(
@@ -616,7 +616,7 @@ void eraseGhostReadUpTo(ID accountId, ID peerId, int msgId) {
 	}
 }
 
-void eraseGhostReadForAccount(ID accountId) {
+void eraseGhostReadForAccount(TfId accountId) {
 	try {
 		db().remove_all<GhostReadMessage>(
 			where(column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId));

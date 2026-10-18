@@ -8,32 +8,32 @@
 
 #include <string>
 
-#define ID long long
+using TfId = long long;
 
 class TfMessageBase
 {
 public:
-	ID fakeId;
-	ID userId;
-	ID dialogId;
-	ID groupedId;
-	ID peerId;
-	ID fromId;
-	ID topicId;
+	TfId fakeId;
+	TfId userId;
+	TfId dialogId;
+	TfId groupedId;
+	TfId peerId;
+	TfId fromId;
+	TfId topicId;
 	int messageId;
 	int date;
 	int flags;
 	int editDate;
 	int views;
 	int fwdFlags;
-	ID fwdFromId;
+	TfId fwdFromId;
 	std::string fwdName;
 	int fwdDate;
 	std::string fwdPostAuthor;
 	std::string postAuthor;
 	int replyFlags;
 	int replyMessageId;
-	ID replyPeerId;
+	TfId replyPeerId;
 	int replyTopId;
 	bool replyForumTopic;
 	std::vector<char> replySerialized;
@@ -63,10 +63,10 @@ class EditedMessage : public TfMessageBase
 class DeletedDialog
 {
 public:
-	ID fakeId;
-	ID userId;
-	ID dialogId;
-	ID peerId;
+	TfId fakeId;
+	TfId userId;
+	TfId dialogId;
+	TfId peerId;
 	std::unique_ptr<int> folderId; // nullable
 	int topMessage;
 	int lastMessageDate;
@@ -82,7 +82,7 @@ public:
 	bool enabled;
 	bool reversed;
 	bool caseInsensitive;
-	std::optional<ID> dialogId; // nullable
+	std::optional<TfId> dialogId; // nullable
 
 	bool operator==(const RegexFilter &other) const {
 		return id == other.id &&
@@ -109,8 +109,8 @@ public:
 class RegexFilterGlobalExclusion
 {
 public:
-	ID fakeId;
-	ID dialogId;
+	TfId fakeId;
+	TfId dialogId;
 	std::vector<char> filterId;
 
 	bool operator==(const RegexFilterGlobalExclusion& other) const {
@@ -121,9 +121,9 @@ public:
 class SpyMessageRead
 {
 public:
-	ID fakeId;
-	ID userId;
-	ID dialogId;
+	TfId fakeId;
+	TfId userId;
+	TfId dialogId;
 	int messageId;
 	int entityCreateDate;
 };
@@ -131,9 +131,9 @@ public:
 class SpyMessageContentsRead
 {
 public:
-	ID fakeId;
-	ID userId;
-	ID dialogId;
+	TfId fakeId;
+	TfId userId;
+	TfId dialogId;
 	int messageId;
 	int entityCreateDate;
 };
@@ -141,8 +141,8 @@ public:
 class OnlineEvent
 {
 public:
-	ID fakeId = 0;
-	ID userId = 0;
+	TfId fakeId = 0;
+	TfId userId = 0;
 	int timestamp = 0;
 	int kind = 0;
 	int onlineTill = 0;
@@ -152,7 +152,7 @@ public:
 class SpyTarget
 {
 public:
-	ID userId = 0;
+	TfId userId = 0;
 	bool enabled = true;
 	int since = 0;
 };
@@ -160,10 +160,10 @@ public:
 class GhostReadMessage
 {
 public:
-	ID fakeId = 0;
-	ID accountId = 0; // session->userId().bare, never the overridden ghost id
-	ID peerId = 0;
-	ID topicId = 0;
+	TfId fakeId = 0;
+	TfId accountId = 0; // session->userId().bare, never the overridden ghost id
+	TfId peerId = 0;
+	TfId topicId = 0;
 	int msgId = 0;
 	int readAt = 0;
 	int flags = 0;

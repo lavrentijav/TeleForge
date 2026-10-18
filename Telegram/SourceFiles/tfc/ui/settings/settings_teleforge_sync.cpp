@@ -1,6 +1,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/settings/settings_teleforge_sync.h"
 
+#include "lang_auto.h"
+
 #include "tfc/features/sync/teleforge_sync.h"
 #include "tfc/ui/teleforge_upload_bar.h"
 #include "tfc/features/sync/teleforge_sync_mysql.h"

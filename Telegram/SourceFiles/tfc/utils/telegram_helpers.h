@@ -54,16 +54,16 @@ private:
     int count_;
 };
 
-Main::Session *getSession(ID userId);
+Main::Session *getSession(TfId userId);
 void dispatchToMainThread(const std::function<void()> &callback, int delay = 0);
-ID getDialogIdFromPeer(not_null<PeerData*> peer);
+TfId getDialogIdFromPeer(not_null<PeerData*> peer);
 
-ID getBareID(not_null<PeerData*> peer);
+TfId getBareID(not_null<PeerData*> peer);
 
-bool isExteraPeer(ID peerId);
-bool isSupporterPeer(ID peerId);
-bool isCustomBadgePeer(ID peerId);
-CustomBadge getCustomBadge(ID peerId);
+bool isExteraPeer(TfId peerId);
+bool isSupporterPeer(TfId peerId);
+bool isCustomBadgePeer(TfId peerId);
+CustomBadge getCustomBadge(TfId peerId);
 
 rpl::producer<Info::Profile::Badge::Content> ExteraBadgeTypeFromPeer(not_null<PeerData*> peer);
 Fn<void()> badgeClickHandler(not_null<PeerData *> peer);
@@ -94,10 +94,10 @@ int getScheduleTime(int64 sumSize);
 bool isMessageSavable(not_null<HistoryItem *> item);
 void processMessageDelete(not_null<HistoryItem *> item);
 
-void searchUserById(ID userId, Main::Session *session, const UsernameResolverCallback &callback);
-void searchChatById(ID chatId, Main::Session *session, const UsernameResolverCallback &callback);
+void searchUserById(TfId userId, Main::Session *session, const UsernameResolverCallback &callback);
+void searchChatById(TfId chatId, Main::Session *session, const UsernameResolverCallback &callback);
 
-ID getUserIdFromPackId(uint64 id);
+TfId getUserIdFromPackId(uint64 id);
 
 TextWithTags extractText(not_null<HistoryItem*> item);
 bool mediaDownloadable(const Data::Media* media);
@@ -108,7 +108,7 @@ void applyLocalPremiumEmoji(TextWithEntities &text);
 void resolveAllChats(const std::map<long long, QString> &peers);
 not_null<Main::Session *> currentSession();
 
-PeerData* getPeerFromDialogId(ID id);
+PeerData* getPeerFromDialogId(TfId id);
 PeerData* getPeerFromDialogId(unsigned long long id);
 
 QString filterZalgo(const QString &text);

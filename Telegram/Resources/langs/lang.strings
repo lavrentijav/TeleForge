@@ -9628,7 +9628,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "tf_SpyDurationSeconds" = "{value} s";
 "tf_SpyDurationMinutes" = "{value} min";
-"tf_SpyDurationHours" = "{value} h";
+"tf_SpyDurationHours" = "{hours} h";
 "tf_SpyDurationHoursMinutes" = "{hours} h {minutes} min";
 "tf_SpyLimitNone" = "No limit";
 "tf_SpyOff" = "off";

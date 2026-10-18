@@ -12,12 +12,12 @@ namespace TfMessages {
 
 void addEditedMessage(not_null<HistoryItem *> item);
 void snapshotEditsBeforeDelete(not_null<HistoryItem*> item);
-std::vector<TfMessageBase> getEditedMessages(not_null<HistoryItem*> item, ID minId, ID maxId, int totalLimit);
+std::vector<TfMessageBase> getEditedMessages(not_null<HistoryItem*> item, TfId minId, TfId maxId, int totalLimit);
 bool hasRevisions(not_null<HistoryItem*> item);
 
 void addDeletedMessage(not_null<HistoryItem*> item);
-std::vector<TfMessageBase> getDeletedMessages(not_null<PeerData*> peer, ID topicId, ID minId, ID maxId, int totalLimit, const QString &searchQuery = QString());
-bool hasDeletedMessages(not_null<PeerData*> peer, ID topicId);
+std::vector<TfMessageBase> getDeletedMessages(not_null<PeerData*> peer, TfId topicId, TfId minId, TfId maxId, int totalLimit, const QString &searchQuery = QString());
+bool hasDeletedMessages(not_null<PeerData*> peer, TfId topicId);
 std::vector<TfMessageBase> buildDeletedMessageTimeline(not_null<PeerData*> peer, const TfMessageBase &deletedMessage, int totalLimit = 128);
 
 }

@@ -6,6 +6,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/boxes/edit_mark_box.h"
 
+#include "lang_auto.h"
+
 #include "tfc/tf_settings.h"
 #include "boxes/peer_list_controllers.h"
 #include "lang/lang_keys.h"

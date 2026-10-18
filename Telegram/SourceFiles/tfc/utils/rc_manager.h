@@ -10,8 +10,8 @@
 
 #include <QtNetwork/QNetworkReply>
 
-extern std::unordered_set<ID> default_developers;
-extern std::unordered_set<ID> default_channels;
+extern std::unordered_set<TfId> default_developers;
+extern std::unordered_set<TfId> default_channels;
 
 struct CustomBadge
 {
@@ -35,29 +35,29 @@ public:
 
 	void start();
 
-	[[nodiscard]] const std::unordered_set<ID> &developers() const {
+	[[nodiscard]] const std::unordered_set<TfId> &developers() const {
 		if (!initialized) {
 			return default_developers;
 		}
 		return _developers;
 	}
 
-	[[nodiscard]] const std::unordered_set<ID> &channels() const {
+	[[nodiscard]] const std::unordered_set<TfId> &channels() const {
 		if (!initialized) {
 			return default_channels;
 		}
 		return _officialChannels;
 	}
 
-	[[nodiscard]] const std::unordered_set<ID> &supporters() const {
+	[[nodiscard]] const std::unordered_set<TfId> &supporters() const {
 		return _supporters;
 	}
 
-	[[nodiscard]] const std::unordered_set<ID> &supporterChannels() const {
+	[[nodiscard]] const std::unordered_set<TfId> &supporterChannels() const {
 		return _supporterChannels;
 	}
 
-	[[nodiscard]] const std::unordered_map<ID, CustomBadge> &supporterCustomBadges() const {
+	[[nodiscard]] const std::unordered_map<TfId, CustomBadge> &supporterCustomBadges() const {
 		return _customBadges;
 	}
 
@@ -93,11 +93,11 @@ private:
 
 	bool initialized = false;
 
-	std::unordered_set<ID> _developers = {};
-	std::unordered_set<ID> _officialChannels = {};
-	std::unordered_set<ID> _supporters = {};
-	std::unordered_set<ID> _supporterChannels = {};
-	std::unordered_map<ID, CustomBadge> _customBadges = {};
+	std::unordered_set<TfId> _developers = {};
+	std::unordered_set<TfId> _officialChannels = {};
+	std::unordered_set<TfId> _supporters = {};
+	std::unordered_set<TfId> _supporterChannels = {};
+	std::unordered_map<TfId, CustomBadge> _customBadges = {};
 
 	QString _donateUsername = QString();
 	QString _donateAmountUsd = QString("4.60");

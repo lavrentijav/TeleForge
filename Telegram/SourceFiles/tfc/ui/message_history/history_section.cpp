@@ -293,7 +293,7 @@ Widget::Widget(
 	not_null<Window::SessionController*> controller,
 	not_null<PeerData*> peer,
 	HistoryItem *item,
-	ID topicId)
+	TfId topicId)
 	: Window::SectionWidget(parent, controller, rpl::single<PeerData*>(peer)),
 	  _scroll(this, st::historyScroll, false),
 	  _fixedBar(this, controller, peer, !item),

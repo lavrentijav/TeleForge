@@ -4,6 +4,7 @@
 #include "tfc/features/ghost/tf_ghost_read.h"
 #include "tfc/features/plugins/plugin_runner.h"
 #include "tfc/features/spy/online_history_storage.h"
+#include "tfc/features/spy/online_tracker.h"
 #include "tfc/features/subscription/teleforge_subscription.h"
 #include "tfc/features/sync/teleforge_ssh_tunnel.h"
 #include "tfc/features/sync/teleforge_sync.h"
@@ -105,6 +106,7 @@ void initialize() {
 
 	if (const auto app = QCoreApplication::instance()) {
 		QObject::connect(app, &QCoreApplication::aboutToQuit, [] {
+			Spy::flushPending();
 			Plugins::PluginRunner::shutdown();
 			ShutdownNativeChatLlama();
 			ShutdownNativeEmbedLlama();

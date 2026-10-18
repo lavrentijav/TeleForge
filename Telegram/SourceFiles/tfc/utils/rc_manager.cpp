@@ -6,9 +6,9 @@
 // Copyright @Radolyn, 2026
 #include "tfc/utils/rc_manager.h"
 
-std::unordered_set<ID> default_developers = {};
+std::unordered_set<TfId> default_developers = {};
 
-std::unordered_set<ID> default_channels = {};
+std::unordered_set<TfId> default_channels = {};
 
 void RCManager::start() {
 	DEBUG_LOG(("RCManager: starting"));

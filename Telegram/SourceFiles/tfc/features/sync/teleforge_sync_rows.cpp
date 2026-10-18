@@ -31,7 +31,7 @@ namespace {
 	return v.toString().toStdString();
 }
 
-[[nodiscard]] bool JsonId(const QJsonValue &v, ID *out) {
+[[nodiscard]] bool JsonId(const QJsonValue &v, TfId *out) {
 	if (v.isDouble()) {
 		*out = qint64(v.toDouble());
 		return true;

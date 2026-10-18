@@ -22,19 +22,19 @@ namespace TfDatabase {
 void initialize();
 
 void addEditedMessage(const EditedMessage &message);
-std::vector<EditedMessage> getEditedMessages(ID userId, ID dialogId, ID messageId, ID minId, ID maxId, int totalLimit);
-bool hasRevisions(ID userId, ID dialogId, ID messageId);
+std::vector<EditedMessage> getEditedMessages(TfId userId, TfId dialogId, TfId messageId, TfId minId, TfId maxId, int totalLimit);
+bool hasRevisions(TfId userId, TfId dialogId, TfId messageId);
 
 void addDeletedMessage(const DeletedMessage &message);
-std::vector<DeletedMessage> getDeletedMessages(ID userId, ID dialogId, ID topicId, ID minId, ID maxId, int totalLimit, const std::string &searchQuery = "");
-bool hasDeletedMessages(ID userId, ID dialogId, ID topicId);
+std::vector<DeletedMessage> getDeletedMessages(TfId userId, TfId dialogId, TfId topicId, TfId minId, TfId maxId, int totalLimit, const std::string &searchQuery = "");
+bool hasDeletedMessages(TfId userId, TfId dialogId, TfId topicId);
 
 std::vector<RegexFilter> getAllRegexFilters();
 RegexFilter getById(std::vector<char> id);
 std::vector<RegexFilter> getShared();
-std::vector<RegexFilter> getByDialogId(ID dialogId);
+std::vector<RegexFilter> getByDialogId(TfId dialogId);
 std::vector<RegexFilterGlobalExclusion> getAllFiltersExclusions();
-std::vector<RegexFilter> getExcludedByDialogId(ID dialogId);
+std::vector<RegexFilter> getExcludedByDialogId(TfId dialogId);
 
 int getCount();
 
@@ -46,7 +46,7 @@ void updateRegexFilter(const RegexFilter &filter);
 
 void deleteFilter(const std::vector<char> &id);
 void deleteExclusionsByFilterId(const std::vector<char> &id);
-void deleteExclusion(ID dialogId, std::vector<char> filterId);
+void deleteExclusion(TfId dialogId, std::vector<char> filterId);
 
 void deleteAllFilters();
 void deleteAllExclusions();
@@ -56,20 +56,20 @@ bool hasPerDialogFilters();
 
 
 void insertOnlineEvent(const OnlineEvent &event);
-[[nodiscard]] std::vector<OnlineEvent> loadOnlineEventsForUser(ID userId, int sinceTs);
-[[nodiscard]] std::optional<int> manualLastSeenForUser(ID userId);
-void upsertSpyTarget(ID userId, bool enabled);
-[[nodiscard]] bool hasSpyTargetOverride(ID userId);
-[[nodiscard]] bool isSpyTargetEnabled(ID userId);
+[[nodiscard]] std::vector<OnlineEvent> loadOnlineEventsForUser(TfId userId, int sinceTs);
+[[nodiscard]] std::optional<int> manualLastSeenForUser(TfId userId);
+void upsertSpyTarget(TfId userId, bool enabled);
+[[nodiscard]] bool hasSpyTargetOverride(TfId userId);
+[[nodiscard]] bool isSpyTargetEnabled(TfId userId);
 void purgeOnlineEventsBefore(int timestamp);
 
 void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows);
-[[nodiscard]] bool hasGhostRead(ID accountId);
-[[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForAccount(ID accountId);
-[[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForPeer(ID accountId, ID peerId);
-void eraseGhostReadForPeer(ID accountId, ID peerId);
-void eraseGhostReadUpTo(ID accountId, ID peerId, int msgId);
-void eraseGhostReadForAccount(ID accountId);
+[[nodiscard]] bool hasGhostRead(TfId accountId);
+[[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForAccount(TfId accountId);
+[[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForPeer(TfId accountId, TfId peerId);
+void eraseGhostReadForPeer(TfId accountId, TfId peerId);
+void eraseGhostReadUpTo(TfId accountId, TfId peerId, int msgId);
+void eraseGhostReadForAccount(TfId accountId);
 void purgeGhostReadBefore(int timestamp);
 
 }

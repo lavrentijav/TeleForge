@@ -70,7 +70,7 @@ const auto kZalgoPattern = QStringLiteral(
 
 }
 
-Main::Session *getSession(ID userId) {
+Main::Session *getSession(TfId userId) {
 	if (!userId) {
 		return nullptr;
 	}
@@ -99,8 +99,8 @@ void dispatchToMainThread(const std::function<void()> &callback, int delay) {
 	QMetaObject::invokeMethod(timer, "start", Qt::QueuedConnection, Q_ARG(int, delay));
 }
 
-ID getDialogIdFromPeer(not_null<PeerData*> peer) {
-	ID peerId = peer->id.value & PeerId::kChatTypeMask;
+TfId getDialogIdFromPeer(not_null<PeerData*> peer) {
+	TfId peerId = peer->id.value & PeerId::kChatTypeMask;
 	if (peer->isChannel() || peer->isChat()) {
 		peerId = -peerId;
 	}
@@ -108,26 +108,26 @@ ID getDialogIdFromPeer(not_null<PeerData*> peer) {
 	return peerId;
 }
 
-ID getBareID(not_null<PeerData*> peer) {
+TfId getBareID(not_null<PeerData*> peer) {
 	return peer->id.value & PeerId::kChatTypeMask;
 }
 
-bool isExteraPeer(ID peerId) {
+bool isExteraPeer(TfId peerId) {
 	Q_UNUSED(peerId);
 	return false;
 }
 
-bool isSupporterPeer(ID peerId) {
+bool isSupporterPeer(TfId peerId) {
 	Q_UNUSED(peerId);
 	return false;
 }
 
-bool isCustomBadgePeer(ID peerId) {
+bool isCustomBadgePeer(TfId peerId) {
 	Q_UNUSED(peerId);
 	return false;
 }
 
-CustomBadge getCustomBadge(ID peerId) {
+CustomBadge getCustomBadge(TfId peerId) {
 	Q_UNUSED(peerId);
 	return {};
 }
@@ -798,7 +798,7 @@ void searchPeer(const QString &peerId, Main::Session *session, const UsernameRes
 	}
 }
 
-void searchUserById(ID userId, Main::Session *session, const UsernameResolverCallback &callback) {
+void searchUserById(TfId userId, Main::Session *session, const UsernameResolverCallback &callback) {
 	if (userId == 0 || !session) {
 		callback(QString(), nullptr);
 		return;
@@ -824,7 +824,7 @@ void searchUserById(ID userId, Main::Session *session, const UsernameResolverCal
 		});
 }
 
-void searchChatById(ID chatId, Main::Session *session, const UsernameResolverCallback &callback) {
+void searchChatById(TfId chatId, Main::Session *session, const UsernameResolverCallback &callback) {
 	if (chatId == 0 || !session) {
 		callback(QString(), nullptr);
 		return;
@@ -853,7 +853,7 @@ void searchChatById(ID chatId, Main::Session *session, const UsernameResolverCal
 		});
 }
 
-ID getUserIdFromPackId(uint64 id) {
+TfId getUserIdFromPackId(uint64 id) {
 	// https://github.com/TDesktop-x64/tdesktop/pull/218/commits/844e5f0ab116e7639cfc79633a68afe8fdcbc463
 	auto ownerId = id >> 32;
 	if ((id >> 16 & 0xff) == 0x3f) {
@@ -1158,8 +1158,8 @@ PeerData *getPeerFromDialogId(T id) {
 	return nullptr;
 }
 
-PeerData *getPeerFromDialogId(ID id) {
-	return getPeerFromDialogId<ID>(id);
+PeerData *getPeerFromDialogId(TfId id) {
+	return getPeerFromDialogId<TfId>(id);
 }
 
 PeerData *getPeerFromDialogId(unsigned long long id) {
@@ -1197,7 +1197,7 @@ QString filterZalgo(const QString &text) {
 
 void getUserRegistrationDateInner(
 	not_null<UserData*> user,
-	ID botId,
+	TfId botId,
 	Fn<void(TextWithEntities)> callback) {
 	const auto session = &user->session();
 	const auto userId = getBareID(user);

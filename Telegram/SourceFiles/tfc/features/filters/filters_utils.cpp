@@ -180,7 +180,7 @@ bool FilterUtils::importFromJson(const QByteArray &json) {
 
 struct BackupExclusion
 {
-	ID dialogId;
+	TfId dialogId;
 	std::vector<char> filterId;
 
 	QJsonObject toJson() const {

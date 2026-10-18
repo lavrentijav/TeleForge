@@ -2366,7 +2366,7 @@ namespace sqlite_orm {
         };
 
         /**
-         *  Column expression with table alias attached like 'C.ID'. This is not a column alias
+         *  Column expression with table alias attached like 'C.TfId'. This is not a column alias
          */
         template<class T, class C>
         struct alias_column_t {

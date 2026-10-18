@@ -6,6 +6,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/message_history/history_item.h"
 
+#include "lang_auto.h"
+
 #include "history/history_item.h"
 #include "api/api_text_entities.h"
 #include "tfc/data/entities.h"

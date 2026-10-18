@@ -29,6 +29,6 @@ class PopupMenu;
 [[nodiscard]] base::unique_qptr<Menu::ItemBase> ContextActionStickerAuthor(
 	not_null<Menu::Menu*> menu,
 	not_null<Main::Session*> session,
-	ID authorId);
+	TfId authorId);
 
 } // namespace Ui

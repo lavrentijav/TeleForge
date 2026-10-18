@@ -6,6 +6,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/boxes/plugin_info_box.h"
 
+#include "lang_auto.h"
+
 #include "apiwrap.h"
 #include "core/file_utilities.h"
 #include "core/ui_integration.h"

@@ -1,6 +1,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/settings/settings_teleforge_plugins.h"
 
+#include "lang_auto.h"
+
 #include "tfc/features/plugins/plugin_catalog.h"
 #include "tfc/features/plugins/plugin_catalog_store.h"
 #include "tfc/features/plugins/plugin_channel_install.h"
@@ -197,10 +199,10 @@ const auto kMeta = BuildHelper({
 				const auto subscribe = wctx.container->add(
 					object_ptr<Ui::SettingsButton>(
 						wctx.container,
-						tr::tf_PluginsSubscribeTo(
+						rpl::single(tr::tf_PluginsSubscribeTo(
 							tr::now,
 							lt_channel,
-							username),
+							username)),
 						st::settingsButtonNoIcon));
 				subscribe->setClickedCallback([=] {
 					controller->showPeerByLink(Window::PeerByLinkInfo{
@@ -211,7 +213,7 @@ const auto kMeta = BuildHelper({
 			const auto remind = wctx.container->add(
 				object_ptr<Ui::SettingsButton>(
 					wctx.container,
-					tr::tf_PluginsRemindSubscription(),
+					rpl::single(tr::tf_PluginsRemindSubscription(tr::now)),
 					st::settingsButtonNoIcon));
 			remind->setClickedCallback([=] {
 				ShowSubscribePrompt(controller);

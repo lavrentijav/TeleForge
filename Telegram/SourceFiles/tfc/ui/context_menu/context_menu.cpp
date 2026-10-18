@@ -248,7 +248,7 @@ void AddJumpToBeginningAction(PeerData *peerData,
 			[=](not_null<PeerData*> peer, MsgId id)
 			{
 				if (weak.get()) {
-					// API returns 0 if message "Channel created" (ID: 1) was deleted, which scrolls to the bottom
+					// API returns 0 if message "Channel created" (TfId: 1) was deleted, which scrolls to the bottom
 					if (id.bare == 0) {
 						id = MsgId(2);
 					}
@@ -655,7 +655,7 @@ void AddMessageDetailsAction(not_null<Ui::PopupMenu*> menu, HistoryItem *item) {
 			menu2->addAction(Ui::ContextActionWithSubText(
 				menu2->menu(),
 				st::menuIconInfo,
-				QString("ID"),
+				QString("TfId"),
 				messageId
 			));
 

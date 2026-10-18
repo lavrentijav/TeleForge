@@ -6,6 +6,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/context_menu/menu_item_subtext.h"
 
+#include "lang_auto.h"
+
 #include "mainwindow.h"
 #include "qguiapplication.h"
 #include "tfc/data/entities.h"
@@ -64,12 +66,12 @@ protected:
 class ActionStickerPackAuthor final : public ActionWithSubText
 {
 public:
-	ActionStickerPackAuthor(not_null<Menu::Menu*> menu, not_null<Main::Session*> session, ID authorId);
+	ActionStickerPackAuthor(not_null<Menu::Menu*> menu, not_null<Main::Session*> session, TfId authorId);
 
 private:
 	not_null<Main::Session*> _session;
 
-	void searchAuthor(ID authorId);
+	void searchAuthor(TfId authorId);
 };
 
 TextParseOptions MenuTextOptions = {
@@ -203,7 +205,7 @@ void ActionWithSubText::handleKeyPress(not_null<QKeyEvent*> e) {
 
 ActionStickerPackAuthor::ActionStickerPackAuthor(not_null<Menu::Menu*> menu,
 												 not_null<Main::Session*> session,
-												 ID authorId)
+												 TfId authorId)
 	: ActionWithSubText(menu,
 						menu->st(),
 						st::menuIconStickers,
@@ -216,7 +218,7 @@ ActionStickerPackAuthor::ActionStickerPackAuthor(not_null<Menu::Menu*> menu,
 	searchAuthor(authorId);
 }
 
-void ActionStickerPackAuthor::searchAuthor(ID authorId) {
+void ActionStickerPackAuthor::searchAuthor(TfId authorId) {
 	const auto session = _session;
 	const auto weak = base::make_weak(this);
 
@@ -313,7 +315,7 @@ base::unique_qptr<Menu::ItemBase> ContextActionWithSubText(
 base::unique_qptr<Menu::ItemBase> ContextActionStickerAuthor(
 	not_null<Menu::Menu*> menu,
 	not_null<Main::Session*> session,
-	ID authorId) {
+	TfId authorId) {
 	return base::make_unique_q<ActionStickerPackAuthor>(menu, session, authorId);
 }
 

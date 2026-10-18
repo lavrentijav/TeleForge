@@ -1,5 +1,7 @@
 #include "tfc/ui/ghost_online_bar.h"
 
+#include "lang_auto.h"
+
 #include "tfc/tf_settings.h"
 #include "lang/lang_keys.h"
 #include "ui/widgets/labels.h"

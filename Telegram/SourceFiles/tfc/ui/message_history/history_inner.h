@@ -53,7 +53,7 @@ public:
 		not_null<Window::SessionController*> controller,
 		not_null<PeerData*> peer,
 		HistoryItem *item,
-		ID topicId);
+		TfId topicId);
 
 	[[nodiscard]] Main::Session &session() const;
 
@@ -267,7 +267,7 @@ private:
 	const not_null<Window::SessionController*> _controller;
 	const not_null<PeerData*> _peer;
 	HistoryItem *_item;
-	ID _topicId;
+	TfId _topicId;
 	const not_null<History*> _history;
 	MTP::Sender _api;
 
@@ -299,8 +299,8 @@ private:
 	int _scrollDateLastItemTop = 0;
 
 	// Up - max, Down - min.
-	ID _maxId = 0;
-	ID _minId = 0;
+	TfId _maxId = 0;
+	TfId _minId = 0;
 
 	// Don't load anything until the memento was read.
 	bool _upLoaded = true;
