@@ -6,7 +6,7 @@
 
 #include "logs.h"
 
-#include "ayu/libs/sqlite/sqlite3.h"
+#include "tfc/libs/sqlite/sqlite3.h"
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDir>

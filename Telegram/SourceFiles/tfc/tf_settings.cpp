@@ -16,12 +16,12 @@
 #include "data/data_peer_id.h"
 #include "data/data_session.h"
 #include "features/filters/filters_cache_controller.h"
-#include "features/translator/ayu_translator.h"
+#include "features/translator/tf_translator.h"
 #include "history/history.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
 #include "rpl/combine.h"
-#include "ui/ayu_userpic.h"
+#include "ui/tf_userpic.h"
 #include "window/window_controller.h"
 
 #include <exception>

@@ -14,7 +14,7 @@
 #include "tfc/features/teleforge/teleforge_bootstrap.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
 #include "tfc/ui/tf_logo.h"
-#include "features/translator/ayu_translator.h"
+#include "features/translator/tf_translator.h"
 #include "lang/lang_instance.h"
 #include "utils/rc_manager.h"
 #include "logs.h"

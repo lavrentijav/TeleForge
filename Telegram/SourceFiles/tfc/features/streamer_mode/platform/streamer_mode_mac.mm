@@ -5,7 +5,7 @@
 //
 // Copyright @Radolyn, 2026
 
-#include "ayu/features/streamer_mode/platform/streamer_mode_mac.h"
+#include "tfc/features/streamer_mode/platform/streamer_mode_mac.h"
 
 #include "core/application.h"
 #include "window/window_controller.h"

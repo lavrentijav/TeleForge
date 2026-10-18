@@ -7,7 +7,7 @@
 #include "tfc/tf_worker.h"
 
 #include "apiwrap.h"
-#include "ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/features/presence/tf_presence_filter.h"
 #include "base/timer.h"
 #include "base/unixtime.h"
