@@ -48,7 +48,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	builder.addSubsectionTitle(tr::tf_RegexFilters());
 
 	const auto enabledButton = builder.addButton({
-		.id = u"ayu/filtersEnabled"_q,
+		.id = u"tf/filtersEnabled"_q,
 		.title = tr::tf_RegexFiltersEnable(),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->filtersEnabled()),
@@ -65,8 +65,8 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	}
 
 	const auto sharedButton = builder.addButton({
-		.id = u"ayu/filtersEnabledInChats"_q,
-		.altIds = { u"ayu/filtersInChats"_q },
+		.id = u"tf/filtersEnabledInChats"_q,
+		.altIds = { u"tf/filtersInChats"_q },
 		.title = tr::tf_RegexFiltersEnableSharedInChats(),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->filtersEnabledInChats()),
@@ -83,7 +83,7 @@ void BuildFiltersSettings(SectionBuilder &builder) {
 	}
 
 	const auto blockedButton = builder.addButton({
-		.id = u"ayu/hideFromBlocked"_q,
+		.id = u"tf/hideFromBlocked"_q,
 		.title = tr::tf_FiltersHideFromBlocked(),
 		.st = &st::settingsButtonNoIcon,
 		.toggled = rpl::single(settings->hideFromBlocked()),
@@ -108,7 +108,7 @@ void BuildShared(SectionBuilder &builder) {
 
 	const auto controller = builder.controller();
 	builder.addButton({
-		.id = u"ayu/sharedFilters"_q,
+		.id = u"tf/sharedFilters"_q,
 		.title = tr::tf_RegexFiltersShared(),
 		.st = &st::settingsButtonNoIcon,
 		.onClick = [=] {
@@ -123,8 +123,8 @@ void BuildShadowBan(SectionBuilder &builder) {
 	const auto controller = builder.controller();
 
 	builder.addButton({
-		.id = u"ayu/shadowBanIds"_q,
-		.altIds = { u"ayu/shadowBanList"_q },
+		.id = u"tf/shadowBanIds"_q,
+		.altIds = { u"tf/shadowBanList"_q },
 		.title = tr::tf_FiltersShadowBan(),
 		.st = &st::settingsButtonNoIcon,
 		.onClick = [=] {

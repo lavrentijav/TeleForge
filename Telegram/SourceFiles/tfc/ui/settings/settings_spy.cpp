@@ -265,7 +265,7 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 	ayu.addToggle({
 		.id = u"teleforge/spyMode"_q,
-		.altIds = { u"ayu/spyMode"_q },
+		.altIds = { u"tf/spyMode"_q },
 		.title = tr::tf_SpyModeGlobal(),
 		.getter = [] {
 			return TeleForge::Spy::spyModeGloballyEnabled();
@@ -320,13 +320,13 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle(tr::tf_SpyMessageSaving());
 
 	ayu.addSettingToggle({
-		.id = u"ayu/saveDeletedMessages"_q,
+		.id = u"tf/saveDeletedMessages"_q,
 		.title = tr::tf_SaveDeletedMessages(),
 		.getter = &TfSettings::saveDeletedMessages,
 		.setter = &TfSettings::setSaveDeletedMessages,
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/saveMessagesHistory"_q,
+		.id = u"tf/saveMessagesHistory"_q,
 		.title = tr::tf_SaveMessagesHistory(),
 		.getter = &TfSettings::saveMessagesHistory,
 		.setter = &TfSettings::setSaveMessagesHistory,
@@ -387,7 +387,7 @@ void BuildSpyEssentials(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	ayu.addSectionDivider();
 
 	ayu.addSettingToggle({
-		.id = u"ayu/saveForBots"_q,
+		.id = u"tf/saveForBots"_q,
 		.title = tr::tf_MessageSavingSaveForBots(),
 		.getter = &TfSettings::saveForBots,
 		.setter = &TfSettings::setSaveForBots,

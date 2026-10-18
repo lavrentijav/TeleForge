@@ -102,6 +102,9 @@ void RecentSearches::applyLocal(QByteArray serialized) {
 			_list.clear();
 			return;
 		}
+		if (value.startsWith(u"ayu/"_q)) {
+			value = u"tf/"_q + value.mid(4);
+		}
 		_list.push_back(value);
 	}
 }

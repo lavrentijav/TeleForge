@@ -44,8 +44,8 @@ void BuildCrashReporting(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle(tr::tf_CategoryOther());
 
 	ayu.addSettingToggle({
-		.id = u"ayu/crashReporting"_q,
-		.altIds = { u"ayu/crashlytics"_q },
+		.id = u"tf/crashReporting"_q,
+		.altIds = { u"tf/crashlytics"_q },
 		.title = tr::tf_CrashReporting(),
 		.getter = &TfSettings::crashReporting,
 		.setter = &TfSettings::setCrashReporting,
@@ -61,7 +61,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 
 	builder.addSkip();
 	builder.addButton({
-		.id = u"ayu/registerUrlScheme"_q,
+		.id = u"tf/registerUrlScheme"_q,
 		.title = tr::tf_RegisterURLScheme(),
 		.icon = { &st::menuIconLink },
 		.onClick = [=] {
@@ -70,7 +70,7 @@ void BuildOtherThings(SectionBuilder &builder) {
 		},
 	});
 	builder.addButton({
-		.id = u"ayu/resetSettings"_q,
+		.id = u"tf/resetSettings"_q,
 		.title = tr::tf_ResetSettings(),
 		.icon = { &st::menuIconRestore },
 		.onClick = [=] {

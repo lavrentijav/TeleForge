@@ -53,7 +53,7 @@ bool HasDrawerBots(not_null<Window::SessionController*> controller) {
 
 void BuildAppIcon(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle({
-		.id = u"ayu/appIcon"_q,
+		.id = u"tf/appIcon"_q,
 		.title = tr::tf_AppIconHeader(),
 	});
 
@@ -68,7 +68,7 @@ void BuildAppIcon(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addDivider();
 	builder.addSkip();
 	ayu.addSettingToggle({
-		.id = u"ayu/hideNotificationBadge"_q,
+		.id = u"tf/hideNotificationBadge"_q,
 		.title = tr::tf_HideNotificationBadge(),
 		.getter = &TfSettings::hideNotificationBadge,
 		.setter = &TfSettings::setHideNotificationBadge,
@@ -137,7 +137,7 @@ void BuildAvatarCorners(SectionBuilder &builder, TfSectionBuilder &ayu) {
 		};
 	}, [] {
 		return SearchEntry{
-			.id = u"ayu/avatarCorners"_q,
+			.id = u"tf/avatarCorners"_q,
 			.title = tr::tf_AvatarCorners(tr::now),
 		};
 	});
@@ -157,7 +157,7 @@ void BuildAvatarCorners(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	});
 
 	ayu.addSlider({
-		.id = u"ayu/avatarCornersSlider"_q,
+		.id = u"tf/avatarCornersSlider"_q,
 		.title = rpl::single(QString()),
 		.showTitle = false,
 		.steps = TfUiSettings::kMaxAvatarCorners + 1,
@@ -182,7 +182,7 @@ void BuildAvatarCorners(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	});
 
 	ayu.addSettingToggle({
-		.id = u"ayu/singleCornerRadius"_q,
+		.id = u"tf/singleCornerRadius"_q,
 		.title = tr::tf_SingleCornerRadius(),
 		.getter = &TfSettings::singleCornerRadius,
 		.setter = &TfSettings::setSingleCornerRadius,
@@ -199,22 +199,22 @@ void BuildAppearance(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle(tr::tf_CategoryAppearance());
 
 	ayu.addSettingToggle({
-		.id = u"ayu/materialSwitches"_q,
-		.altIds = { u"ayu/newSwitchStyle"_q },
+		.id = u"tf/materialSwitches"_q,
+		.altIds = { u"tf/newSwitchStyle"_q },
 		.title = tr::tf_MaterialSwitches(),
 		.getter = &TfSettings::materialSwitches,
 		.setter = &TfSettings::setMaterialSwitches,
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/disableCustomBackgrounds"_q,
-		.altIds = { u"ayu/customThemes"_q },
+		.id = u"tf/disableCustomBackgrounds"_q,
+		.altIds = { u"tf/customThemes"_q },
 		.title = tr::tf_DisableCustomBackgrounds(),
 		.getter = &TfSettings::disableCustomBackgrounds,
 		.setter = &TfSettings::setDisableCustomBackgrounds,
 	});
 
 	ayu.addSettingToggle({
-		.id = u"ayu/hidePremiumStatuses"_q,
+		.id = u"tf/hidePremiumStatuses"_q,
 		.title = tr::tf_HidePremiumStatuses(),
 		.getter = &TfSettings::hidePremiumStatuses,
 		.setter = &TfSettings::setHidePremiumStatuses,
@@ -222,7 +222,7 @@ void BuildAppearance(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 	const auto controller = builder.controller();
 	builder.addButton({
-		.id = u"ayu/monoFont"_q,
+		.id = u"tf/monoFont"_q,
 		.title = tr::tf_MonospaceFont(),
 		.st = &st::settingsButtonNoIcon,
 		.label = rpl::single(
@@ -245,15 +245,15 @@ void BuildChatFolders(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle(tr::tf_ChatFoldersHeader());
 
 	ayu.addSettingToggle({
-		.id = u"ayu/hideNotificationCounters"_q,
-		.altIds = { u"ayu/tabCounter"_q },
+		.id = u"tf/hideNotificationCounters"_q,
+		.altIds = { u"tf/tabCounter"_q },
 		.title = tr::tf_HideNotificationCounters(),
 		.getter = &TfSettings::hideNotificationCounters,
 		.setter = &TfSettings::setHideNotificationCounters,
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/hideAllChatsFolder"_q,
-		.altIds = { u"ayu/hideAllChats"_q },
+		.id = u"tf/hideAllChatsFolder"_q,
+		.altIds = { u"tf/hideAllChats"_q },
 		.title = tr::tf_HideAllChats(),
 		.getter = &TfSettings::hideAllChatsFolder,
 		.setter = &TfSettings::setHideAllChatsFolder,
@@ -266,7 +266,7 @@ void BuildTrayElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle(tr::tf_TrayElementsHeader());
 
 	ayu.addSettingToggle({
-		.id = u"ayu/showGhostToggleInTray"_q,
+		.id = u"tf/showGhostToggleInTray"_q,
 		.title = tr::tf_EnableGhostModeTray(),
 		.getter = &TfSettings::showGhostToggleInTray,
 		.setter = &TfSettings::setShowGhostToggleInTray,
@@ -274,7 +274,7 @@ void BuildTrayElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 #if defined Q_OS_WIN || defined Q_OS_MAC
 	ayu.addSettingToggle({
-		.id = u"ayu/showStreamerToggleInTray"_q,
+		.id = u"tf/showStreamerToggleInTray"_q,
 		.title = tr::tf_EnableStreamerModeTray(),
 		.getter = &TfSettings::showStreamerToggleInTray,
 		.setter = &TfSettings::setShowStreamerToggleInTray,
@@ -288,7 +288,7 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	builder.addSubsectionTitle(tr::tf_DrawerElementsHeader());
 
 	ayu.addSettingToggle({
-		.id = u"ayu/showMyProfileInDrawer"_q,
+		.id = u"tf/showMyProfileInDrawer"_q,
 		.title = tr::lng_menu_my_profile(),
 		.getter = &TfSettings::showMyProfileInDrawer,
 		.setter = &TfSettings::setShowMyProfileInDrawer,
@@ -298,7 +298,7 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	const auto controller = builder.controller();
 	if (controller && HasDrawerBots(controller)) {
 		ayu.addSettingToggle({
-			.id = u"ayu/showBotsInDrawer"_q,
+			.id = u"tf/showBotsInDrawer"_q,
 			.title = tr::lng_filters_type_bots(),
 			.getter = &TfSettings::showBotsInDrawer,
 			.setter = &TfSettings::setShowBotsInDrawer,
@@ -307,63 +307,63 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	}
 
 	ayu.addSettingToggle({
-		.id = u"ayu/showNewGroupInDrawer"_q,
+		.id = u"tf/showNewGroupInDrawer"_q,
 		.title = tr::lng_create_group_title(),
 		.getter = &TfSettings::showNewGroupInDrawer,
 		.setter = &TfSettings::setShowNewGroupInDrawer,
 		.icon = { &st::menuIconGroups },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showNewChannelInDrawer"_q,
+		.id = u"tf/showNewChannelInDrawer"_q,
 		.title = tr::lng_create_channel_title(),
 		.getter = &TfSettings::showNewChannelInDrawer,
 		.setter = &TfSettings::setShowNewChannelInDrawer,
 		.icon = { &st::menuIconChannel },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showContactsInDrawer"_q,
+		.id = u"tf/showContactsInDrawer"_q,
 		.title = tr::lng_menu_contacts(),
 		.getter = &TfSettings::showContactsInDrawer,
 		.setter = &TfSettings::setShowContactsInDrawer,
 		.icon = { &st::menuIconUserShow },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showCallsInDrawer"_q,
+		.id = u"tf/showCallsInDrawer"_q,
 		.title = tr::lng_menu_calls(),
 		.getter = &TfSettings::showCallsInDrawer,
 		.setter = &TfSettings::setShowCallsInDrawer,
 		.icon = { &st::menuIconPhone },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showSavedMessagesInDrawer"_q,
+		.id = u"tf/showSavedMessagesInDrawer"_q,
 		.title = tr::lng_saved_messages(),
 		.getter = &TfSettings::showSavedMessagesInDrawer,
 		.setter = &TfSettings::setShowSavedMessagesInDrawer,
 		.icon = { &st::menuIconSavedMessages },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showLReadToggleInDrawer"_q,
+		.id = u"tf/showLReadToggleInDrawer"_q,
 		.title = tr::tf_LReadMessages(),
 		.getter = &TfSettings::showLReadToggleInDrawer,
 		.setter = &TfSettings::setShowLReadToggleInDrawer,
 		.icon = { &st::tfLReadMenuIcon },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showSReadToggleInDrawer"_q,
+		.id = u"tf/showSReadToggleInDrawer"_q,
 		.title = tr::tf_SReadMessages(),
 		.getter = &TfSettings::showSReadToggleInDrawer,
 		.setter = &TfSettings::setShowSReadToggleInDrawer,
 		.icon = { &st::tfSReadMenuIcon },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showNightModeToggleInDrawer"_q,
+		.id = u"tf/showNightModeToggleInDrawer"_q,
 		.title = tr::lng_menu_night_mode(),
 		.getter = &TfSettings::showNightModeToggleInDrawer,
 		.setter = &TfSettings::setShowNightModeToggleInDrawer,
 		.icon = { &st::menuIconNightMode },
 	});
 	ayu.addSettingToggle({
-		.id = u"ayu/showGhostToggleInDrawer"_q,
+		.id = u"tf/showGhostToggleInDrawer"_q,
 		.title = tr::tf_GhostModeToggle(),
 		.getter = &TfSettings::showGhostToggleInDrawer,
 		.setter = &TfSettings::setShowGhostToggleInDrawer,
@@ -372,7 +372,7 @@ void BuildDrawerElements(SectionBuilder &builder, TfSectionBuilder &ayu) {
 
 #if defined Q_OS_WIN || defined Q_OS_MAC
 	ayu.addSettingToggle({
-		.id = u"ayu/showStreamerToggleInDrawer"_q,
+		.id = u"tf/showStreamerToggleInDrawer"_q,
 		.title = tr::tf_StreamerModeToggle(),
 		.getter = &TfSettings::showStreamerToggleInDrawer,
 		.setter = &TfSettings::setShowStreamerToggleInDrawer,

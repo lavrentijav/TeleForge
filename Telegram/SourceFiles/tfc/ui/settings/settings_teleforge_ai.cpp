@@ -239,7 +239,7 @@ void BuildAiTranslation(SectionBuilder &builder, TfSectionBuilder &ayu) {
 	});
 
 	ayu.addToggle({
-		.id = u"ayu/aiTranslationEnabled"_q,
+		.id = u"tf/aiTranslationEnabled"_q,
 		.title = tr::tf_AiTranslationEnabled(),
 		.getter = [=] {
 			return settings->aiTranslationEnabled();
@@ -249,7 +249,7 @@ void BuildAiTranslation(SectionBuilder &builder, TfSectionBuilder &ayu) {
 		},
 	});
 	ayu.addToggle({
-		.id = u"ayu/aiCompressionEnabled"_q,
+		.id = u"tf/aiCompressionEnabled"_q,
 		.title = tr::tf_AiCompressionEnabled(),
 		.getter = [=] {
 			return settings->aiCompressionEnabled();

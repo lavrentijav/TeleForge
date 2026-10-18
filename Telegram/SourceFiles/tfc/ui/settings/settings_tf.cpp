@@ -378,7 +378,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			state->refreshCheckboxes = std::move(collapsible.refresh);
 			if (wctx.highlights && collapsible.widget) {
 				wctx.highlights->push_back(std::make_pair(
-					u"ayu/ghostModeToggle"_q,
+					u"tf/ghostModeToggle"_q,
 					HighlightEntry{ collapsible.widget, {} }));
 			}
 
@@ -389,7 +389,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			);
 			if (wctx.highlights) {
 				wctx.highlights->push_back(std::make_pair(
-					u"ayu/markReadAfterAction"_q,
+					u"tf/markReadAfterAction"_q,
 					HighlightEntry{ markReadButton.get(), {} }));
 			}
 			markReadButton->toggleOn(
@@ -422,7 +422,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			);
 			if (wctx.highlights) {
 				wctx.highlights->push_back(std::make_pair(
-					u"ayu/useScheduledMessages"_q,
+					u"tf/useScheduledMessages"_q,
 					HighlightEntry{ scheduleButton.get(), {} }));
 			}
 			scheduleButton->toggleOn(
@@ -455,7 +455,7 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			);
 			if (wctx.highlights) {
 				wctx.highlights->push_back(std::make_pair(
-					u"ayu/sendWithoutSound"_q,
+					u"tf/sendWithoutSound"_q,
 					HighlightEntry{ silentButton.get(), {} }));
 			}
 			silentButton->toggleOn(
@@ -510,22 +510,22 @@ void BuildGhostEssentials(SectionBuilder &builder) {
 			arrow->setClickedCallback(showMenu);
 		}, [&](const SearchContext &sctx) {
 			sctx.entries->push_back({
-				.id = u"ayu/ghostModeToggle"_q,
+				.id = u"tf/ghostModeToggle"_q,
 				.title = tr::tf_GhostModeToggle(tr::now),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
-				.id = u"ayu/markReadAfterAction"_q,
+				.id = u"tf/markReadAfterAction"_q,
 				.title = tr::tf_MarkReadAfterAction(tr::now),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
-				.id = u"ayu/useScheduledMessages"_q,
+				.id = u"tf/useScheduledMessages"_q,
 				.title = tr::tf_UseScheduledMessages(tr::now),
 				.section = sctx.sectionId,
 			});
 			sctx.entries->push_back({
-				.id = u"ayu/sendWithoutSound"_q,
+				.id = u"tf/sendWithoutSound"_q,
 				.title = tr::tf_SendWithoutSoundByDefault(tr::now),
 				.section = sctx.sectionId,
 			});

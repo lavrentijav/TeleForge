@@ -190,7 +190,7 @@ bool HandleAyuSettings(
 		controller->showSettings(::Settings::TfMain::Id());
 	} else {
 		const auto resolved = ResolveSetting(
-			u"ayu/"_q + settingName,
+			u"tf/"_q + settingName,
 			&controller->session());
 		controller->window().setHighlightControlId(resolved.controlId);
 		controller->showSettings(resolved.section);
