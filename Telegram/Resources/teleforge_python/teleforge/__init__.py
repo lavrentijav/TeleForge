@@ -243,18 +243,18 @@ class _Ui:
     def add_menu_item(self, title: str, handler: Callable[[], Any],
                       item_id: Optional[str] = None) -> str:
         """Add a clickable item to the plugins menu. Returns its id."""
-        key = item_id or f"item_{len(_menu_items) + 1}_{title}"
-        _menu_items[key] = {"title": str(title), "handler": handler}
+        key = item_id or f"item_{len(_menu_store) + 1}_{title}"
+        _menu_store[key] = {"title": str(title), "handler": handler}
         return key
 
     def remove_menu_item(self, item_id: str) -> None:
-        _menu_items.pop(item_id, None)
+        _menu_store.pop(item_id, None)
 
 
 ui = _Ui()
 
 # id -> {"title": str, "handler": callable}
-_menu_items: dict[str, dict] = {}
+_menu_store: dict[str, dict] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +265,7 @@ def _reset() -> None:
     """Clear every registration. Called by the host before reloading plugins."""
     _tools.clear()
     _hooks.clear()
-    _menu_items.clear()
+    _menu_store.clear()
 
 
 def _dispatch_event(name: str, payload_json: str) -> Optional[str]:
@@ -302,12 +302,12 @@ def _menu_items() -> str:
     """Return the registered menu items as a JSON list of {id, title}."""
     return _json.dumps(
         [{"id": key, "title": value["title"]}
-         for key, value in _menu_items.items()])
+         for key, value in _menu_store.items()])
 
 
 def _invoke_menu(item_id: str) -> None:
     """Invoke the handler of a registered menu item by id."""
-    item = _menu_items.get(item_id)
+    item = _menu_store.get(item_id)
     if not item:
         return
     try:
