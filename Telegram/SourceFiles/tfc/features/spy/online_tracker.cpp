@@ -15,7 +15,7 @@ auto g_pending = std::vector<OnlineEvent>();
 auto g_mutex = std::mutex();
 auto g_flushScheduled = false;
 
-void flushPending() {
+void FlushPending() {
 	std::vector<OnlineEvent> batch;
 	{
 		const auto lock = std::unique_lock(g_mutex);
@@ -34,7 +34,7 @@ void ScheduleFlush() {
 	}
 	g_flushScheduled = true;
 	crl::on_main([] {
-		base::call_delayed(10000, [] { flushPending(); });
+		base::call_delayed(10000, [] { FlushPending(); });
 	});
 }
 
@@ -112,6 +112,10 @@ Data::LastseenStatus applyLastseen(
 	const auto now = base::unixtime::now();
 	RecordUserStatusAt(user, status, now);
 	return effectiveLastseen(user->id.value, status, now);
+}
+
+void flushPending() {
+	FlushPending();
 }
 
 } // namespace TeleForge::Spy
