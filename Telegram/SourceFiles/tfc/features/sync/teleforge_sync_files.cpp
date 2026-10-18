@@ -172,6 +172,9 @@ void SendUploadedDocument(const std::shared_ptr<UploadState> &state) {
 			scheduleRepeat = MTP_int(sendOptions.scheduleRepeatPeriod);
 		}
 	}
+	if (!sendOptions.scheduled) {
+		markGhostReadLocally(history);
+	}
 	auto &histories = history->owner().histories();
 	histories.sendPreparedMessage(
 		history,
