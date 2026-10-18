@@ -3,7 +3,7 @@
 
 #include "tray.h"
 #include "tfc/tf_settings.h"
-#include "tfc/ui/ayu_logo.h"
+#include "tfc/ui/tf_logo.h"
 #include "core/application.h"
 #include "main/main_domain.h"
 #include "styles/style_ayu_styles.h"

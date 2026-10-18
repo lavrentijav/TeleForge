@@ -4,11 +4,11 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "tfc/ui/settings/ayu_builder.h"
+#include "tfc/ui/settings/tf_builder.h"
 
 #include "tfc/tf_settings.h"
 #include "tfc/ui/components/dropdown_row.h"
-#include "tfc/ui/settings/settings_ayu_utils.h"
+#include "tfc/ui/settings/settings_tf_utils.h"
 #include "settings/settings_common.h"
 #include "styles/style_ayu_styles.h"
 #include "styles/style_boxes.h"

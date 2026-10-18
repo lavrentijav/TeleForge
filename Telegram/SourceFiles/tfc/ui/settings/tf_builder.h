@@ -7,7 +7,7 @@
 #pragma once
 
 #include "tfc/tf_settings.h"
-#include "tfc/ui/settings/settings_ayu_utils.h"
+#include "tfc/ui/settings/settings_tf_utils.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
 

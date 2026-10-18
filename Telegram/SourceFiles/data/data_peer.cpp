@@ -56,7 +56,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_shared_media.h"
 
 // AyuGram includes
-#include "tfc/ui/ayu_userpic.h"
+#include "tfc/ui/tf_userpic.h"
 
 
 namespace {

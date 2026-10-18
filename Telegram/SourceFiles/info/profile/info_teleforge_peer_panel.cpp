@@ -8,7 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_teleforge_peer_panel.h"
 
 #include "tfc/features/spy/online_history_storage.h"
-#include "tfc/ui/settings/settings_ayu_utils.h"
+#include "tfc/ui/settings/settings_tf_utils.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
 #include "tfc/ui/components/dropdown_row.h"
 #include "data/data_peer_id.h"

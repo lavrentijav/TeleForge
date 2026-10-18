@@ -11,7 +11,7 @@
 #include "tfc/tf_ui_settings.h"
 #include "tfc/tf_worker.h"
 #include "tfc/features/ghost/tf_ghost_read.h"
-#include "tfc/ui/ayu_logo.h"
+#include "tfc/ui/tf_logo.h"
 #include "core/application.h"
 #include "data/data_peer_id.h"
 #include "data/data_session.h"

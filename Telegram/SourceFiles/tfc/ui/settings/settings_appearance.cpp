@@ -12,7 +12,7 @@
 #include "tfc/ui/boxes/font_selector.h"
 #include "tfc/ui/components/avatar_corners_preview.h"
 #include "tfc/ui/components/icon_picker.h"
-#include "tfc/ui/settings/ayu_builder.h"
+#include "tfc/ui/settings/tf_builder.h"
 #include "tfc/ui/settings/settings_main.h"
 #include "core/application.h"
 #include "inline_bots/bot_attach_web_view.h"

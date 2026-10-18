@@ -8,11 +8,11 @@
 
 #include "lang_auto.h"
 #include "tfc/tf_settings.h"
-#include "tfc/data/ayu_database.h"
+#include "tfc/data/tf_database.h"
 #include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/features/filters/filters_utils.h"
 #include "tfc/ui/components/icon_picker.h"
-#include "tfc/ui/settings/settings_ayu_utils.h"
+#include "tfc/ui/settings/settings_tf_utils.h"
 #include "tfc/ui/settings/filters/edit_filter.h"
 #include "tfc/ui/settings/filters/per_dialog_filter.h"
 #include "tfc/utils/telegram_helpers.h"

@@ -40,7 +40,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 
 // TeleForge includes
-#include "tfc/ui/ayu_logo.h"
+#include "tfc/ui/tf_logo.h"
 
 
 namespace Intro {

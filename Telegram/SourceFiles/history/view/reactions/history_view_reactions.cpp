@@ -35,7 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "tfc/tf_settings.h"
 #include "tfc/features/message_shot/message_shot.h"
-#include "tfc/ui/ayu_userpic.h"
+#include "tfc/ui/tf_userpic.h"
 #include "tfc/features/filters/filters_controller.h"
 
 

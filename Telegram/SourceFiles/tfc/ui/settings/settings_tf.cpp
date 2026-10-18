@@ -4,13 +4,13 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "tfc/ui/settings/settings_ayu.h"
+#include "tfc/ui/settings/settings_tf.h"
 
 #include "lang_auto.h"
 #include "tfc/tf_settings.h"
-#include "tfc/ui/ayu_userpic.h"
-#include "tfc/ui/settings/ayu_builder.h"
-#include "tfc/ui/settings/settings_ayu_utils.h"
+#include "tfc/ui/tf_userpic.h"
+#include "tfc/ui/settings/tf_builder.h"
+#include "tfc/ui/settings/settings_tf_utils.h"
 #include "tfc/ui/settings/settings_main.h"
 #include "boxes/peer_list_box.h"
 #include "core/application.h"

@@ -8,7 +8,7 @@
 
 #include "tfc/utils/windows_utils.h"
 
-#include "tfc/ui/ayu_logo.h"
+#include "tfc/ui/tf_logo.h"
 #include "base/platform/win/base_windows_winrt.h"
 #include "platform/win/windows_app_user_model_id.h"
 

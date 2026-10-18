@@ -70,7 +70,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <array>
 
 // AyuGram includes
-#include "tfc/ui/ayu_logo.h"
+#include "tfc/ui/tf_logo.h"
 
 
 namespace Window {

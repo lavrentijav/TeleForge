@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "tfc/ui/utils/ayu_profile_values.h"
+#include "tfc/ui/utils/tf_profile_values.h"
 
 #include "tfc/tf_settings.h"
 #include "tfc/utils/telegram_helpers.h"

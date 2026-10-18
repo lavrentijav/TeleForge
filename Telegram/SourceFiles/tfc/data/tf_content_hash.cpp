@@ -1,4 +1,4 @@
-#include "tfc/data/ayu_content_hash.h"
+#include "tfc/data/tf_content_hash.h"
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QString>

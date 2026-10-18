@@ -8,8 +8,8 @@
 
 #include "lang_auto.h"
 #include "tfc/tf_settings.h"
-#include "tfc/ui/settings/ayu_builder.h"
-#include "tfc/ui/settings/settings_ayu_utils.h"
+#include "tfc/ui/settings/tf_builder.h"
+#include "tfc/ui/settings/settings_tf_utils.h"
 #include "tfc/ui/settings/settings_main.h"
 #include "core/application.h"
 #include "settings/settings_builder.h"

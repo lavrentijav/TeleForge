@@ -7,8 +7,8 @@
 #include "tfc/data/messages_storage.h"
 
 #include "tfc/tf_settings.h"
-#include "tfc/data/ayu_database.h"
-#include "tfc/utils/ayu_mapper.h"
+#include "tfc/data/tf_database.h"
+#include "tfc/utils/tf_mapper.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "base/unixtime.h"
 #include "data/data_forum_topic.h"

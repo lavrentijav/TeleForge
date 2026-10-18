@@ -8,10 +8,10 @@
 
 #include "lang_auto.h"
 #include "tfc/tf_settings.h"
-#include "tfc/data/ayu_database.h"
+#include "tfc/data/tf_database.h"
 #include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/ui/boxes/import_filters_box.h"
-#include "tfc/ui/settings/ayu_builder.h"
+#include "tfc/ui/settings/tf_builder.h"
 #include "tfc/ui/settings/settings_main.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"

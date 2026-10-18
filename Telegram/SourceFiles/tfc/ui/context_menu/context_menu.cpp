@@ -14,7 +14,7 @@
 #include "tfc/data/messages_storage.h"
 #include "tfc/features/spy/online_history_storage.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
-#include "tfc/features/forward/ayu_forward.h"
+#include "tfc/features/forward/tf_forward.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
 #include "tfc/ui/context_menu/menu_item_subtext.h"
 #include "tfc/ui/message_history/history_section.h"

@@ -8,7 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/outline_segments.h"
 
 // AyuGram includes
-#include "tfc/ui/ayu_userpic.h"
+#include "tfc/ui/tf_userpic.h"
 
 
 namespace Ui {

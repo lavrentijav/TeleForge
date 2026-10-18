@@ -103,7 +103,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <unordered_map>
 
 // AyuGram includes
-#include "tfc/ui/ayu_userpic.h"
+#include "tfc/ui/tf_userpic.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "styles/style_ayu_icons.h"
 

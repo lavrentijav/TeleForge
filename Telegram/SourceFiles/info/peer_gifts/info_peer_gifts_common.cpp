@@ -44,7 +44,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "tfc/tf_ui_settings.h"
-#include "tfc/ui/ayu_userpic.h"
+#include "tfc/ui/tf_userpic.h"
 
 
 namespace Info::PeerGifts {

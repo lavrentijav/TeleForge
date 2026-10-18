@@ -94,7 +94,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "tfc/ui/settings/settings_main.h"
-#include "tfc/ui/utils/ayu_profile_values.h"
+#include "tfc/ui/utils/tf_profile_values.h"
 #include "tfc/utils/telegram_helpers.h"
 
 namespace Settings {

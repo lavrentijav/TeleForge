@@ -4,9 +4,9 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "tfc/data/ayu_database.h"
+#include "tfc/data/tf_database.h"
 
-#include "tfc/data/ayu_content_hash.h"
+#include "tfc/data/tf_content_hash.h"
 #include "tfc/data/entities.h"
 #include "tfc/features/teleforge/teleforge_unified_db.h"
 #include "base/unixtime.h"

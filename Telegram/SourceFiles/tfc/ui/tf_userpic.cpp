@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "tfc/ui/ayu_userpic.h"
+#include "tfc/ui/tf_userpic.h"
 
 #include "tfc/tf_settings.h"
 #include "tfc/tf_ui_settings.h"

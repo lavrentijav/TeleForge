@@ -1,5 +1,5 @@
 // Copyright @Radolyn, 2026
-#include "tfc/ui/ayu_logo.h"
+#include "tfc/ui/tf_logo.h"
 
 #include "tfc/tf_settings.h"
 #include "styles/style_ayu_styles.h"

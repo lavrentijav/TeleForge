@@ -49,7 +49,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "tfc/features/message_shot/message_shot.h"
-#include "tfc/ui/ayu_userpic.h"
+#include "tfc/ui/tf_userpic.h"
 
 
 namespace HistoryView {

@@ -3,7 +3,7 @@
 #include "info/profile/info_tf_peer_archive_panel.h"
 
 #include "tfc/features/teleforge/tf_archive_userpics_box.h"
-#include "tfc/ui/settings/settings_ayu_utils.h"
+#include "tfc/ui/settings/settings_tf_utils.h"
 #include "tfc/features/teleforge/tf_peer_archive.h"
 #include "tfc/features/teleforge/tf_peer_archive_scheduler.h"
 #include "base/unixtime.h"

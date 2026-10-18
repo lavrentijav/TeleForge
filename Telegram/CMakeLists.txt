@@ -140,12 +140,12 @@ set(teleforge_extension_files
         tfc/tf_lang.h
         tfc/tf_infra.cpp
         tfc/tf_infra.h
-        tfc/utils/ayu_mapper.cpp
-        tfc/utils/ayu_mapper.h
+        tfc/utils/tf_mapper.cpp
+        tfc/utils/tf_mapper.h
         tfc/utils/qt_key_modifiers_extended.h
         tfc/utils/telegram_helpers.cpp
-        tfc/utils/ayu_delete_actions.cpp
-        tfc/utils/ayu_delete_actions.h
+        tfc/utils/tf_delete_actions.cpp
+        tfc/utils/tf_delete_actions.h
         tfc/utils/telegram_helpers.h
         tfc/utils/windows_utils.cpp
         tfc/utils/windows_utils.h
@@ -157,12 +157,12 @@ set(teleforge_extension_files
         tfc/utils/taptic_engine/platform/taptic_engine_dummy.h
         tfc/utils/taptic_engine/platform/taptic_engine_mac.mm
         tfc/utils/taptic_engine/platform/taptic_engine_mac.h
-        tfc/ui/ayu_logo.cpp
-        tfc/ui/ayu_logo.h
-        tfc/ui/ayu_userpic.cpp
-        tfc/ui/ayu_userpic.h
-        tfc/ui/utils/ayu_profile_values.cpp
-        tfc/ui/utils/ayu_profile_values.h
+        tfc/ui/tf_logo.cpp
+        tfc/ui/tf_logo.h
+        tfc/ui/tf_userpic.cpp
+        tfc/ui/tf_userpic.h
+        tfc/ui/utils/tf_profile_values.cpp
+        tfc/ui/utils/tf_profile_values.h
         tfc/ui/utils/color_cut_quantizer.cpp
         tfc/ui/utils/color_cut_quantizer.h
         tfc/ui/utils/color_utils.cpp
@@ -171,18 +171,18 @@ set(teleforge_extension_files
         tfc/ui/utils/palette.h
         tfc/ui/utils/itunes_search.cpp
         tfc/ui/utils/itunes_search.h
-        tfc/ui/settings/ayu_builder.cpp
-        tfc/ui/settings/ayu_builder.h
+        tfc/ui/settings/tf_builder.cpp
+        tfc/ui/settings/tf_builder.h
         tfc/ui/settings/settings_appearance.cpp
         tfc/ui/settings/settings_appearance.h
-        tfc/ui/settings/settings_ayu_utils.cpp
-        tfc/ui/settings/settings_ayu_utils.h
+        tfc/ui/settings/settings_tf_utils.cpp
+        tfc/ui/settings/settings_tf_utils.h
         tfc/ui/settings/settings_chats.cpp
         tfc/ui/settings/settings_chats.h
         tfc/ui/settings/settings_general.cpp
         tfc/ui/settings/settings_general.h
-        tfc/ui/settings/settings_ayu.cpp
-        tfc/ui/settings/settings_ayu.h
+        tfc/ui/settings/settings_tf.cpp
+        tfc/ui/settings/settings_tf.h
         tfc/ui/settings/settings_filters.cpp
         tfc/ui/settings/settings_filters.h
         tfc/ui/settings/settings_main.cpp
@@ -270,14 +270,14 @@ set(teleforge_extension_files
         tfc/features/message_shot/message_shot.h
         tfc/features/message_shot/message_shot_theme_state.cpp
         tfc/features/message_shot/message_shot_theme_state.h
-        tfc/features/forward/ayu_forward.cpp
-        tfc/features/forward/ayu_forward.h
-        tfc/features/forward/ayu_sync.cpp
-        tfc/features/forward/ayu_sync.h
-        tfc/features/translator/ayu_translator.cpp
-        tfc/features/translator/ayu_translator.h
-        tfc/features/translator/ayu_translate_actions.cpp
-        tfc/features/translator/ayu_translate_actions.h
+        tfc/features/forward/tf_forward.cpp
+        tfc/features/forward/tf_forward.h
+        tfc/features/forward/tf_forward_sync.cpp
+        tfc/features/forward/tf_forward_sync.h
+        tfc/features/translator/tf_translator.cpp
+        tfc/features/translator/tf_translator.h
+        tfc/features/translator/tf_translate_actions.cpp
+        tfc/features/translator/tf_translate_actions.h
         tfc/features/translator/html_parser.cpp
         tfc/features/translator/html_parser.h
         tfc/features/translator/implementations/google.cpp
@@ -347,8 +347,8 @@ set(teleforge_extension_files
         tfc/ui/settings/settings_spy.h
         tfc/features/teleforge/tf_chat_wallpaper_save.cpp
         tfc/features/teleforge/tf_chat_wallpaper_save.h
-        tfc/data/ayu_content_hash.cpp
-        tfc/data/ayu_content_hash.h
+        tfc/data/tf_content_hash.cpp
+        tfc/data/tf_content_hash.h
         tfc/features/sync/teleforge_sync.cpp
         tfc/features/sync/teleforge_sync.h
         tfc/features/sync/teleforge_sync_crypto.cpp
@@ -399,8 +399,8 @@ set(teleforge_extension_files
         tfc/data/messages_storage.cpp
         tfc/data/messages_storage.h
         tfc/data/entities.h
-        tfc/data/ayu_database.cpp
-        tfc/data/ayu_database.h
+        tfc/data/tf_database.cpp
+        tfc/data/tf_database.h
 
         info/profile/info_profile_music_button.cpp
         info/profile/info_profile_music_button.h

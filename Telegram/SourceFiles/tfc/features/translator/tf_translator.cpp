@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "tfc/features/translator/ayu_translator.h"
+#include "tfc/features/translator/tf_translator.h"
 
 #include "api/api_text_entities.h"
 #include "tfc/tf_settings.h"

@@ -70,7 +70,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "tfc/tf_settings.h"
 #include "tfc/utils/telegram_helpers.h"
-#include "tfc/features/forward/ayu_forward.h"
+#include "tfc/features/forward/tf_forward.h"
 
 
 class ShareBox::Inner final : public Ui::RpWidget {
