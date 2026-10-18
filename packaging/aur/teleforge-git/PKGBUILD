@@ -111,7 +111,9 @@ build() {
     -DDESKTOP_APP_USE_LLAMA_CPP=OFF
     -DTDESKTOP_API_ID=29721186
     -DTDESKTOP_API_HASH=196a54e79899fbf76333ded98ff5027f
-    -Wno-author
+    # Without this the build looks for the exact library paths of the Docker
+    # toolchain instead of the system libraries listed in depends.
+    -DDESKTOP_APP_USE_PACKAGED=ON
   )
   cmake "${_cmake_options[@]}"
   cmake --build build

@@ -13,16 +13,30 @@ provides=('teleforge' 'telegram-desktop')
 conflicts=('teleforge' 'teleforge-git' 'telegram-desktop' 'telegram-desktop-bin')
 options=('!strip' '!debug')
 
+# Runtime libraries of the release binary (Qt and the C++ runtime are linked
+# statically, so no qt6-* packages are needed here).
 depends=(
-  gcc-libs
+  bzip2
+  cairo
+  expat
+  fontconfig
+  freetype2
+  fribidi
   glib2
   glibc
+  graphite
+  harfbuzz
   hicolor-icon-theme
-  openssl
-  qt6-base
-  qt6-imageformats
-  qt6-svg
-  qt6-wayland
+  libbrotli
+  libpng
+  libselinux
+  libthai
+  libx11
+  libxcb
+  pango
+  pcre2
+  pixman
+  util-linux-libs
   xdg-utils
   zlib
 )
@@ -39,37 +53,16 @@ case "$CARCH" in
 esac
 
 source=("TeleForge-${pkgver}-${_artifact_arch}.tar.xz::https://github.com/lavrentijav/TeleForge/releases/download/v${pkgver}/TeleForge-${pkgver}-${_artifact_arch}.tar.xz")
-sha256sums=('SKIP')
+sha256sums_x86_64=('772c0c0ed07f0d021c417a9477db37a3d83e8e92a4e0bff2d0a6a480bf9917e8')
+# No aarch64 release artifact exists yet; replace SKIP with its checksum when
+# one is published.
+sha256sums_aarch64=('SKIP')
 
 package() {
-  cd "$srcdir/TeleForge"
+  # The release tarball is a plain DESTDIR tree rooted at usr/, not a folder
+  # with the executable at the top: usr/bin/TeleForge plus
+  # usr/share/{applications,dbus-1,icons,metainfo}.
+  cp -a "$srcdir/usr/." "$pkgdir/usr/"
 
-  install -Dm755 TeleForge "$pkgdir/usr/bin/teleforge"
-
-  install -Dm644 com.teleforge.desktop.desktop \
-    "$pkgdir/usr/share/applications/com.teleforge.desktop.desktop"
-  install -Dm644 com.teleforge.desktop.metainfo.xml \
-    "$pkgdir/usr/share/metainfo/com.teleforge.desktop.metainfo.xml"
-
-  for _icon in 16 32 64 128 256 512; do
-    if [[ -f "icons/${_icon}.png" ]]; then
-      install -Dm644 "icons/${_icon}.png" \
-        "$pkgdir/usr/share/icons/hicolor/${_icon}x${_icon}/apps/com.teleforge.desktop.png"
-    fi
-  done
-
-  for _mono in tray_monochrome tray_monochrome_attention tray_monochrome_mute; do
-    if [[ -f "icons/${_mono}.svg" ]]; then
-      install -Dm644 "icons/${_mono}.svg" \
-        "$pkgdir/usr/share/icons/hicolor/symbolic/apps/com.teleforge.desktop-${_mono#tray_monochrome}.svg"
-    fi
-  done
-
-  install -Dm644 com.teleforge.desktop.service \
-    "$pkgdir/usr/share/dbus-1/services/com.teleforge.desktop.service"
-
-  if [[ -d lib ]]; then
-    install -d "$pkgdir/usr/lib/teleforge"
-    cp -a lib/. "$pkgdir/usr/lib/teleforge/"
-  fi
+  chmod 755 "$pkgdir/usr/bin/TeleForge"
 }
