@@ -30,6 +30,8 @@ namespace TeleForge::Sync {
 namespace {
 
 const auto kMagic = QByteArray("TFSYNC1\0", 8);
+const auto kMagic2 = QByteArray("TFSYNC2\0", 8);
+constexpr auto kModeSize = 1;
 constexpr auto kNonceSize = 12;
 constexpr auto kTagSize = 16;
 constexpr auto kKeySize = 32;
@@ -547,25 +549,71 @@ QByteArray EncryptBundle(const QByteArray &plain, const QByteArray &key) {
 	return out;
 }
 
+QByteArray EncryptBundleEx(
+		const QByteArray &plain,
+		const QByteArray &key,
+		KeyMode mode,
+		const QByteArray &salt) {
+	const auto inner = EncryptBundle(plain, key);
+	if (inner.isEmpty()) {
+		return {};
+	}
+	auto header = QByteArray(kMagic2);
+	header.append(char(int(mode)));
+	auto normalized = salt.left(kSaltSize);
+	normalized = normalized.leftJustified(kSaltSize, char(0));
+	header.append(normalized);
+	return header + inner.mid(kMagic.size());
+}
+
+bool ReadBundleParams(
+		const QByteArray &encrypted,
+		KeyMode *mode,
+		QByteArray *salt) {
+	if (encrypted.startsWith(kMagic2)) {
+		if (mode) {
+			*mode = KeyMode(int(encrypted[kMagic2.size()]));
+		}
+		if (salt) {
+			*salt = encrypted.mid(kMagic2.size() + kModeSize, kSaltSize);
+		}
+		return true;
+	} else if (encrypted.startsWith(kMagic)) {
+		if (mode) {
+			*mode = KeyMode::DeviceV2;
+		}
+		if (salt) {
+			salt->clear();
+		}
+		return true;
+	}
+	return false;
+}
+
 namespace {
+
+[[nodiscard]] int HeaderSize(const QByteArray &encrypted) {
+	if (encrypted.startsWith(kMagic2)) {
+		return kMagic2.size() + kModeSize + kSaltSize;
+	}
+	return encrypted.startsWith(kMagic) ? kMagic.size() : 0;
+}
 
 [[nodiscard]] std::optional<QByteArray> DecryptBundleWithKey(
 		const QByteArray &encrypted,
 		const QByteArray &key) {
-	if (encrypted.size() < kMagic.size() + kNonceSize + kTagSize + 1) {
-		return std::nullopt;
-	}
-	if (!encrypted.startsWith(kMagic)) {
+	const auto header = HeaderSize(encrypted);
+	if (!header || encrypted.size() < header + kNonceSize + kTagSize + 1) {
 		return std::nullopt;
 	}
 	if (key.size() != kKeySize) {
 		return std::nullopt;
 	}
-	const auto nonce = encrypted.mid(kMagic.size(), kNonceSize);
+	const auto nonce = encrypted.mid(header, kNonceSize);
 	const auto tag = encrypted.right(kTagSize);
 	const auto ciphertext = encrypted.mid(
-		kMagic.size() + kNonceSize,
-		encrypted.size() - kMagic.size() - kNonceSize - kTagSize);
+		header + kNonceSize,
+		encrypted.size() - header - kNonceSize - kTagSize);
 
 	auto ctx = EVP_CIPHER_CTX_new();
 	if (!ctx) {

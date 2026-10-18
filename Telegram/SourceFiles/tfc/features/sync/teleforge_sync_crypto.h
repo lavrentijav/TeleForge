@@ -75,6 +75,23 @@ void MarkSyncMigrationComplete();
 	const std::vector<float> &vector,
 	const QByteArray &key);
 [[nodiscard]] QByteArray EncryptBundle(const QByteArray &plain, const QByteArray &key);
+
+// Self-describing bundle: the header records which derivation produced the key
+// and the salt used, so another device can rebuild the key from the passphrase
+// without any side channel. Older bundles keep the short header and are read as
+// LegacyV1/DeviceV2 depending on the key that opens them.
+[[nodiscard]] QByteArray EncryptBundleEx(
+	const QByteArray &plain,
+	const QByteArray &key,
+	KeyMode mode,
+	const QByteArray &salt);
+
+// Reads the header of a bundle without decrypting it.
+[[nodiscard]] bool ReadBundleParams(
+	const QByteArray &encrypted,
+	KeyMode *mode,
+	QByteArray *salt);
+
 [[nodiscard]] std::optional<QByteArray> DecryptBundle(
 	const QByteArray &encrypted,
 	const QByteArray &key);
