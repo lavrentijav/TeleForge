@@ -17,6 +17,7 @@
 #include "history/view/history_view_element.h"
 #include "main/main_account.h"
 #include "main/main_domain.h"
+#include "apiwrap.h"
 #include "main/main_session.h"
 
 #include "logs.h"
@@ -42,6 +43,7 @@ constexpr auto kFloodWaitMargin = crl::time(1000);
 struct Target {
 	TfId accountId = 0;
 	PeerId peerId;
+	TfId topicId = 0;
 	MsgId till;
 };
 
@@ -121,13 +123,19 @@ void RefreshPending(TfId accountId) {
 	return nullptr;
 }
 
-[[nodiscard]] std::map<TfId, int> MaxTillsForAccount(TfId accountId) {
-	auto result = std::map<TfId, int>();
+struct TillKey {
+	TfId peerId = 0;
+	TfId topicId = 0;
+	auto operator<=>(const TillKey &) const = default;
+};
+
+[[nodiscard]] std::map<TillKey, int> MaxTillsForAccount(TfId accountId) {
+	auto result = std::map<TillKey, int>();
 	for (const auto &row : TfDatabase::loadGhostReadForAccount(accountId)) {
 		if (row.msgId <= 0) {
 			continue;
 		}
-		auto &till = result[row.peerId];
+		auto &till = result[{ row.peerId, row.topicId }];
 		till = std::max(till, row.msgId);
 	}
 	return result;
@@ -173,7 +181,8 @@ void runBatch() {
 			TfDatabase::eraseGhostReadUpTo(
 				target.accountId,
 				TfId(target.peerId.value),
-				int(target.till.bare));
+				int(target.till.bare),
+				target.topicId);
 			RefreshPending(target.accountId);
 		}
 		state.issued.clear();
@@ -219,7 +228,16 @@ void runBatch() {
 		LOG(("GhostRead: flushing peer %1 till %2"
 			).arg(target.peerId.value
 			).arg(till.bare));
-		session->data().histories().readInboxTillForced(history, till);
+		if (target.topicId) {
+			session->api().request(MTPmessages_ReadDiscussion(
+				history->peer->input(),
+				MTP_int(target.topicId),
+				MTP_int(till.bare)
+			)).done([=](const MTPBool &) {
+			}).send();
+		} else {
+			session->data().histories().readInboxTillForced(history, till);
+		}
 		state.issued.push_back({
 			.accountId = target.accountId,
 			.peerId = target.peerId,
@@ -338,10 +356,11 @@ void scheduleFlush(not_null<Main::Session*> session) {
 	}
 	auto &state = State();
 	state.queue.clear();
-	for (const auto &[peerId, till] : tills) {
+	for (const auto &[key, till] : tills) {
 		state.queue.push_back({
 			.accountId = accountId,
-			.peerId = PeerId(peerId),
+			.peerId = PeerId(key.peerId),
+			.topicId = key.topicId,
 			.till = MsgId(till),
 		});
 	}

@@ -618,8 +618,21 @@ void eraseGhostReadForPeer(TfId accountId, TfId peerId) {
 	}
 }
 
-void eraseGhostReadUpTo(TfId accountId, TfId peerId, int msgId) {
+void eraseGhostReadUpTo(
+		TfId accountId,
+		TfId peerId,
+		int msgId,
+		TfId topicId) {
 	try {
+		if (topicId) {
+			db().remove_all<GhostReadMessage>(
+				where(
+					column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId
+					and column<GhostReadMessage>(&GhostReadMessage::peerId) == peerId
+					and column<GhostReadMessage>(&GhostReadMessage::topicId) == topicId
+					and column<GhostReadMessage>(&GhostReadMessage::msgId) <= msgId));
+			return;
+		}
 		db().remove_all<GhostReadMessage>(
 			where(
 				column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId

@@ -68,7 +68,11 @@ void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows);
 [[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForAccount(TfId accountId);
 [[nodiscard]] std::vector<GhostReadMessage> loadGhostReadForPeer(TfId accountId, TfId peerId);
 void eraseGhostReadForPeer(TfId accountId, TfId peerId);
-void eraseGhostReadUpTo(TfId accountId, TfId peerId, int msgId);
+void eraseGhostReadUpTo(
+	TfId accountId,
+	TfId peerId,
+	int msgId,
+	TfId topicId = 0);
 void eraseGhostReadForAccount(TfId accountId);
 void purgeGhostReadBefore(int timestamp);
 
