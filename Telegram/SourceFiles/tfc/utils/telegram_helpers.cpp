@@ -199,6 +199,12 @@ void readMentions(base::weak_ptr<Data::Thread> weakThread) {
 	if (!thread) {
 		return;
 	}
+	{
+		const auto &ghost = TfSettings::ghost(&thread->session());
+		if (ghost.isGhostModeActive() && !ghost.sendReadMessages()) {
+			return;
+		}
+	}
 	const auto peer = thread->peer();
 	const auto topic = thread->asTopic();
 	const auto rootId = topic ? topic->rootId() : 0;
@@ -224,6 +230,12 @@ void readReactions(base::weak_ptr<Data::Thread> weakThread) {
 	const auto thread = weakThread.get();
 	if (!thread) {
 		return;
+	}
+	{
+		const auto &ghost = TfSettings::ghost(&thread->session());
+		if (ghost.isGhostModeActive() && !ghost.sendReadMessages()) {
+			return;
+		}
 	}
 	const auto topic = thread->asTopic();
 	const auto sublist = thread->asSublist();
