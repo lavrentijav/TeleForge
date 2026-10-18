@@ -4,10 +4,10 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/data/ayu_database.h"
+#include "tfc/data/ayu_database.h"
 
-#include "ayu/data/ayu_content_hash.h"
-#include "ayu/data/entities.h"
+#include "tfc/data/ayu_content_hash.h"
+#include "tfc/data/entities.h"
 #include "ayu/features/teleforge/teleforge_unified_db.h"
 #include "base/unixtime.h"
 #include "logs.h"

@@ -4,10 +4,10 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/data/messages_storage.h"
+#include "tfc/data/messages_storage.h"
 
 #include "ayu/ayu_settings.h"
-#include "ayu/data/ayu_database.h"
+#include "tfc/data/ayu_database.h"
 #include "tfc/utils/ayu_mapper.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "base/unixtime.h"

@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "ayu/data/entities.h"
+#include "tfc/data/entities.h"
 #include "core/application.h"
 #include "data/data_session.h"
 #include "history/history_item_components.h"

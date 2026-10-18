@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ayu/data/ayu_database.h"
-#include "ayu/data/entities.h"
+#include "tfc/data/ayu_database.h"
+#include "tfc/data/entities.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/features/teleforge/tf_peer_archive_entities.h"
 #include "ayu/libs/sqlite/sqlite_orm.h"

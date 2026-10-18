@@ -8,7 +8,7 @@
 
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
-#include "ayu/data/ayu_database.h"
+#include "tfc/data/ayu_database.h"
 #include "ayu/features/filters/filters_cache_controller.h"
 #include "ayu/features/filters/filters_utils.h"
 #include "ayu/ui/components/icon_picker.h"

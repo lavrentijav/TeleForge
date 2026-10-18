@@ -2,8 +2,8 @@
 #include "ayu/features/ghost/tf_ghost_read.h"
 
 #include "ayu/ayu_settings.h"
-#include "ayu/data/ayu_database.h"
-#include "ayu/data/entities.h"
+#include "tfc/data/ayu_database.h"
+#include "tfc/data/entities.h"
 
 #include "base/flat_set.h"
 #include "base/timer.h"

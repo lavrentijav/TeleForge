@@ -1,7 +1,7 @@
 // Copyright @Radolyn, 2026
 #include "ayu/features/sync/teleforge_sync_rows.h"
 
-#include "ayu/data/entities.h"
+#include "tfc/data/entities.h"
 #include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/teleforge/teleforge_unified_db.h"
 

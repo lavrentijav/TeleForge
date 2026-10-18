@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "ayu/data/entities.h"
+#include "tfc/data/entities.h"
 #include "main/main_session.h"
 
 #include "base/unique_qptr.h"

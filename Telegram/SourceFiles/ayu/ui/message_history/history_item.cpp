@@ -8,8 +8,8 @@
 
 #include "history/history_item.h"
 #include "api/api_text_entities.h"
-#include "ayu/data/entities.h"
-#include "ayu/data/messages_storage.h"
+#include "tfc/data/entities.h"
+#include "tfc/data/messages_storage.h"
 #include "ayu/ui/message_history/history_inner.h"
 #include "tfc/utils/ayu_mapper.h"
 #include "base/unixtime.h"

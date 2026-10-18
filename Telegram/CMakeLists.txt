@@ -347,8 +347,8 @@ set(teleforge_extension_files
         ayu/ui/settings/settings_spy.h
         ayu/features/teleforge/tf_chat_wallpaper_save.cpp
         ayu/features/teleforge/tf_chat_wallpaper_save.h
-        ayu/data/ayu_content_hash.cpp
-        ayu/data/ayu_content_hash.h
+        tfc/data/ayu_content_hash.cpp
+        tfc/data/ayu_content_hash.h
         ayu/features/sync/teleforge_sync.cpp
         ayu/features/sync/teleforge_sync.h
         ayu/features/sync/teleforge_sync_crypto.cpp
@@ -396,11 +396,11 @@ set(teleforge_extension_files
         ayu/features/plugins/plugin_runner.h
         ayu/features/plugins/plugin_tool_registry.cpp
         ayu/features/plugins/plugin_tool_registry.h
-        ayu/data/messages_storage.cpp
-        ayu/data/messages_storage.h
-        ayu/data/entities.h
-        ayu/data/ayu_database.cpp
-        ayu/data/ayu_database.h
+        tfc/data/messages_storage.cpp
+        tfc/data/messages_storage.h
+        tfc/data/entities.h
+        tfc/data/ayu_database.cpp
+        tfc/data/ayu_database.h
 
         info/profile/info_profile_music_button.cpp
         info/profile/info_profile_music_button.h

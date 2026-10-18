@@ -4,8 +4,8 @@
 
 #include "api/api_text_entities.h"
 #include "ayu/ayu_settings.h"
-#include "ayu/data/entities.h"
-#include "ayu/data/messages_storage.h"
+#include "tfc/data/entities.h"
+#include "tfc/data/messages_storage.h"
 #include "tfc/utils/ayu_mapper.h"
 #include "base/call_delayed.h"
 #include "base/flat_set.h"

@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "ayu/data/entities.h"
+#include "tfc/data/entities.h"
 #include "settings/settings_common.h"
 #include "settings/settings_common_session.h"
 #include "ui/layers/box_content.h"

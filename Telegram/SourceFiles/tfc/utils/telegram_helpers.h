@@ -7,7 +7,7 @@
 #pragma once
 
 #include "api/api_common.h"
-#include "ayu/data/entities.h"
+#include "tfc/data/entities.h"
 #include "tfc/utils/rc_manager.h"
 #include "core/application.h"
 #include "data/data_media_types.h"

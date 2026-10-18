@@ -8,7 +8,7 @@
 
 #include "mainwindow.h"
 #include "qguiapplication.h"
-#include "ayu/data/entities.h"
+#include "tfc/data/entities.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "base/unixtime.h"
 #include "data/data_user.h"

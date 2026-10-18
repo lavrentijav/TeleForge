@@ -8,7 +8,7 @@
 
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
-#include "ayu/data/ayu_database.h"
+#include "tfc/data/ayu_database.h"
 #include "ayu/ui/settings/filters/settings_filters_list.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "data/data_peer.h"

@@ -10,7 +10,7 @@
 #include "ayu/ayu_settings.h"
 #include "ayu/ayu_ui_settings.h"
 #include "ayu/ayu_worker.h"
-#include "ayu/data/ayu_database.h"
+#include "tfc/data/ayu_database.h"
 #include "ayu/features/teleforge/teleforge_bootstrap.h"
 #include "ayu/features/teleforge/teleforge_storage.h"
 #include "ayu/ui/ayu_logo.h"
