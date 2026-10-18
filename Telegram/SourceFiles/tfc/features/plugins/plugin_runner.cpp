@@ -195,6 +195,9 @@ void ThreadLoop() {
 } // namespace
 
 void PluginRunner::ensureStarted() {
+	// The embedded interpreter is what takes the application down when it fails
+	// to start, and it starts on any session start. Off until that is fixed.
+	return;
 #ifdef TELEFORGE_WITH_PYTHON
 	auto lock = std::unique_lock(g_queueMutex);
 	if (g_threadStarted) {
