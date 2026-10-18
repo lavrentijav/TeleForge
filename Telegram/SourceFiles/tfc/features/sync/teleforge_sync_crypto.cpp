@@ -4,7 +4,10 @@
 #include "logs.h"
 #include "settings.h"
 
+#include <openssl/core_names.h>
 #include <openssl/evp.h>
+#include <openssl/kdf.h>
+#include <openssl/params.h>
 #include <openssl/rand.h>
 
 #include <QtCore/QCryptographicHash>
@@ -292,6 +295,90 @@ QByteArray DeriveLegacySyncKey(const QByteArray &masterMaterial) {
 		QByteArray("account"));
 }
 
+namespace {
+
+// Argon2id through OpenSSL's KDF provider (3.2+). Memory cost is kept at 64 MiB
+// and three passes: heavy enough to make offline guessing expensive, light
+// enough for a phone-class device to derive once at unlock.
+[[nodiscard]] QByteArray Argon2id(
+		const QByteArray &passphrase,
+		const QByteArray &salt) {
+	auto kdf = EVP_KDF_fetch(nullptr, "ARGON2ID", nullptr);
+	if (!kdf) {
+		return {};
+	}
+	auto ctx = EVP_KDF_CTX_new(kdf);
+	EVP_KDF_free(kdf);
+	if (!ctx) {
+		return {};
+	}
+	auto memcost = std::uint32_t(65536);
+	auto iterations = std::uint32_t(3);
+	auto lanes = std::uint32_t(1);
+	auto threads = std::uint32_t(1);
+	OSSL_PARAM params[] = {
+		OSSL_PARAM_construct_octet_string(
+			"pass",
+			const_cast<char*>(passphrase.constData()),
+			passphrase.size()),
+		OSSL_PARAM_construct_octet_string(
+			"salt",
+			const_cast<char*>(salt.constData()),
+			salt.size()),
+		OSSL_PARAM_construct_uint("memcost", &memcost),
+		OSSL_PARAM_construct_uint("iter", &iterations),
+		OSSL_PARAM_construct_uint("lanes", &lanes),
+		OSSL_PARAM_construct_uint("threads", &threads),
+		OSSL_PARAM_construct_end(),
+	};
+	auto result = QByteArray(kKeySize, Qt::Uninitialized);
+	const auto ok = (EVP_KDF_derive(
+		ctx,
+		reinterpret_cast<unsigned char*>(result.data()),
+		result.size(),
+		params) == 1);
+	EVP_KDF_CTX_free(ctx);
+	return ok ? result : QByteArray();
+}
+
+} // namespace
+
+QByteArray DeriveAccountKey(
+		const QByteArray &passphrase,
+		const QByteArray &accountBinding) {
+	if (passphrase.isEmpty()) {
+		return {};
+	}
+	return Argon2id(passphrase, KdfSalt() + accountBinding);
+}
+
+QByteArray KdfSalt() {
+	auto salt = g_stateSalt;
+	if (salt.size() == kSaltSize) {
+		return salt;
+	}
+
+	// No persisted salt yet: derive a stable one from the configured state.
+	return QCryptographicHash::hash(
+		QByteArray("TeleForge-Kdf-Salt-v1"),
+		QCryptographicHash::Sha256).left(kSaltSize);
+}
+
+QByteArray DeriveForMode(
+		KeyMode mode,
+		const QByteArray &secret,
+		const QByteArray &accountBinding,
+		const QByteArray &salt) {
+	switch (mode) {
+	case KeyMode::LegacyV1:
+		return DeriveLegacySyncKey(accountBinding);
+	case KeyMode::AccountArgon2id:
+		return Argon2id(secret, salt.isEmpty() ? KdfSalt() + accountBinding : salt);
+	case KeyMode::DeviceV2:
+	default:
+		return DeriveSyncKey(secret, {}, accountBinding);
+	}
+}
 QByteArray DeriveSyncKey(
 		const QByteArray &secret,
 		const QByteArray &optionalExportKey,

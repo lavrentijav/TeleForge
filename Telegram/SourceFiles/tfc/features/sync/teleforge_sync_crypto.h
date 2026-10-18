@@ -20,6 +20,27 @@ namespace TeleForge::Sync {
 	const QByteArray &optionalExportKey = {},
 	const QByteArray &accountBinding = {});
 
+// Account key: derived from a passphrase the user remembers, so any device
+// where that account logs in can read the archive without moving key material
+// between machines. Argon2id, salted with the account binding, so the server
+// (which never sees the passphrase) cannot derive it.
+[[nodiscard]] QByteArray DeriveAccountKey(
+	const QByteArray &passphrase,
+	const QByteArray &accountBinding);
+
+// Parameters recorded next to encrypted data so any device can reproduce the
+// key: mode tells which derivation was used, salt is public, cost is fixed.
+enum class KeyMode {
+	LegacyV1,
+	DeviceV2,
+	AccountArgon2id,
+};
+[[nodiscard]] QByteArray KdfSalt();
+[[nodiscard]] QByteArray DeriveForMode(
+	KeyMode mode,
+	const QByteArray &secret,
+	const QByteArray &accountBinding,
+	const QByteArray &salt = {});
 // 32 random bytes stored once per install (DPAPI-wrapped on Windows).
 [[nodiscard]] QByteArray DeviceSecret();
 
