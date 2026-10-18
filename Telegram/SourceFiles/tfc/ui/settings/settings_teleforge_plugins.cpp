@@ -176,7 +176,7 @@ const auto kMeta = BuildHelper({
 	.title = &tr::tf_CategoryTeleForgePlugins,
 	.icon = &st::menuIconBot,
 }, [](SectionBuilder &builder) {
-	auto ayu = TfSectionBuilder(builder);
+
 	const auto controller = builder.controller();
 	const auto pluginsHost = std::make_shared<QPointer<Ui::VerticalLayout>>();
 	const auto developersHost = std::make_shared<QPointer<Ui::VerticalLayout>>();

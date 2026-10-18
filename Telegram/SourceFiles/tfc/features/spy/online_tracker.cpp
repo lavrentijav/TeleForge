@@ -85,7 +85,6 @@ void RecordUserStatusAt(
 	if (user->isSelf()) {
 		return;
 	}
-	const auto now = base::unixtime::now();
 	auto event = OnlineEvent{
 		.userId = static_cast<long long>(user->id.value),
 		.timestamp = now,
