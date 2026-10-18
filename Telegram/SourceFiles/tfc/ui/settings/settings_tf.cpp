@@ -20,7 +20,7 @@
 #include "main/main_session.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"

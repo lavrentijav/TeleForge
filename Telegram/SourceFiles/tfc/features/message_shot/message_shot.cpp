@@ -27,7 +27,7 @@
 #include "history/view/history_view_element.h"
 #include "history/view/media/history_view_media.h"
 #include "main/main_session.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_chat.h"
 #include "styles/style_layers.h"
 #include "ui/painter.h"

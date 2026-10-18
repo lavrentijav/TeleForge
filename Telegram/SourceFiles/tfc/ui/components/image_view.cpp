@@ -8,7 +8,7 @@
 
 #include "tfc/features/message_shot/message_shot.h"
 #include "tfc/utils/telegram_helpers.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_chat.h"
 #include "ui/painter.h"
 

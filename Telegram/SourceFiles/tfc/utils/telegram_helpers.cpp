@@ -41,7 +41,7 @@
 #include "main/main_account.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "ui/emoji_config.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_entity.h"

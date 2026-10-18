@@ -6,7 +6,7 @@
 #include "tfc/ui/tf_logo.h"
 #include "core/application.h"
 #include "main/main_domain.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "ui/painter.h"
 #include "window/main_window.h"
 

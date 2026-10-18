@@ -37,7 +37,7 @@
 #include "history/view/history_view_context_menu.h"
 #include "history/view/history_view_element.h"
 #include "main/session/send_as_peers.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "ui/boxes/confirm_box.h"

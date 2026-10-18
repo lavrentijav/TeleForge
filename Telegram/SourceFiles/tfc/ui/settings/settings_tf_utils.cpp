@@ -8,7 +8,7 @@
 
 #include "lang/lang_text_entity.h"
 #include "settings/settings_common.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_edit_peer_members.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"

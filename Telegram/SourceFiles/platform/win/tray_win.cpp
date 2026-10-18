@@ -22,7 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_window.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 
 #include <qpa/qplatformscreen.h>
 #include <qpa/qplatformsystemtrayicon.h>

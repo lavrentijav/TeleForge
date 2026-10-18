@@ -105,7 +105,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "tfc/ui/tf_userpic.h"
 #include "tfc/utils/telegram_helpers.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 
 
 namespace Dialogs {

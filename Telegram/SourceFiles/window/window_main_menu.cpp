@@ -91,7 +91,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "tfc/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
 #include "tfc/features/streamer_mode/streamer_mode.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 #include "lang_auto.h"
 #include "tfc/ui/settings/settings_main.h"
 

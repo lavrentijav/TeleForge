@@ -5,7 +5,7 @@
 #include "ui/widgets/labels.h"
 #include "ui/painter.h"
 #include "styles/style_chat.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 
 namespace Ayu::GhostOnlineWarn {
 

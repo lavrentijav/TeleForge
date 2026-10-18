@@ -12,7 +12,7 @@
 #include "data/data_peer_id.h"
 #include "data/data_session.h"
 #include "main/main_session.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_settings.h"
 #include "ui/empty_userpic.h"

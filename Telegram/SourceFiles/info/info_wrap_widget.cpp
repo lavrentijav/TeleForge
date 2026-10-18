@@ -63,7 +63,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "tfc/ui/settings/filters/settings_filters_list.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "inline_bots/bot_attach_web_view.h"
-#include "styles/style_ayu_settings.h"
+#include "styles/style_tf_settings.h"
 #include "window/window_peer_menu.h"
 
 namespace Info {

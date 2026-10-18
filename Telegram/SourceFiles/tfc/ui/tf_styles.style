@@ -33,8 +33,8 @@ topBarAdmins: IconButton {
 	width: 40px;
 	height: topBarHeight;
 
-	icon: icon {{ "ayu/top_bar_admins", menuIconFg }};
-	iconOver: icon {{ "ayu/top_bar_admins", menuIconFgOver }};
+	icon: icon {{ "tf/top_bar_admins", menuIconFg }};
+	iconOver: icon {{ "tf/top_bar_admins", menuIconFgOver }};
 	iconPosition: point(4px, 11px);
 
 	rippleAreaPosition: point(0px, 7px);
@@ -48,8 +48,8 @@ topBarRecentActions: IconButton {
 	width: 40px;
 	height: topBarHeight;
 
-	icon: icon {{ "ayu/top_bar_recent_actions", menuIconFg }};
-	iconOver: icon {{ "ayu/top_bar_recent_actions", menuIconFgOver }};
+	icon: icon {{ "tf/top_bar_recent_actions", menuIconFg }};
+	iconOver: icon {{ "tf/top_bar_recent_actions", menuIconFgOver }};
 	iconPosition: point(4px, 11px);
 
 	rippleAreaPosition: point(0px, 7px);

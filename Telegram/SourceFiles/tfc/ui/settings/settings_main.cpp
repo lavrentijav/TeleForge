@@ -24,7 +24,7 @@
 #include "core/version.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
-#include "styles/style_ayu_settings.h"
+#include "styles/style_tf_settings.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"

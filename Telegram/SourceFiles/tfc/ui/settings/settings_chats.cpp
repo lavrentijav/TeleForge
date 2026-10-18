@@ -16,7 +16,7 @@
 #include "core/application.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"

@@ -121,7 +121,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "tfc/ui/utils/tf_profile_values.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "base/event_filter.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "ui/widgets/tooltip.h"
 #include "ui/text/text_entity.h"
 

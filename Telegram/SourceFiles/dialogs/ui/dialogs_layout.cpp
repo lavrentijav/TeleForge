@@ -52,7 +52,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 
 // AyuGram includes
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 
 
 namespace Dialogs::Ui {

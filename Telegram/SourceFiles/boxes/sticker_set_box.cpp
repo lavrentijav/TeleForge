@@ -82,7 +82,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "tfc/tf_settings.h"
 #include "tfc/utils/telegram_helpers.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "window/window_session_controller.h"
 #include "data/data_user.h"
 

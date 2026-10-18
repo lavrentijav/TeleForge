@@ -23,7 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "tfc/tf_settings.h"
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 
 
 namespace Ui {

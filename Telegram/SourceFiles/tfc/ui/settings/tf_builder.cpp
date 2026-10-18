@@ -10,7 +10,7 @@
 #include "tfc/ui/components/dropdown_row.h"
 #include "tfc/ui/settings/settings_tf_utils.h"
 #include "settings/settings_common.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_boxes.h"
 #include "styles/style_settings.h"
 #include "ui/boxes/single_choice_box.h"

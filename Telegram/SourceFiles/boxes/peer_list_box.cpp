@@ -45,7 +45,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QApplication>
 
 // AyuGram includes
-#include "styles/style_ayu_icons.h"
+#include "styles/style_tf_icons.h"
 #include "tfc/ui/tf_userpic.h"
 
 

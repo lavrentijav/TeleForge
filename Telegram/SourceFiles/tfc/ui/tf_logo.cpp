@@ -2,7 +2,7 @@
 #include "tfc/ui/tf_logo.h"
 
 #include "tfc/tf_settings.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "ui/rect.h"
 
 #include <QSvgRenderer>

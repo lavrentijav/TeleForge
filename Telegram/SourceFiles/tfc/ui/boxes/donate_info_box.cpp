@@ -11,7 +11,7 @@
 #include "core/ui_integration.h"
 #include "info/profile/info_profile_icon.h"
 #include "lang/lang_text_entity.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_boxes.h"
 #include "styles/style_giveaway.h"
 #include "styles/style_layers.h"

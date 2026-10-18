@@ -16,7 +16,7 @@
 #include "history/history_item.h"
 #include "main/main_session.h"
 #include "settings/settings_common.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 #include "ui/vertical_list.h"

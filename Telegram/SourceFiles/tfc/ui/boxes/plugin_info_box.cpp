@@ -18,7 +18,7 @@
 #include "chat_helpers/stickers_lottie.h"
 #include "history/view/media/history_view_sticker_player.h"
 #include "main/main_session.h"
-#include "styles/style_ayu_styles.h"
+#include "styles/style_tf_styles.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
 #include "styles/style_giveaway.h"
