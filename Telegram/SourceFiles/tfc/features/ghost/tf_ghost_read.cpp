@@ -29,6 +29,9 @@
 namespace TeleForge::GhostRead {
 namespace {
 
+constexpr auto kGhostReadRetentionDays = 90;
+
+
 constexpr auto kFlagIncoming = 1; // one per real unread message, counted
 constexpr auto kFlagRange = 2; // flush target only, never counted
 constexpr auto kFlushBatch = 4;
@@ -281,6 +284,10 @@ void rememberShownTill(
 			.readAt = now,
 			.flags = kFlagRange,
 		});
+	}
+	static auto purgedAccounts = std::set<TfId>();
+	if (purgedAccounts.emplace(accountId).second) {
+		TfDatabase::purgeGhostReadBefore(now - kGhostReadRetentionDays * 86400);
 	}
 	TfDatabase::insertGhostReadBatch(rows);
 	AccountsWithRows().emplace(accountId);
