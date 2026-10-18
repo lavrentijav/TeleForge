@@ -3,7 +3,7 @@
 
 #include "ayu/ayu_settings.h"
 #include "ayu/features/ghost/tf_ghost_audit.h"
-#include "ayu/features/spy/online_history_storage.h"
+#include "tfc/features/spy/online_history_storage.h"
 #include "ayu/features/teleforge/tf_archive_users_box.h"
 #include "ayu/features/teleforge/tf_peer_archive.h"
 #include "ayu/ui/settings/ayu_builder.h"

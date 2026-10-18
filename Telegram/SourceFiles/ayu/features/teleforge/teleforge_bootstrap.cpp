@@ -3,7 +3,7 @@
 #include "tfc/features/plugins/plugin_manager.h"
 #include "ayu/features/ghost/tf_ghost_read.h"
 #include "tfc/features/plugins/plugin_runner.h"
-#include "ayu/features/spy/online_history_storage.h"
+#include "tfc/features/spy/online_history_storage.h"
 #include "ayu/features/subscription/teleforge_subscription.h"
 #include "ayu/features/sync/teleforge_ssh_tunnel.h"
 #include "ayu/features/sync/teleforge_sync.h"

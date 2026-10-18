@@ -371,10 +371,10 @@ set(teleforge_extension_files
         ayu/features/sync/teleforge_sync_rows.h
         ayu/features/sync/teleforge_sync_transport.cpp
         ayu/features/sync/teleforge_sync_transport.h
-        ayu/features/spy/online_tracker.cpp
-        ayu/features/spy/online_tracker.h
-        ayu/features/spy/online_history_storage.cpp
-        ayu/features/spy/online_history_storage.h
+        tfc/features/spy/online_tracker.cpp
+        tfc/features/spy/online_tracker.h
+        tfc/features/spy/online_history_storage.cpp
+        tfc/features/spy/online_history_storage.h
         tfc/features/plugins/plugin_api.cpp
         tfc/features/plugins/plugin_api.h
         tfc/features/plugins/plugin_catalog.h

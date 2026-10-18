@@ -9,7 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ayu/features/ghost/tf_ghost_read.h"
 #include "ayu/features/ghost/tf_ghost_scheduled.h"
-#include "ayu/features/spy/online_tracker.h"
+#include "tfc/features/spy/online_tracker.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "main/main_app_config.h"
