@@ -87,7 +87,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QClipboard>
 
 // AyuGram includes
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"
 #include "ayu/features/streamer_mode/streamer_mode.h"

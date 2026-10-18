@@ -37,7 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_credits.h"
 
 // AyuGram includes
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "ayu/features/message_shot/message_shot.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "styles/style_ayu_icons.h"

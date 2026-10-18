@@ -2,7 +2,7 @@
 #include "tfc/ui/components/icon_picker.h"
 
 #include "tray.h"
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/ui/ayu_logo.h"
 #include "core/application.h"
 #include "main/main_domain.h"

@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 //
 // NOTE(TeleForge): sourced from lavrentijav/lib_ui (ayu/ayu_ui_settings.cpp).
-#include "ayu/ayu_ui_settings.h"
+#include "tfc/ayu_ui_settings.h"
 
 #include <algorithm>
 #include <cmath>

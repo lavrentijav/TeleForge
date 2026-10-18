@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/ayu_worker.h"
+#include "tfc/ayu_worker.h"
 
 #include "apiwrap.h"
 #include "ayu_settings.h"

@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/ayu_url_handlers.h"
+#include "tfc/ayu_url_handlers.h"
 
 #include "lang_auto.h"
 #include "mainwindow.h"

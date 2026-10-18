@@ -57,7 +57,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 
 // AyuGram includes
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/ui/settings/filters/edit_filter.h"
 #include "tfc/ui/settings/filters/settings_filters_list.h"

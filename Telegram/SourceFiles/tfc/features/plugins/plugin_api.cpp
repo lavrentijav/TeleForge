@@ -3,7 +3,7 @@
 
 #ifdef TELEFORGE_WITH_PYTHON
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "core/application.h"
 #include "main/main_domain.h"
 #include "main/main_account.h"

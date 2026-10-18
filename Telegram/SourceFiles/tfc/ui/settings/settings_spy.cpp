@@ -1,7 +1,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/settings/settings_spy.h"
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/features/ghost/tf_ghost_audit.h"
 #include "tfc/features/spy/online_history_storage.h"
 #include "tfc/features/teleforge/tf_archive_users_box.h"

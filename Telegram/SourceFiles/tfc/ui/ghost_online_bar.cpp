@@ -1,6 +1,6 @@
 #include "tfc/ui/ghost_online_bar.h"
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "lang/lang_keys.h"
 #include "ui/widgets/labels.h"
 #include "ui/painter.h"

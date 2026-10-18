@@ -83,7 +83,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 
 // AyuGram includes
-#include "ayu/ayu_url_handlers.h"
+#include "tfc/ayu_url_handlers.h"
 
 
 namespace Core {

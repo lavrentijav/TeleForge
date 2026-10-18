@@ -3,7 +3,7 @@
 #include "tfc/features/teleforge/tf_deleted_restore.h"
 
 #include "api/api_text_entities.h"
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/data/entities.h"
 #include "tfc/data/messages_storage.h"
 #include "tfc/utils/ayu_mapper.h"

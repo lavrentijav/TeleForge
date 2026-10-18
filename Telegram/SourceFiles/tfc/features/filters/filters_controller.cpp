@@ -7,7 +7,7 @@
 
 #include "tfc/features/filters/filters_controller.h"
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/features/filters/filters_utils.h"
 #include "tfc/utils/telegram_helpers.h"

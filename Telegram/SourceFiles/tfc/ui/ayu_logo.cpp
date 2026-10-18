@@ -1,7 +1,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/ayu_logo.h"
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "styles/style_ayu_styles.h"
 #include "ui/rect.h"
 

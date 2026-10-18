@@ -4,12 +4,12 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 
 #include "lang_auto.h"
 #include "tray.h"
-#include "ayu/ayu_ui_settings.h"
-#include "ayu/ayu_worker.h"
+#include "tfc/ayu_ui_settings.h"
+#include "tfc/ayu_worker.h"
 #include "tfc/features/ghost/tf_ghost_read.h"
 #include "tfc/ui/ayu_logo.h"
 #include "core/application.h"

@@ -1,6 +1,6 @@
 #include "tfc/features/sync/teleforge_sync.h"
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/features/sync/teleforge_sync_crypto.h"
 #include "tfc/features/sync/teleforge_sync_mysql.h"
 #include "tfc/features/sync/teleforge_sync_pg.h"

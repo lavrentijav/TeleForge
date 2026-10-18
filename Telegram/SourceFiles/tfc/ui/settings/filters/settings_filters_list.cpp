@@ -7,7 +7,7 @@
 #include "tfc/ui/settings/filters/settings_filters_list.h"
 
 #include "lang_auto.h"
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/data/ayu_database.h"
 #include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/features/filters/filters_utils.h"

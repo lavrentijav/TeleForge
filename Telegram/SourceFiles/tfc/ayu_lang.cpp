@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/ayu_lang.h"
+#include "tfc/ayu_lang.h"
 
 #include "qjsondocument.h"
 #include "core/application.h"

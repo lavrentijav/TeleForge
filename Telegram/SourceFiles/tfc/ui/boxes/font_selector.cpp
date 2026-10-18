@@ -6,8 +6,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/boxes/font_selector.h"
 
-#include "ayu/ayu_settings.h"
-#include "ayu/ayu_ui_settings.h"
+#include "tfc/ayu_settings.h"
+#include "tfc/ayu_ui_settings.h"
 #include "boxes/premium_preview_box.h"
 #include "core/application.h"
 #include "data/data_peer_values.h"

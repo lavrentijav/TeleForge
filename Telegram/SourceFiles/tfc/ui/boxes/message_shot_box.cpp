@@ -7,7 +7,7 @@
 #include "tfc/ui/boxes/message_shot_box.h"
 
 #include "lang_auto.h"
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/ui/boxes/theme_selector_box.h"
 #include "tfc/ui/components/image_view.h"
 #include "tfc/utils/telegram_helpers.h"

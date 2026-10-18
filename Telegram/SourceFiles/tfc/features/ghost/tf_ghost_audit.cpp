@@ -2,7 +2,7 @@
 
 #include "tfc/features/ghost/tf_ghost_audit.h"
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "base/unixtime.h"
 
 #include "logs.h"

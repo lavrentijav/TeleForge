@@ -4,12 +4,12 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/ayu_infra.h"
+#include "tfc/ayu_infra.h"
 
-#include "ayu/ayu_lang.h"
-#include "ayu/ayu_settings.h"
-#include "ayu/ayu_ui_settings.h"
-#include "ayu/ayu_worker.h"
+#include "tfc/ayu_lang.h"
+#include "tfc/ayu_settings.h"
+#include "tfc/ayu_ui_settings.h"
+#include "tfc/ayu_worker.h"
 #include "tfc/data/ayu_database.h"
 #include "tfc/features/teleforge/teleforge_bootstrap.h"
 #include "tfc/features/teleforge/teleforge_storage.h"

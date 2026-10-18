@@ -36,10 +36,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 
 // AyuGram includes
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/features/ghost/tf_ghost_audit.h"
 #include "tfc/features/ghost/tf_ghost_read.h"
-#include "ayu/ayu_worker.h"
+#include "tfc/ayu_worker.h"
 #include "tfc/utils/telegram_helpers.h"
 
 

@@ -87,8 +87,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "tfc/features/ghost/tf_ghost_read.h"
 #include "tfc/features/ghost/tf_ghost_scheduled.h"
-#include "ayu/ayu_settings.h"
-#include "ayu/ayu_state.h"
+#include "tfc/ayu_settings.h"
+#include "tfc/ayu_state.h"
 
 
 namespace {

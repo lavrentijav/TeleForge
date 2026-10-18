@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/ui/settings/settings_ayu_utils.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"

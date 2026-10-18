@@ -10,7 +10,7 @@
 #include "tfc/features/teleforge/teleforge_rerank.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
 #include "ayu/features/translator/ayu_translate_actions.h"
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/ui/settings/ayu_builder.h"
 #include "tfc/ui/settings/settings_ayu_utils.h"
 #include "lang_auto.h"

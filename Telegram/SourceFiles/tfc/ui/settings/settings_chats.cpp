@@ -7,7 +7,7 @@
 #include "tfc/ui/settings/settings_chats.h"
 
 #include "lang_auto.h"
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/ui/boxes/edit_mark_box.h"
 #include "tfc/ui/components/message_preview.h"
 #include "tfc/ui/settings/ayu_builder.h"

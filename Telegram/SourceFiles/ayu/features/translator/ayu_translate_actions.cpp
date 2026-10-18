@@ -8,7 +8,7 @@
 
 #include "api/api_transcribes.h"
 #include "apiwrap.h"
-#include "ayu/ayu_settings.h"
+#include "tfc/ayu_settings.h"
 #include "tfc/features/teleforge/teleforge_core.h"
 #include "tfc/features/teleforge/teleforge_lm_studio.h"
 #include "base/flat_set.h"
