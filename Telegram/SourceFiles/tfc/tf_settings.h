@@ -661,7 +661,7 @@ private:
 
 	rpl::variable<bool> _saveDeletedMessages = true;
 	rpl::variable<bool> _showDeletedInChat = true;
-	rpl::variable<bool> _ghostPassthroughMentions = true;
+	rpl::variable<bool> _ghostPassthroughMentions = false;
 	rpl::variable<int> _deletedRestoreLimit = 200;
 	rpl::variable<bool> _saveMessagesHistory = true;
 	rpl::variable<bool> _saveForBots = false;
