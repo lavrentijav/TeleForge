@@ -1,6 +1,6 @@
 // Copyright @Radolyn, 2026
 
-#include "ayu/features/subscription/teleforge_subscription.h"
+#include "tfc/features/subscription/teleforge_subscription.h"
 
 #include "tfc/features/plugins/plugin_catalog.h"
 #include "apiwrap.h"

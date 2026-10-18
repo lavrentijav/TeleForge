@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/translator/html_parser.h"
+#include "tfc/features/translator/html_parser.h"
 
 namespace Ayu::Translator::Html {
 

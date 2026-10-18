@@ -4,13 +4,13 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/translator/ayu_translator.h"
+#include "tfc/features/translator/ayu_translator.h"
 
 #include "api/api_text_entities.h"
 #include "tfc/ayu_settings.h"
-#include "ayu/features/translator/implementations/google.h"
-#include "ayu/features/translator/implementations/telegram.h"
-#include "ayu/features/translator/implementations/yandex.h"
+#include "tfc/features/translator/implementations/google.h"
+#include "tfc/features/translator/implementations/telegram.h"
+#include "tfc/features/translator/implementations/yandex.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
 #include "history/history_item.h"

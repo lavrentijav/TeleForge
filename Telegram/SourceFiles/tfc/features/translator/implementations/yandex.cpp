@@ -4,9 +4,9 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/translator/implementations/yandex.h"
+#include "tfc/features/translator/implementations/yandex.h"
 
-#include "ayu/features/translator/html_parser.h"
+#include "tfc/features/translator/html_parser.h"
 
 #include <memory>
 #include <QtCore/QPointer>

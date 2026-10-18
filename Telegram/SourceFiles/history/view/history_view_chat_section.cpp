@@ -137,7 +137,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "tfc/ayu_settings.h"
 #include "tfc/utils/telegram_helpers.h"
-#include "ayu/features/message_shot/message_shot.h"
+#include "tfc/features/message_shot/message_shot.h"
 #include "base/unixtime.h"
 
 

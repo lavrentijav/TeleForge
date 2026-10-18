@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/components/image_view.h"
 
-#include "ayu/features/message_shot/message_shot.h"
+#include "tfc/features/message_shot/message_shot.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "styles/style_ayu_styles.h"
 #include "styles/style_chat.h"

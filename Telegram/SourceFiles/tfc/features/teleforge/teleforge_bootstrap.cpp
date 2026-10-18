@@ -4,7 +4,7 @@
 #include "tfc/features/ghost/tf_ghost_read.h"
 #include "tfc/features/plugins/plugin_runner.h"
 #include "tfc/features/spy/online_history_storage.h"
-#include "ayu/features/subscription/teleforge_subscription.h"
+#include "tfc/features/subscription/teleforge_subscription.h"
 #include "tfc/features/sync/teleforge_ssh_tunnel.h"
 #include "tfc/features/sync/teleforge_sync.h"
 #include "tfc/features/teleforge/teleforge_core.h"

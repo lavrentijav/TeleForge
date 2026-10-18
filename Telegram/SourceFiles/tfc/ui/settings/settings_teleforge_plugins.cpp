@@ -9,7 +9,7 @@
 #include "tfc/features/plugins/plugin_manager.h"
 #include "tfc/features/plugins/plugin_registry.h"
 #include "tfc/features/plugins/plugin_runner.h"
-#include "ayu/features/subscription/teleforge_subscription.h"
+#include "tfc/features/subscription/teleforge_subscription.h"
 #include "tfc/ui/settings/ayu_builder.h"
 #include "tfc/ui/settings/settings_ayu_utils.h"
 #include "tfc/ui/settings/settings_main.h"

@@ -18,7 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 
 // AyuGram includes
-#include "ayu/features/message_shot/message_shot.h"
+#include "tfc/features/message_shot/message_shot.h"
 #include <QtGui/QGuiApplication>
 #include <QtGui/QPalette>
 

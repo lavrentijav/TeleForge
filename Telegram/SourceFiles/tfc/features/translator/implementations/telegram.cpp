@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/translator/implementations/telegram.h"
+#include "tfc/features/translator/implementations/telegram.h"
 
 #include "api/api_text_entities.h"
 #include "main/main_session.h"

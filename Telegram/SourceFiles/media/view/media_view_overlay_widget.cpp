@@ -136,7 +136,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <kurlmimedata.h>
 
 // AyuGram includes
-#include "ayu/features/streamer_mode/streamer_mode.h"
+#include "tfc/features/streamer_mode/streamer_mode.h"
 
 
 namespace Media {

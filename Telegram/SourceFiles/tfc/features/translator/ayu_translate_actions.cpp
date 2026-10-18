@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/translator/ayu_translate_actions.h"
+#include "tfc/features/translator/ayu_translate_actions.h"
 
 #include "api/api_transcribes.h"
 #include "apiwrap.h"

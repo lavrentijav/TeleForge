@@ -253,49 +253,49 @@ set(teleforge_extension_files
         tfc/ui/components/message_preview.h
         tfc/ui/components/saved_music.cpp
         tfc/ui/components/saved_music.h
-        ayu/libs/json.hpp
-        ayu/libs/json_ext.hpp
-        ayu/libs/sqlite/sqlite3.c
-        ayu/libs/sqlite/sqlite3.h
-        ayu/libs/sqlite/sqlite_orm.h
-        ayu/features/streamer_mode/platform/streamer_mode_win.cpp
-        ayu/features/streamer_mode/platform/streamer_mode_win.h
-        ayu/features/streamer_mode/platform/streamer_mode_linux.cpp
-        ayu/features/streamer_mode/platform/streamer_mode_linux.h
-        ayu/features/streamer_mode/platform/streamer_mode_mac.mm
-        ayu/features/streamer_mode/platform/streamer_mode_mac.h
-        ayu/features/streamer_mode/streamer_mode.cpp
-        ayu/features/streamer_mode/streamer_mode.h
-        ayu/features/message_shot/message_shot.cpp
-        ayu/features/message_shot/message_shot.h
-        ayu/features/message_shot/message_shot_theme_state.cpp
-        ayu/features/message_shot/message_shot_theme_state.h
+        tfc/libs/json.hpp
+        tfc/libs/json_ext.hpp
+        tfc/libs/sqlite/sqlite3.c
+        tfc/libs/sqlite/sqlite3.h
+        tfc/libs/sqlite/sqlite_orm.h
+        tfc/features/streamer_mode/platform/streamer_mode_win.cpp
+        tfc/features/streamer_mode/platform/streamer_mode_win.h
+        tfc/features/streamer_mode/platform/streamer_mode_linux.cpp
+        tfc/features/streamer_mode/platform/streamer_mode_linux.h
+        tfc/features/streamer_mode/platform/streamer_mode_mac.mm
+        tfc/features/streamer_mode/platform/streamer_mode_mac.h
+        tfc/features/streamer_mode/streamer_mode.cpp
+        tfc/features/streamer_mode/streamer_mode.h
+        tfc/features/message_shot/message_shot.cpp
+        tfc/features/message_shot/message_shot.h
+        tfc/features/message_shot/message_shot_theme_state.cpp
+        tfc/features/message_shot/message_shot_theme_state.h
         tfc/features/forward/ayu_forward.cpp
         tfc/features/forward/ayu_forward.h
         tfc/features/forward/ayu_sync.cpp
         tfc/features/forward/ayu_sync.h
-        ayu/features/translator/ayu_translator.cpp
-        ayu/features/translator/ayu_translator.h
-        ayu/features/translator/ayu_translate_actions.cpp
-        ayu/features/translator/ayu_translate_actions.h
-        ayu/features/translator/html_parser.cpp
-        ayu/features/translator/html_parser.h
-        ayu/features/translator/implementations/google.cpp
-        ayu/features/translator/implementations/google.h
-        ayu/features/translator/implementations/yandex.cpp
-        ayu/features/translator/implementations/yandex.h
-        ayu/features/translator/implementations/telegram.cpp
-        ayu/features/translator/implementations/telegram.h
-        ayu/features/translator/implementations/base.cpp
-        ayu/features/translator/implementations/base.h
+        tfc/features/translator/ayu_translator.cpp
+        tfc/features/translator/ayu_translator.h
+        tfc/features/translator/ayu_translate_actions.cpp
+        tfc/features/translator/ayu_translate_actions.h
+        tfc/features/translator/html_parser.cpp
+        tfc/features/translator/html_parser.h
+        tfc/features/translator/implementations/google.cpp
+        tfc/features/translator/implementations/google.h
+        tfc/features/translator/implementations/yandex.cpp
+        tfc/features/translator/implementations/yandex.h
+        tfc/features/translator/implementations/telegram.cpp
+        tfc/features/translator/implementations/telegram.h
+        tfc/features/translator/implementations/base.cpp
+        tfc/features/translator/implementations/base.h
         tfc/features/filters/filters_controller.cpp
         tfc/features/filters/filters_controller.h
         tfc/features/filters/filters_cache_controller.cpp
         tfc/features/filters/filters_cache_controller.h
         tfc/features/filters/filters_utils.cpp
         tfc/features/filters/filters_utils.h
-        ayu/features/subscription/teleforge_subscription.cpp
-        ayu/features/subscription/teleforge_subscription.h
+        tfc/features/subscription/teleforge_subscription.cpp
+        tfc/features/subscription/teleforge_subscription.h
         tfc/features/teleforge/teleforge_bootstrap.cpp
         tfc/features/teleforge/teleforge_bootstrap.h
         tfc/features/teleforge/teleforge_core.cpp

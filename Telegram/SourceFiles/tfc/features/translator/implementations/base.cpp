@@ -4,7 +4,7 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/translator/implementations/base.h"
+#include "tfc/features/translator/implementations/base.h"
 
 #include "base/random.h"
 

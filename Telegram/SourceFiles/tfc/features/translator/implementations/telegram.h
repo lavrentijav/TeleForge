@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "ayu/features/translator/implementations/base.h"
+#include "tfc/features/translator/implementations/base.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QSet>

@@ -124,7 +124,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // AyuGram includes
 #include "tfc/ayu_settings.h"
 #include "tfc/features/forward/ayu_forward.h"
-#include "ayu/features/translator/ayu_translate_actions.h"
+#include "tfc/features/translator/ayu_translate_actions.h"
 #include "tfc/ui/context_menu/context_menu.h"
 
 

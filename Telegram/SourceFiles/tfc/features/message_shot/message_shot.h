@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "ayu/features/message_shot/message_shot_theme_state.h"
+#include "tfc/features/message_shot/message_shot_theme_state.h"
 #include "history/view/history_view_list_widget.h"
 #include "ui/chat/chat_style.h"
 #include "window/window_session_controller.h"

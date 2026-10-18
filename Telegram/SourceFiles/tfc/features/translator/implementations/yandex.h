@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "ayu/features/translator/implementations/base.h"
+#include "tfc/features/translator/implementations/base.h"
 
 #include <QtCore/QObject>
 #include <QtCore/QPointer>
@@ -15,24 +15,24 @@
 
 namespace Ayu::Translator {
 
-class GoogleTranslator final : public MultiThreadTranslator
+class YandexTranslator final : public MultiThreadTranslator
 {
 	Q_OBJECT
 
 public:
-	static GoogleTranslator &instance();
+	static YandexTranslator &instance();
 
-	// all languages
-	[[nodiscard]] QSet<QString> supportedLanguages() const override { return {}; }
+	[[nodiscard]] QSet<QString> supportedLanguages() const override;
 
 	[[nodiscard]] QPointer<QNetworkReply> startSingleTranslation(
 		const MultiThreadArgs &args
 	) override;
 
 private:
-	explicit GoogleTranslator(QObject *parent = nullptr);
+	explicit YandexTranslator(QObject *parent = nullptr);
 
 	QNetworkAccessManager _nam;
+	QString _uuid;
 };
 
 }

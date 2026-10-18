@@ -19,7 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "tfc/ayu_settings.h"
-#include "ayu/features/streamer_mode/streamer_mode.h"
+#include "tfc/features/streamer_mode/streamer_mode.h"
 #include "window/window_controller.h"
 #include "lang_auto.h"
 

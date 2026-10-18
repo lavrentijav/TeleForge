@@ -112,7 +112,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "tfc/ayu_infra.h"
-#include "ayu/features/streamer_mode/streamer_mode.h"
+#include "tfc/features/streamer_mode/streamer_mode.h"
 
 
 namespace Core {
