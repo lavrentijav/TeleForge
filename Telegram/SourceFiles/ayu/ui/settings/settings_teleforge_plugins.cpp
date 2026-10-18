@@ -73,12 +73,15 @@ namespace {
 void ShowSubscribePrompt(
 		not_null<Window::SessionController*> controller) {
 	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setTitle(rpl::single(u"Подпишитесь на TeleForge"_q));
+		box->setTitle(tr::ayu_PluginsSubscribeTitle());
 		const auto layout = box->verticalLayout();
 		for (const auto &ch : TeleForge::Plugins::Catalog::kSubscribeChannels) {
 			const auto username = QString::fromLatin1(ch.username);
-			const auto label = u"%1 (@%2)"_q.arg(
+			const auto label = tr::ayu_PluginsChannelLabel(
+				tr::now,
+				lt_title,
 				QString::fromLatin1(ch.title),
+				lt_username,
 				username);
 			const auto button = layout->add(
 				object_ptr<Ui::SettingsButton>(
@@ -98,11 +101,14 @@ void ShowChannelOffersBox(
 		not_null<Window::SessionController*> controller,
 		const QVector<TeleForge::Plugins::ChannelPluginOffer> &offers) {
 	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setTitle(rpl::single(u"Плагины в канале разработчика"_q));
+		box->setTitle(tr::ayu_PluginsChannelOffersTitle());
 		const auto layout = box->verticalLayout();
 		for (const auto &offer : offers) {
-			const auto label = u"%1 — @%2 (подпись OK)"_q.arg(
+			const auto label = tr::ayu_PluginsChannelOfferLabel(
+				tr::now,
+				lt_file,
 				offer.fileName,
+				lt_channel,
 				offer.channelUsername);
 			const auto button = layout->add(
 				object_ptr<Ui::SettingsButton>(
@@ -121,9 +127,7 @@ void ShowChannelOffersBox(
 			});
 		}
 		if (offers.isEmpty()) {
-			AddSettingsHint(
-				layout,
-				rpl::single(u"Нет подписанных плагинов в канале."_q));
+			AddSettingsHint(layout, tr::ayu_PluginsNoChannelOffers());
 		}
 	}));
 }
@@ -132,12 +136,16 @@ void ShowCatalogInstallBox(
 		not_null<Window::SessionController*> controller,
 		const QVector<TeleForge::Plugins::CatalogEntry> &entries) {
 	controller->uiShow()->showBox(Box([=](not_null<Ui::GenericBox*> box) {
-		box->setTitle(rpl::single(u"Каталог плагинов"_q));
+		box->setTitle(tr::ayu_PluginsCatalogTitle());
 		const auto layout = box->verticalLayout();
 		for (const auto &entry : entries) {
-			const auto label = u"%1 — %2\nРазработчик: %3"_q.arg(
+			const auto label = tr::ayu_PluginsCatalogEntryLabel(
+				tr::now,
+				lt_file,
 				entry.fileName,
+				lt_title,
 				entry.title,
+				lt_developer,
 				entry.devId.isEmpty() ? entry.sourceLabel : entry.devId);
 			const auto button = layout->add(
 				object_ptr<Ui::SettingsButton>(
@@ -155,9 +163,7 @@ void ShowCatalogInstallBox(
 			});
 		}
 		if (entries.isEmpty()) {
-			AddSettingsHint(
-				layout,
-				rpl::single(u"Каталог пуст."_q));
+			AddSettingsHint(layout, tr::ayu_PluginsCatalogEmpty());
 		}
 	}));
 }
@@ -165,7 +171,7 @@ void ShowCatalogInstallBox(
 const auto kMeta = BuildHelper({
 	.id = TeleForgePlugins::Id(),
 	.parentId = AyuMain::Id(),
-	.title = u"Плагины"_q,
+	.title = &tr::ayu_CategoryTeleForgePlugins,
 	.icon = &st::menuIconBot,
 }, [](SectionBuilder &builder) {
 	auto ayu = AyuSectionBuilder(builder);
@@ -182,7 +188,7 @@ const auto kMeta = BuildHelper({
 	}
 
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Подписки (рекомендуем)"_q));
+	builder.addSubsectionTitle(tr::ayu_PluginsSubscriptionsSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -191,7 +197,10 @@ const auto kMeta = BuildHelper({
 				const auto subscribe = wctx.container->add(
 					object_ptr<Ui::SettingsButton>(
 						wctx.container,
-						rpl::single(u"Подписаться: @%1"_q.arg(username)),
+						tr::ayu_PluginsSubscribeTo(
+							tr::now,
+							lt_channel,
+							username),
 						st::settingsButtonNoIcon));
 				subscribe->setClickedCallback([=] {
 					controller->showPeerByLink(Window::PeerByLinkInfo{
@@ -202,7 +211,7 @@ const auto kMeta = BuildHelper({
 			const auto remind = wctx.container->add(
 				object_ptr<Ui::SettingsButton>(
 					wctx.container,
-					rpl::single(u"Напомнить про подписку"_q),
+					tr::ayu_PluginsRemindSubscription(),
 					st::settingsButtonNoIcon));
 			remind->setClickedCallback([=] {
 				ShowSubscribePrompt(controller);
@@ -213,13 +222,11 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Удостоверенные разработчики"_q));
+	builder.addSubsectionTitle(tr::ayu_PluginsDevelopersSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			AddHint(
-				wctx.container,
-				u"Удостоверенные каналы разработчиков (developers.txt)."_q);
+			AddHint(wctx.container, tr::ayu_PluginsDevelopersHint(tr::now));
 		}, [](const SearchContext &) {});
 	});
 
@@ -231,9 +238,7 @@ const auto kMeta = BuildHelper({
 		(*developersHost)->clear();
 		const auto devs = TeleForge::Plugins::cachedTrustedDevelopers();
 		if (devs.isEmpty()) {
-			AddHint(
-				*developersHost,
-				u"Нажмите «Обновить список разработчиков»."_q);
+			AddHint(*developersHost, tr::ayu_PluginsDevelopersEmpty(tr::now));
 			return;
 		}
 		for (const auto &dev : devs) {
@@ -241,11 +246,16 @@ const auto kMeta = BuildHelper({
 				object_ptr<Ui::VerticalLayout>((*developersHost).data()));
 			AddHint(
 				block,
-				u"%1 · @%2"_q.arg(dev.title, dev.channelUsername));
+				tr::ayu_PluginsDeveloperLabel(
+					tr::now,
+					lt_title,
+					dev.title,
+					lt_channel,
+					dev.channelUsername));
 			const auto open = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
-					rpl::single(u"Открыть канал разработчика"_q),
+					tr::ayu_PluginsOpenDevChannel(),
 					st::settingsButtonNoIcon));
 			open->setClickedCallback([=] {
 				controller->showPeerByLink(Window::PeerByLinkInfo{
@@ -255,10 +265,13 @@ const auto kMeta = BuildHelper({
 			const auto scan = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
-					rpl::single(u"Найти подписанные плагины в канале"_q),
+					tr::ayu_PluginsScanChannel(),
 					st::settingsButtonNoIcon));
 			scan->setClickedCallback([=, id = dev.devId] {
-				controller->showToast(u"Сканирование @%1…"_q.arg(dev.channelUsername));
+				controller->showToast(tr::ayu_PluginsScanningChannel(
+					tr::now,
+					lt_channel,
+					dev.channelUsername));
 				TeleForge::Plugins::scanDeveloperChannel(
 					&controller->session(),
 					id,
@@ -281,7 +294,7 @@ const auto kMeta = BuildHelper({
 			const auto update = wctx.container->add(
 				object_ptr<Ui::SettingsButton>(
 					wctx.container,
-					rpl::single(u"Обновить список разработчиков"_q),
+					tr::ayu_PluginsRefreshDevelopers(),
 					st::settingsButtonNoIcon));
 			update->setClickedCallback([=] {
 				TeleForge::Plugins::fetchTrustedDevelopers(
@@ -306,13 +319,11 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Индекс плагинов (plugins.txt)"_q));
+	builder.addSubsectionTitle(tr::ayu_PluginsCatalogSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
-			AddHint(
-				wctx.container,
-				u"Каталог plugins.txt с подписанными ссылками."_q);
+			AddHint(wctx.container, tr::ayu_PluginsCatalogHint(tr::now));
 		}, [](const SearchContext &) {});
 	});
 
@@ -324,9 +335,7 @@ const auto kMeta = BuildHelper({
 		(*catalogHost)->clear();
 		const auto entries = TeleForge::Plugins::cachedCatalog();
 		if (entries.isEmpty()) {
-			AddHint(
-				*catalogHost,
-				u"Нажмите «Обновить каталог»."_q);
+			AddHint(*catalogHost, tr::ayu_PluginsCatalogStale(tr::now));
 			return;
 		}
 		for (const auto &entry : entries) {
@@ -334,11 +343,16 @@ const auto kMeta = BuildHelper({
 				object_ptr<Ui::VerticalLayout>((*catalogHost).data()));
 			AddHint(
 				block,
-				u"%1 — %2"_q.arg(entry.fileName, entry.title));
+				tr::ayu_PluginsCatalogRow(
+					tr::now,
+					lt_file,
+					entry.fileName,
+					lt_title,
+					entry.title));
 			const auto install = block->add(
 				object_ptr<Ui::SettingsButton>(
 					block,
-					rpl::single(u"Скачать и установить"_q),
+					tr::ayu_PluginsDownloadInstall(),
 					st::settingsButtonNoIcon));
 			const auto captured = entry;
 			install->setClickedCallback([=] {
@@ -359,10 +373,10 @@ const auto kMeta = BuildHelper({
 			const auto update = wctx.container->add(
 				object_ptr<Ui::SettingsButton>(
 					wctx.container,
-					rpl::single(u"Обновить каталог"_q),
+					tr::ayu_PluginsRefreshCatalog(),
 					st::settingsButtonNoIcon));
 			update->setClickedCallback([=] {
-				controller->showToast(u"Загрузка developers.txt и plugins.txt…"_q);
+				controller->showToast(tr::ayu_PluginsLoadingIndexes(tr::now));
 				TeleForge::Plugins::fetchTrustedDevelopers([=](auto, QString) {
 					TeleForge::Plugins::fetchCatalog(
 						[=](QVector<TeleForge::Plugins::CatalogEntry> entries, QString error) {
@@ -393,7 +407,7 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Режим разработчика (опасно)"_q));
+	builder.addSubsectionTitle(tr::ayu_PluginsDevModeSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -415,9 +429,7 @@ const auto kMeta = BuildHelper({
 					return;
 				}
 				if (TeleForge::Plugins::DevMode::allowUnverifiedInstalls()) {
-					state->status->setText(
-						u"Включено: плагины без проверки подписи могут быть установлены. "
-						"Выключите, когда закончите тесты."_q);
+					state->status->setText(tr::ayu_PluginsDevModeOn(tr::now));
 					state->finalSwitch->setChecked(true);
 					state->finalSwitch->setEnabled(true);
 					return;
@@ -429,8 +441,7 @@ const auto kMeta = BuildHelper({
 						state->timer->cancel();
 					}
 					state->status->setText(
-						u"Доступно по подписке на TeleForge. Оформите подписку "
-						"выше, чтобы разблокировать расширенные функции."_q);
+						tr::ayu_PluginsDevModeSubscriptionRequired(tr::now));
 					state->finalSwitch->setChecked(false);
 					state->finalSwitch->setEnabled(false);
 					return;
@@ -445,22 +456,23 @@ const auto kMeta = BuildHelper({
 					if (state->timer) {
 						state->timer->cancel();
 					}
-					state->status->setText(
-						u"Отметьте все три пункта ниже, затем подождите %1 с — "
-						"только после этого можно включить режим."_q.arg(
-							TeleForge::Plugins::DevMode::kCooldownSeconds));
+					state->status->setText(tr::ayu_PluginsDevModeAckAll(
+						tr::now,
+						lt_seconds,
+						QString::number(
+							TeleForge::Plugins::DevMode::kCooldownSeconds)));
 					state->finalSwitch->setEnabled(false);
 					return;
 				}
 				if (!state->cooldownReady) {
 					state->finalSwitch->setEnabled(false);
-					state->status->setText(
-						u"Подождите ещё %1 с перед включением…"_q.arg(
-							state->secondsLeft));
+					state->status->setText(tr::ayu_PluginsDevModeWait(
+						tr::now,
+						lt_seconds,
+						QString::number(state->secondsLeft)));
 					return;
 				}
-				state->status->setText(
-					u"Можно включить. Плагины без подписи TeleForge будут устанавливаться."_q);
+				state->status->setText(tr::ayu_PluginsDevModeReady(tr::now));
 				state->finalSwitch->setEnabled(true);
 			};
 
@@ -495,10 +507,7 @@ const auto kMeta = BuildHelper({
 
 			Ui::AddDividerText(
 				c,
-				rpl::single(
-					u"Позволяет ставить плагины без проверки подписи. "
-					u"Только для отладки своих скриптов. "
-					u"Включение намеренно замедлено, чтобы случайно не активировать."_q),
+				tr::ayu_PluginsDevModeHint(),
 				st::defaultBoxDividerLabelPadding);
 
 			state->status = Ui::AddDividerText(
@@ -522,7 +531,7 @@ const auto kMeta = BuildHelper({
 				Ui::AddSkip(c, st::settingsCheckboxesSkip);
 				state->finalSwitch = AddWrappedSettingsCheckbox(
 					c,
-					u"Разрешить установку непроверенных плагинов"_q,
+					tr::ayu_PluginsAllowUnverified(tr::now),
 					true);
 				state->finalSwitch->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -537,7 +546,7 @@ const auto kMeta = BuildHelper({
 						}
 						updateUi();
 						controller->showToast(
-							u"Режим разработчика выключен."_q);
+							tr::ayu_PluginsDevModeDisabled(tr::now));
 					}
 				}, state->finalSwitch->lifetime());
 			} else {
@@ -545,8 +554,7 @@ const auto kMeta = BuildHelper({
 
 				const auto ack1 = AddWrappedSettingsCheckbox(
 					c,
-					u"Я понимаю: непроверенный плагин может читать tdata "
-					u"и отправлять данные."_q,
+					tr::ayu_PluginsAckRisk(tr::now),
 					false);
 				ack1->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -557,8 +565,7 @@ const auto kMeta = BuildHelper({
 
 				const auto ack2 = AddWrappedSettingsCheckbox(
 					c,
-					u"Я не буду устанавливать чужие плагины "
-					u"из неизвестных источников."_q,
+					tr::ayu_PluginsAckNoSupport(tr::now),
 					false);
 				ack2->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -569,7 +576,7 @@ const auto kMeta = BuildHelper({
 
 				const auto ack3 = AddWrappedSettingsCheckbox(
 					c,
-					u"Мне это нужно только для своих тестов и разработки."_q,
+					tr::ayu_PluginsAckTesting(tr::now),
 					false);
 				ack3->checkedChanges(
 				) | rpl::on_next([=](bool checked) {
@@ -580,7 +587,7 @@ const auto kMeta = BuildHelper({
 
 				state->finalSwitch = AddWrappedSettingsCheckbox(
 					c,
-					u"Разрешить установку непроверенных плагинов"_q,
+					tr::ayu_PluginsAllowUnverified(tr::now),
 					false);
 				state->finalSwitch->setEnabled(false);
 				state->finalSwitch->checkedChanges(
@@ -592,7 +599,7 @@ const auto kMeta = BuildHelper({
 					TeleForge::Plugins::DevMode::setAllowUnverifiedInstalls(true);
 					updateUi();
 					controller->showToast(
-						u"Режим разработчика включён. Будьте осторожны."_q);
+						tr::ayu_PluginsDevModeEnabled(tr::now));
 				}, state->finalSwitch->lifetime());
 
 					const auto gateAck = [=](not_null<Ui::Checkbox*> box) {
@@ -619,7 +626,7 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Кнопки плагинов"_q));
+	builder.addSubsectionTitle(tr::ayu_PluginsButtonsSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -628,8 +635,7 @@ const auto kMeta = BuildHelper({
 				TeleForge::Plugins::PluginRunner::menuItemsJson();
 			const auto items = QJsonDocument::fromJson(json.toUtf8()).array();
 			if (items.isEmpty()) {
-				AddHint(c, u"Плагины пока не добавили кнопок. Используйте "
-					"tf.ui.add_menu_item(title, handler) в плагине."_q);
+				AddHint(c, tr::ayu_PluginsNoButtons(tr::now));
 				return;
 			}
 			for (const auto &value : items) {
@@ -653,7 +659,7 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 	builder.addDivider();
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Установленные плагины"_q));
+	builder.addSubsectionTitle(tr::ayu_PluginsInstalledSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -668,24 +674,33 @@ const auto kMeta = BuildHelper({
 				(*pluginsHost)->clear();
 				const auto plugins = TeleForge::Plugins::listWithRuntimeState();
 				if (plugins.empty()) {
-					AddHint(*pluginsHost, u"Нет плагинов в папке plugins/."_q);
+					AddHint(*pluginsHost, tr::ayu_PluginsNoInstalled(tr::now));
 					return;
 				}
 				for (const auto &plugin : plugins) {
 					const auto block = (*pluginsHost)->add(
 						object_ptr<Ui::VerticalLayout>((*pluginsHost).data()));
 					const auto status = plugin.loaded
-						? (plugin.enabled ? u"запущен"_q : u"остановлен"_q)
-						: (plugin.enabled ? u"включён (не загружен)"_q : u"выключен"_q);
+						? (plugin.enabled
+							? tr::ayu_PluginsStateRunning(tr::now)
+							: tr::ayu_PluginsStateStopped(tr::now))
+						: (plugin.enabled
+							? tr::ayu_PluginsStateEnabledNotLoaded(tr::now)
+							: tr::ayu_PluginsStateDisabled(tr::now));
 					AddHint(
 						block,
-						u"%1 — %2"_q.arg(plugin.fileName, status));
+						tr::ayu_PluginsRow(
+							tr::now,
+							lt_file,
+							plugin.fileName,
+							lt_status,
+							status));
 					const auto toggle = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,
 							rpl::single(plugin.enabled
-								? u"Выключить"_q
-								: u"Включить"_q),
+								? tr::ayu_PluginsDisable(tr::now)
+								: tr::ayu_PluginsEnable(tr::now)),
 							st::settingsButtonNoIcon));
 					toggle->setClickedCallback([=, name = plugin.fileName] {
 						const auto now = TeleForge::Plugins::isEnabled(name);
@@ -694,42 +709,42 @@ const auto kMeta = BuildHelper({
 							TeleForge::Plugins::stopPlugin(name);
 						}
 						(*refresh)();
-						controller->showToast(u"Сохранено."_q);
+						controller->showToast(tr::ayu_PluginsSaved(tr::now));
 					});
 					const auto start = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,
-							rpl::single(u"Запустить / перезагрузить"_q),
+							tr::ayu_PluginsStartReload(),
 							st::settingsButtonNoIcon));
 					start->setClickedCallback([=, name = plugin.fileName] {
 						TeleForge::Plugins::setEnabled(name, true);
 						TeleForge::Plugins::reloadAll();
 						(*refresh)();
-						controller->showToast(u"Плагины перезагружены."_q);
+						controller->showToast(tr::ayu_PluginsReloaded(tr::now));
 					});
 					const auto stop = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,
-							rpl::single(u"Остановить"_q),
+							tr::ayu_PluginsStop(),
 							st::settingsButtonNoIcon));
 					stop->setClickedCallback([=, name = plugin.fileName] {
 						TeleForge::Plugins::stopPlugin(name);
 						(*refresh)();
-						controller->showToast(u"Плагин остановлен."_q);
+						controller->showToast(tr::ayu_PluginsStopped(tr::now));
 					});
 					const auto remove = block->add(
 						object_ptr<Ui::SettingsButton>(
 							block,
-							rpl::single(u"Удалить файл"_q),
+							tr::ayu_PluginsRemoveFile(),
 							st::settingsButtonNoIcon));
 					remove->setClickedCallback([=, name = plugin.fileName] {
 						TeleForge::Plugins::stopPlugin(name);
 						if (TeleForge::Plugins::removeInstalledFile(name)) {
 							TeleForge::Plugins::reloadAll();
 							(*refresh)();
-							controller->showToast(u"Удалено."_q);
+							controller->showToast(tr::ayu_PluginsRemoved(tr::now));
 						} else {
-							controller->showToast(u"Не удалось удалить."_q);
+							controller->showToast(tr::ayu_PluginsRemoveFailed(tr::now));
 						}
 					});
 				}
@@ -744,16 +759,16 @@ const auto kMeta = BuildHelper({
 			const auto reload = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Перезагрузить все плагины"_q),
+					tr::ayu_PluginsReloadAll(),
 					st::settingsButtonNoIcon));
 			reload->setClickedCallback([=] {
 				TeleForge::Plugins::reloadAll();
-				controller->showToast(u"Все включённые плагины перезагружены."_q);
+				controller->showToast(tr::ayu_PluginsAllReloaded(tr::now));
 			});
 			const auto folder = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Открыть папку plugins"_q),
+					tr::ayu_PluginsOpenFolder(),
 					st::settingsButtonNoIcon));
 			folder->setClickedCallback([=] {
 				const auto path = QDir(cWorkingDir() + u"plugins"_q).absolutePath();
@@ -768,7 +783,7 @@ const auto kMeta = BuildHelper({
 			const auto site = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Сайт и формат каталога"_q),
+					tr::ayu_PluginsSiteAndFormat(),
 					st::settingsButtonNoIcon));
 			site->setClickedCallback([=] {
 				QDesktopServices::openUrl(QUrl(
@@ -781,7 +796,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TeleForgePlugins::title() {
-	return rpl::single(u"Плагины"_q);
+	return tr::ayu_CategoryTeleForgePlugins();
 }
 
 TeleForgePlugins::TeleForgePlugins(

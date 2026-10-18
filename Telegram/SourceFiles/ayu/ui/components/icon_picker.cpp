@@ -23,6 +23,8 @@ const QVector<QString> icons{
 const auto rows = static_cast<int>(icons.size()) / IconPicker::kColumns
 	+ std::min(1, static_cast<int>(icons.size()) % IconPicker::kColumns);
 
+constexpr auto kMaxCachedIcons = 64;
+
 void applyIcon() {
 #ifdef Q_OS_WIN
 	TeleForgeAssets::loadAppIco();
@@ -98,6 +100,9 @@ void IconPicker::paintEvent(QPaintEvent *e) {
 			if (const auto cached = _cachedIcons.find(iconName); cached != _cachedIcons.end()) {
 				icon = cached->second;
 			} else {
+				if (int(_cachedIcons.size()) >= kMaxCachedIcons) {
+					_cachedIcons.erase(_cachedIcons.begin());
+				}
 				icon = _cachedIcons[iconName] = TeleForgeAssets::loadPreview(iconName);
 			}
 			auto opacity = 0.0f;

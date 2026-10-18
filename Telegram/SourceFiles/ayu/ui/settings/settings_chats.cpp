@@ -88,7 +88,7 @@ void BuildRecentStickersLimit(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 void BuildGroupsAndChannels(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	auto *settings = &AyuSettings::getInstance();
 
-	builder.addSubsectionTitle(tr::lng_premium_double_limits_subtitle_channels());
+	builder.addSubsectionTitle(tr::ayu_ChatsGroupsAndChannels());
 
 	ayu.addChooseButton({
 		.id = u"ayu/channelBottomButton"_q,

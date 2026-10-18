@@ -110,7 +110,10 @@ void GenerateItems(
 					? QString::fromStdString(sourceMessage.postAuthor)
 					: from
 						? QString()
-						: QString("unknown user: %1").arg(sourceMessage.fromId),
+						: tr::ayu_UnknownUser(
+							tr::now,
+							lt_id,
+							QString::number(sourceMessage.fromId)),
 			},
 			std::move(text),
 			MTP_messageMediaEmpty()));

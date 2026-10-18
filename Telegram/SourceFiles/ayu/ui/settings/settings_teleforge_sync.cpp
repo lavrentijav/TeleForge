@@ -124,19 +124,18 @@ void ShowPickMenu(
 const auto kMeta = BuildHelper({
 	.id = TeleForgeSync::Id(),
 	.parentId = AyuMain::Id(),
-	.title = u"Синхронизация"_q,
+	.title = &tr::ayu_CategoryTeleForgeSync,
 	.icon = &st::menuIconDownload,
 }, [](SectionBuilder &builder) {
 	auto ayu = AyuSectionBuilder(builder);
 	const auto controller = builder.controller();
 
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(
-		u"Синхронизация между устройствами"_q));
+	builder.addSubsectionTitle(tr::ayu_SyncDevicesSection());
 
 	ayu.addToggle({
 		.id = u"teleforge/memorySync"_q,
-		.title = rpl::single(u"Синхронизация через Telegram"_q),
+		.title = tr::ayu_SyncViaTelegram(),
 		.getter = [=] {
 			return TeleForge::LoadPersonalityCore().value_or(
 				TeleForge::DefaultPersonalityCore()).memorySyncEnabled;
@@ -163,7 +162,7 @@ const auto kMeta = BuildHelper({
 			const auto syncNow = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Синхронизировать сейчас"_q),
+					tr::ayu_SyncNow(),
 					st::settingsButtonNoIcon));
 			syncNow->setClickedCallback([=] {
 				TeleForge::Sync::syncNow(&controller->session(), [=](QString msg) {
@@ -174,7 +173,7 @@ const auto kMeta = BuildHelper({
 	});
 
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Облачное хранилище (БД)"_q));
+	builder.addSubsectionTitle(tr::ayu_SyncCloudSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -192,14 +191,17 @@ const auto kMeta = BuildHelper({
 					? u"PostgreSQL"_q
 					: (b == 2)
 					? u"MySQL / MariaDB"_q
-					: u"Telegram-чат"_q;
+					: tr::ayu_SyncBackendTelegram(tr::now);
 			};
 
 			// --- Provider selector (Telegram / MySQL / PostgreSQL) ---
 			const auto providerBtn = c->add(object_ptr<Ui::SettingsButton>(
 				c,
 				provider->value() | rpl::map([=](int b) {
-					return u"Провайдер: "_q + backendName(b);
+					return tr::ayu_SyncProvider(
+						tr::now,
+						lt_backend,
+						backendName(b));
 				}),
 				st::settingsButtonNoIcon));
 			providerBtn->setClickedCallback([=] {
@@ -207,7 +209,11 @@ const auto kMeta = BuildHelper({
 					providerBtn,
 					providerBtn->mapToGlobal(
 						QPoint(0, providerBtn->height())),
-					{ u"Telegram-чат"_q, u"MySQL / MariaDB"_q, u"PostgreSQL"_q },
+					{
+						tr::ayu_SyncBackendTelegram(tr::now),
+						u"MySQL / MariaDB"_q,
+						u"PostgreSQL"_q,
+					},
 					[=](const QString &choice) {
 						const auto value = choice.startsWith(u"PostgreSQL"_q)
 							? 1
@@ -236,7 +242,10 @@ const auto kMeta = BuildHelper({
 				object_ptr<Ui::SettingsButton>(
 					versionInner,
 					pgVersion->value() | rpl::map([](const QString &v) {
-						return u"Версия PostgreSQL: "_q + v;
+						return tr::ayu_SyncPgVersion(
+							tr::now,
+							lt_version,
+							v);
 					}),
 					st::settingsButtonNoIcon));
 			versionBtn->setClickedCallback([=] {
@@ -273,7 +282,7 @@ const auto kMeta = BuildHelper({
 				row,
 				st::defaultInputField,
 				Ui::InputField::Mode::SingleLine,
-				rpl::single(u"хост"_q),
+				rpl::single(tr::ayu_SyncHostPlaceholder(tr::now)),
 				TextWithTags{ parsed.host });
 			const auto colon = Ui::CreateChild<Ui::FlatLabel>(
 				row,
@@ -283,7 +292,7 @@ const auto kMeta = BuildHelper({
 				row,
 				st::defaultInputField,
 				Ui::InputField::Mode::SingleLine,
-				rpl::single(u"порт"_q),
+				rpl::single(tr::ayu_SyncPortPlaceholder(tr::now)),
 				TextWithTags{ parsed.port });
 			rpl::combine(
 				row->widthValue(),
@@ -312,7 +321,7 @@ const auto kMeta = BuildHelper({
 					inner,
 					st::defaultInputField,
 					Ui::InputField::Mode::SingleLine,
-					rpl::single(u"база данных"_q),
+					rpl::single(tr::ayu_SyncDatabasePlaceholder(tr::now)),
 					TextWithTags{ parsed.db }),
 				st::boxRowPadding);
 			const auto user = inner->add(
@@ -320,7 +329,7 @@ const auto kMeta = BuildHelper({
 					inner,
 					st::defaultInputField,
 					Ui::InputField::Mode::SingleLine,
-					rpl::single(u"пользователь"_q),
+					rpl::single(tr::ayu_SyncUserPlaceholder(tr::now)),
 					TextWithTags{ parsed.user }),
 				st::boxRowPadding);
 			const auto password = inner->add(
@@ -328,7 +337,7 @@ const auto kMeta = BuildHelper({
 					inner,
 					st::defaultInputField,
 					Ui::InputField::Mode::SingleLine,
-					rpl::single(u"пароль"_q),
+					rpl::single(tr::ayu_SyncPasswordPlaceholder(tr::now)),
 					TextWithTags{ parsed.password }),
 				st::boxRowPadding);
 
@@ -344,7 +353,7 @@ const auto kMeta = BuildHelper({
 
 			const auto save = inner->add(object_ptr<Ui::SettingsButton>(
 				inner,
-				rpl::single(u"Сохранить подключение"_q),
+				tr::ayu_SyncSaveConnection(),
 				st::settingsButtonNoIcon));
 			save->setClickedCallback([=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
@@ -352,20 +361,20 @@ const auto kMeta = BuildHelper({
 				p.pgConnString = ComposeConnString(collect());
 				p.updatedAt = QDateTime::currentDateTimeUtc();
 				TeleForge::PersistPersonalityCore(p);
-				controller->showToast(u"Подключение сохранено."_q);
+				controller->showToast(tr::ayu_SyncConnectionSaved(tr::now));
 			});
 
 			const auto test = inner->add(object_ptr<Ui::SettingsButton>(
 				inner,
-				rpl::single(u"Проверить подключение"_q),
+				tr::ayu_SyncTestConnection(),
 				st::settingsButtonNoIcon));
 			test->setClickedCallback([=] {
 				const auto text = ComposeConnString(collect());
 				const auto cb = [=](bool ok, QString error) {
 					controller->showToast(ok
-						? u"Подключение успешно."_q
+						? tr::ayu_SyncConnectionOk(tr::now)
 						: (error.isEmpty()
-							? u"Не удалось подключиться."_q
+							? tr::ayu_SyncConnectionFailed(tr::now)
 							: error));
 				};
 				if (provider->current() == 2) {
@@ -378,8 +387,7 @@ const auto kMeta = BuildHelper({
 			const auto exportAll = inner->add(
 				object_ptr<Ui::SettingsButton>(
 					inner,
-					rpl::single(
-						u"Выгрузить всю локальную БД в облако"_q),
+					tr::ayu_SyncExportAll(),
 					st::settingsButtonNoIcon));
 			exportAll->setClickedCallback([=] {
 				TeleForge::UI::ShowUploadProgress(0, 1);
@@ -397,13 +405,13 @@ const auto kMeta = BuildHelper({
 			// --- SSH tunnel (optional; applies to whichever DB backend is
 			// active above, so the DB itself never needs a public port). ---
 			ayu.base().addSkip();
-			AddSettingsHint(inner, rpl::single(u"SSH-туннель к базе данных"_q));
+			AddSettingsHint(inner, tr::ayu_SyncSshHint());
 
 			const auto sshEnabled = inner->lifetime()
 				.make_state<rpl::variable<bool>>(core.sshTunnelEnabled);
 			AddToggle(
 				inner,
-				rpl::single(u"Подключаться через SSH-туннель"_q),
+				tr::ayu_SyncSshToggle(),
 				[=] { return sshEnabled->current(); },
 				[=](bool v) {
 					*sshEnabled = v;
@@ -420,9 +428,7 @@ const auto kMeta = BuildHelper({
 					object_ptr<Ui::VerticalLayout>(inner)));
 			const auto sshInner = sshWrap->entity();
 
-			AddSettingsHint(
-				sshInner,
-				rpl::single(u"Адрес входа (user@host[:port])"_q));
+			AddSettingsHint(sshInner, tr::ayu_SyncSshTarget());
 			const auto sshTarget = sshInner->add(
 				object_ptr<Ui::InputField>(
 					sshInner,
@@ -432,9 +438,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.sshTunnelTarget }),
 				st::boxRowPadding);
 
-			AddSettingsHint(
-				sshInner,
-				rpl::single(u"Приватный ключ (необязательно)"_q));
+			AddSettingsHint(sshInner, tr::ayu_SyncSshIdentity());
 			const auto sshIdentity = sshInner->add(
 				object_ptr<Ui::InputField>(
 					sshInner,
@@ -446,13 +450,13 @@ const auto kMeta = BuildHelper({
 			const auto browseIdentity = sshInner->add(
 				object_ptr<Ui::SettingsButton>(
 					sshInner,
-					rpl::single(u"Выбрать файл ключа…"_q),
+					tr::ayu_SyncBrowseKey(),
 					st::settingsButtonNoIcon));
 			browseIdentity->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					u"Приватный ключ SSH"_q,
-					u"Все файлы (*.*)"_q,
+					tr::ayu_SyncSshKeyDialog(tr::now),
+					tr::ayu_FileFilterAllFiles(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							sshIdentity->setText(result.paths.front());
@@ -481,11 +485,7 @@ const auto kMeta = BuildHelper({
 			sshWrap->finishAnimating();
 
 			ayu.base().addSkip();
-			ayu.base().addDividerText(rpl::single(
-				u"Туннель поднимается системной командой ssh (нужен ssh в "
-				u"PATH и доступ по ключу/агенту) и перенаправляет локальный "
-				u"порт на хост базы данных из полей выше — сама база может "
-				u"оставаться без публичного порта."_q));
+			ayu.base().addDividerText(tr::ayu_SyncSshHintLong());
 
 			connWrap->toggleOn(provider->value() | rpl::map([](int b) {
 				return b != 0;
@@ -498,7 +498,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TeleForgeSync::title() {
-	return rpl::single(u"Синхронизация"_q);
+	return tr::ayu_CategoryTeleForgeSync();
 }
 
 TeleForgeSync::TeleForgeSync(

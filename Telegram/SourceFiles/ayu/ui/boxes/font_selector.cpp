@@ -701,7 +701,7 @@ void Content::setupContent(
 				st::membersAbout.style.font->height * 9)));
 	const auto label = Ui::CreateChild<Ui::FlatLabel>(
 		empty->entity(),
-		rpl::single(qs("No fonts found.")),
+		rpl::single(tr::ayu_NoFontsFound(tr::now)),
 		st::membersAbout);
 	empty->entity()->sizeValue(
 	) | rpl::on_next([=](QSize size)

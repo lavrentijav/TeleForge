@@ -83,8 +83,7 @@ void ApplyTunedStyle(
 		std::shared_ptr<std::vector<QString>> texts,
 		not_null<Window::SessionController*> controller) {
 	if (texts->size() < 5) {
-		controller->showToast(
-			u"Не удалось собрать хотя бы 5 ваших сообщений в этом чате."_q);
+		controller->showToast(tr::ayu_AiTuneNotEnoughMessages(tr::now));
 		return;
 	}
 	auto tuned = TeleForge::BuildPersonalityCoreFromMessages(*texts);
@@ -96,8 +95,7 @@ void ApplyTunedStyle(
 	}
 	p.updatedAt = QDateTime::currentDateTimeUtc();
 	TeleForge::PersistPersonalityCore(p);
-	controller->showToast(
-		u"Стиль ответов обновлён по вашим сообщениям."_q);
+	controller->showToast(tr::ayu_AiTuneDone(tr::now));
 }
 
 // Pulls the account owner's own (outgoing) messages for the given peer from
@@ -162,7 +160,7 @@ void AutoTuneStyleFromServer(
 		}).send();
 	};
 
-	controller->showToast(u"Анализирую ваши сообщения…"_q);
+	controller->showToast(tr::ayu_AiTuneAnalyzing(tr::now));
 	(*requestNext)(MsgId(0));
 }
 
@@ -172,7 +170,7 @@ void UpsertGlobalDefaults(
 	r.peerId = TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId;
 	r.updatedAt = base::unixtime::now();
 	TeleForge::Storage::upsertPerChatSettings(r);
-	controller->showToast(u"Значения по умолчанию для чатов сохранены."_q);
+	controller->showToast(tr::ayu_AiDefaultsSaved(tr::now));
 }
 
 void ShowStringPickMenu(
@@ -217,17 +215,24 @@ void BuildAiTranslation(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 				|| !core.lmStudioBaseUrl.trimmed().isEmpty();
 			auto status = QString();
 			if (!configured) {
-				status = u"Модель перевода не задана — укажите модель чата "
-					"в разделе «Чат (LLM)» выше."_q;
+				status = tr::ayu_AiTranslationModelMissing(tr::now);
 			} else {
 				const auto name = model.isEmpty()
-					? u"(локальная модель)"_q
+					? tr::ayu_AiLocalModel(tr::now)
 					: model;
-				status = u"Нейросеть перевода: "_q + name + u" · "_q + endpoint;
-				if (!Ayu::Translator::AiTranslationAvailable()) {
-					status += u" — включите тумблер «ИИ-перевод», "
-						"чтобы активировать функции."_q;
-				}
+				status = Ayu::Translator::AiTranslationAvailable()
+					? tr::ayu_AiTranslationStatus(
+						tr::now,
+						lt_model,
+						name,
+						lt_endpoint,
+						endpoint)
+					: tr::ayu_AiTranslationStatusInactive(
+						tr::now,
+						lt_model,
+						name,
+						lt_endpoint,
+						endpoint);
 			}
 			AddSettingsHint(c, rpl::single(status));
 		}, [](const SearchContext &) {});
@@ -260,14 +265,14 @@ void BuildAiTranslation(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 const auto kMeta = BuildHelper({
 	.id = TeleForgeAi::Id(),
 	.parentId = AyuMain::Id(),
-	.title = u"Настройки ИИ"_q,
+	.title = &tr::ayu_CategoryTeleForgeAi,
 	.icon = &st::menuIconIpAddress,
 }, [](SectionBuilder &builder) {
 	auto ayu = AyuSectionBuilder(builder);
 	const auto controller = builder.controller();
 
 	builder.addSkip();
-	builder.addSubsectionTitle(rpl::single(u"Чат (LLM)"_q));
+	builder.addSubsectionTitle(tr::ayu_AiChatSection());
 
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
@@ -293,14 +298,14 @@ const auto kMeta = BuildHelper({
 			const auto pickProvider = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Провайдер API…"_q),
+					tr::ayu_AiProviderButton(),
 					st::settingsButtonNoIcon));
 			pickProvider->setClickedCallback([=] {
 				const auto items = QStringList{
 					u"OpenAI (https://api.openai.com)"_q,
 					u"LM Studio (http://127.0.0.1:1234)"_q,
 					u"Ollama (http://127.0.0.1:11434)"_q,
-					u"Свой URL"_q,
+					tr::ayu_AiOwnUrl(tr::now),
 				};
 				ShowStringPickMenu(
 					c,
@@ -327,7 +332,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.openAiApiKey }),
 				st::boxRowPadding);
 
-			AddSettingsHint(c, rpl::single(u"Модель чата"_q));
+			AddSettingsHint(c, tr::ayu_AiChatModel());
 
 			const auto chatModelIdField = c->add(
 				object_ptr<Ui::InputField>(
@@ -341,7 +346,7 @@ const auto kMeta = BuildHelper({
 			const auto loadChatModels = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Загрузить список моделей (чат)"_q),
+					tr::ayu_AiLoadChatModels(),
 					st::settingsButtonNoIcon));
 			loadChatModels->setClickedCallback([=] {
 				const auto base = TeleForge::OpenAiOriginBaseForModelsList(
@@ -363,7 +368,7 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			AddSettingsHint(c, rpl::single(u"Локальный .gguf (пусто — только API)"_q));
+			AddSettingsHint(c, tr::ayu_AiLocalGguf());
 
 			const auto chatGguf = c->add(
 				object_ptr<Ui::InputField>(
@@ -377,13 +382,13 @@ const auto kMeta = BuildHelper({
 			const auto browseChatGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Выбрать файл модели чата (.gguf)…"_q),
+					tr::ayu_AiBrowseChatModel(),
 					st::settingsButtonNoIcon));
 			browseChatGguf->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					u"Модель чата (GGUF)"_q,
-					u"GGUF (*.gguf);;All files (*.*)"_q,
+					tr::ayu_AiChatModelGgufDialog(tr::now),
+					tr::ayu_GgufFilter(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							chatGguf->setText(result.paths.front());
@@ -394,12 +399,12 @@ const auto kMeta = BuildHelper({
 			const auto pickChatFromModelsDir = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Выбрать .gguf из models/…"_q),
+					tr::ayu_AiPickChatFromModels(),
 					st::settingsButtonNoIcon));
 			pickChatFromModelsDir->setClickedCallback([=] {
 				const auto items = TeleForge::TeleForgeListGgufInModelsDirectory();
 				if (items.isEmpty()) {
-					controller->showToast(u"В каталоге models нет .gguf"_q);
+					controller->showToast(tr::ayu_AiNoGgufInModels(tr::now));
 					return;
 				}
 				ShowStringPickMenu(
@@ -410,7 +415,7 @@ const auto kMeta = BuildHelper({
 					[=](const QString &p) { chatGguf->setText(p); });
 			});
 
-			AddSettingsHint(c, rpl::single(u"Сообщений в контексте"_q));
+			AddSettingsHint(c, tr::ayu_AiContextMessages());
 
 			const auto ctxMsgs = c->add(
 				object_ptr<Ui::InputField>(
@@ -424,9 +429,9 @@ const auto kMeta = BuildHelper({
 					}),
 				st::boxRowPadding);
 
-			builder.addSubsectionTitle(rpl::single(u"Эмбеддинги (память)"_q));
+			builder.addSubsectionTitle(tr::ayu_AiEmbeddingsSection());
 
-			AddSettingsHint(c, rpl::single(u"URL эмбеддингов"_q));
+			AddSettingsHint(c, tr::ayu_AiEmbeddingUrl());
 
 			const auto emb = c->add(
 				object_ptr<Ui::InputField>(
@@ -437,7 +442,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.embeddingEndpointUrl }),
 				st::boxRowPadding);
 
-			AddSettingsHint(c, rpl::single(u"Модель эмбеддингов"_q));
+			AddSettingsHint(c, tr::ayu_AiEmbeddingModel());
 
 			const auto embModel = c->add(
 				object_ptr<Ui::InputField>(
@@ -451,7 +456,7 @@ const auto kMeta = BuildHelper({
 			const auto loadEmbModels = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Загрузить список моделей (эмбеддинги)"_q),
+					tr::ayu_AiLoadEmbeddingModels(),
 					st::settingsButtonNoIcon));
 			loadEmbModels->setClickedCallback([=] {
 				const auto base = TeleForge::OpenAiOriginBaseForModelsList(
@@ -473,9 +478,9 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			builder.addSubsectionTitle(rpl::single(u"Реранкер"_q));
+			builder.addSubsectionTitle(tr::ayu_AiRerankSection());
 
-			AddSettingsHint(c, rpl::single(u"URL реранкера"_q));
+			AddSettingsHint(c, tr::ayu_AiRerankUrl());
 
 			const auto rerankUrl = c->add(
 				object_ptr<Ui::InputField>(
@@ -486,7 +491,7 @@ const auto kMeta = BuildHelper({
 					TextWithTags{ core.rerankEndpointUrl }),
 				st::boxRowPadding);
 
-			AddSettingsHint(c, rpl::single(u"Модель реранкера"_q));
+			AddSettingsHint(c, tr::ayu_AiRerankModel());
 
 			const auto rerankModel = c->add(
 				object_ptr<Ui::InputField>(
@@ -500,7 +505,7 @@ const auto kMeta = BuildHelper({
 			const auto loadRerankModels = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Загрузить список моделей (реранкер)"_q),
+					tr::ayu_AiLoadRerankModels(),
 					st::settingsButtonNoIcon));
 			loadRerankModels->setClickedCallback([=] {
 				const auto base = TeleForge::OpenAiOriginBaseForModelsList(
@@ -522,7 +527,7 @@ const auto kMeta = BuildHelper({
 					apiKey->getLastText());
 			});
 
-			AddSettingsHint(c, rpl::single(u"Локальный GGUF реранкера"_q));
+			AddSettingsHint(c, tr::ayu_AiRerankGguf());
 
 			const auto defaultGguf = TeleForge::DefaultTeleForgeRerankGgufPath();
 			const auto rerankPath = c->add(
@@ -541,13 +546,13 @@ const auto kMeta = BuildHelper({
 			const auto browseRerankGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Выбрать файл реранкера (.gguf)…"_q),
+					tr::ayu_AiBrowseRerank(),
 					st::settingsButtonNoIcon));
 			browseRerankGguf->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					u"Модель реранкера (GGUF)"_q,
-					u"GGUF (*.gguf);;All files (*.*)"_q,
+					tr::ayu_AiRerankGgufDialog(tr::now),
+					tr::ayu_GgufFilter(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							rerankPath->setText(result.paths.front());
@@ -558,12 +563,12 @@ const auto kMeta = BuildHelper({
 			const auto pickRerankFromModelsDir = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Выбрать реранкер .gguf из models/…"_q),
+					tr::ayu_AiPickRerankFromModels(),
 					st::settingsButtonNoIcon));
 			pickRerankFromModelsDir->setClickedCallback([=] {
 				const auto items = TeleForge::TeleForgeListGgufInModelsDirectory();
 				if (items.isEmpty()) {
-					controller->showToast(u"В каталоге models нет .gguf"_q);
+					controller->showToast(tr::ayu_AiNoGgufInModels(tr::now));
 					return;
 				}
 				ShowStringPickMenu(
@@ -574,7 +579,7 @@ const auto kMeta = BuildHelper({
 					[=](const QString &p) { rerankPath->setText(p); });
 			});
 
-			AddSettingsHint(c, rpl::single(u"Локальная модель эмбеддингов (GGUF)"_q));
+			AddSettingsHint(c, tr::ayu_AiEmbeddingGguf());
 
 			const auto embGguf = c->add(
 				object_ptr<Ui::InputField>(
@@ -592,13 +597,13 @@ const auto kMeta = BuildHelper({
 			const auto browseEmbGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Выбрать файл эмбеддингов (.gguf)…"_q),
+					tr::ayu_AiBrowseEmbedding(),
 					st::settingsButtonNoIcon));
 			browseEmbGguf->setClickedCallback([=] {
 				FileDialog::GetOpenPath(
 					Core::App().getFileDialogParent(),
-					u"Модель эмбеддингов (GGUF)"_q,
-					u"GGUF (*.gguf);;All files (*.*)"_q,
+					tr::ayu_AiEmbeddingGgufDialog(tr::now),
+					tr::ayu_GgufFilter(tr::now),
 					[=](const FileDialog::OpenResult &result) {
 						if (!result.paths.isEmpty()) {
 							embGguf->setText(result.paths.front());
@@ -609,13 +614,16 @@ const auto kMeta = BuildHelper({
 			const auto downloadEmbGguf = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Скачать модель с Hugging Face…"_q),
+					tr::ayu_AiDownloadModel(),
 					st::settingsButtonNoIcon));
 			downloadEmbGguf->setClickedCallback([=] {
 				auto titles = QStringList();
 				for (const auto &entry : TeleForge::ModelCatalog()) {
 					titles.push_back(TeleForge::ModelDownloaded(entry)
-						? (entry.title + u" — уже загружена"_q)
+						? tr::ayu_AiModelAlreadyDownloaded(
+							tr::now,
+							lt_title,
+							entry.title)
 						: entry.title);
 				}
 				ShowStringPickMenu(
@@ -642,7 +650,7 @@ const auto kMeta = BuildHelper({
 			const auto save = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Сохранить подключение"_q),
+					tr::ayu_AiSaveConnection(),
 					st::settingsButtonNoIcon));
 			const auto persistConnection = [=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
@@ -684,17 +692,17 @@ const auto kMeta = BuildHelper({
 			}
 			save->setClickedCallback([=] {
 				persistConnection();
-				controller->showToast(u"Подключение сохранено."_q);
+				controller->showToast(tr::ayu_AiConnectionSaved(tr::now));
 			});
 
 		}, [](const SearchContext &) {});
 	});
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(rpl::single(u"Доставка ответов ИИ"_q));
+	builder.addSubsectionTitle(tr::ayu_AiDeliverySection());
 	ayu.addToggle({
 		.id = u"teleforge/autoSend"_q,
-		.title = rpl::single(u"Автоотправка ответа (иначе — черновик)"_q),
+		.title = tr::ayu_AiAutoSend(),
 		.getter = [] {
 			return TeleForge::LoadPersonalityCore().value_or(
 				TeleForge::DefaultPersonalityCore()).autoSendEnabled;
@@ -709,7 +717,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/vision"_q,
-		.title = rpl::single(u"Модель поддерживает изображения (vision)"_q),
+		.title = tr::ayu_AiVision(),
 		.getter = [] {
 			return TeleForge::LoadPersonalityCore().value_or(
 				TeleForge::DefaultPersonalityCore()).visionEnabled;
@@ -725,11 +733,11 @@ const auto kMeta = BuildHelper({
 	builder.addSkip();
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(rpl::single(u"Перевод через ИИ"_q));
+	builder.addSubsectionTitle(tr::ayu_AiTranslationSection());
 	BuildAiTranslation(builder, ayu);
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(rpl::single(u"Системный промпт"_q));
+	builder.addSubsectionTitle(tr::ayu_AiSystemPromptSection());
 	builder.add([&](const BuildContext &ctx) {
 		v::match(ctx, [&](const WidgetContext &wctx) {
 			const auto c = wctx.container;
@@ -747,7 +755,7 @@ const auto kMeta = BuildHelper({
 			const auto save = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Сохранить системный промпт"_q),
+					tr::ayu_AiSaveSystemPrompt(),
 					st::settingsButtonNoIcon));
 			const auto persistPrompt = [=] {
 				auto p = TeleForge::LoadPersonalityCore().value_or(
@@ -764,17 +772,17 @@ const auto kMeta = BuildHelper({
 			}, prompt->lifetime());
 			save->setClickedCallback([=] {
 				persistPrompt();
-				controller->showToast(u"Системный промпт сохранён."_q);
+				controller->showToast(tr::ayu_AiSystemPromptSaved(tr::now));
 			});
 		}, [](const SearchContext &) {});
 	});
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(rpl::single(u"Стиль ответов (0–10)"_q));
+	builder.addSubsectionTitle(tr::ayu_AiStyleSection());
 
 	ayu.addSlider({
 		.id = u"teleforge/weight_aggression"_q,
-		.title = rpl::single(u"Нажим / жёсткость"_q),
+		.title = tr::ayu_AiStyleAggression(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -790,7 +798,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_brevity"_q,
-		.title = rpl::single(u"Краткость"_q),
+		.title = tr::ayu_AiStyleBrevity(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -806,7 +814,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_emojis"_q,
-		.title = rpl::single(u"Эмодзи"_q),
+		.title = tr::ayu_AiStyleEmojis(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -822,7 +830,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_toxicity"_q,
-		.title = rpl::single(u"Резкость / мат"_q),
+		.title = tr::ayu_AiStyleToxicity(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -838,7 +846,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addSlider({
 		.id = u"teleforge/weight_creativity"_q,
-		.title = rpl::single(u"Креативность"_q),
+		.title = tr::ayu_AiStyleCreativity(),
 		.steps = 11,
 		.current = int(std::round(
 			TeleForge::LoadPersonalityCore().value_or(
@@ -859,13 +867,13 @@ const auto kMeta = BuildHelper({
 			const auto autoTune = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(u"Подстроить стиль по моим сообщениям (текущий чат)"_q),
+					tr::ayu_AiTuneStyle(),
 					st::settingsButtonNoIcon));
 			autoTune->setClickedCallback([=] {
 				const auto history =
 						controller->activeChatCurrent().owningHistory();
 					if (!history) {
-						controller->showToast(u"Откройте чат для анализа."_q);
+						controller->showToast(tr::ayu_AiOpenChatToAnalyze(tr::now));
 						return;
 					}
 					AutoTuneStyleFromServer(controller, history->peer);
@@ -874,13 +882,11 @@ const auto kMeta = BuildHelper({
 	});
 
 	ayu.addSectionDivider();
-	builder.addSubsectionTitle(
-		rpl::single(
-			u"По умолчанию для чатов (если у диалога нет своих настроек в БД)"_q));
+	builder.addSubsectionTitle(tr::ayu_AiDefaultsSection());
 
 	ayu.addToggle({
 		.id = u"teleforge/defaultAiAnswer"_q,
-		.title = rpl::single(u"Разрешить ответы ИИ (Ctrl+Shift+M)"_q),
+		.title = tr::ayu_AiAllowAnswers(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).aiAnswer;
@@ -894,7 +900,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultMemRead"_q,
-		.title = rpl::single(u"Читать память в промпт"_q),
+		.title = tr::ayu_AiMemoryRead(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).memoryReadEnabled;
@@ -908,7 +914,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultMemWrite"_q,
-		.title = rpl::single(u"Записывать память из сообщений"_q),
+		.title = tr::ayu_AiMemoryWrite(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).memoryWriteEnabled;
@@ -922,7 +928,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultWeb"_q,
-		.title = rpl::single(u"Доступ в интернет (заготовка)"_q),
+		.title = tr::ayu_AiWebAccess(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).webAccess;
@@ -936,7 +942,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultCal"_q,
-		.title = rpl::single(u"Доступ к календарю (заготовка)"_q),
+		.title = tr::ayu_AiCalendarAccess(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).calendarAccess;
@@ -950,7 +956,7 @@ const auto kMeta = BuildHelper({
 	});
 	ayu.addToggle({
 		.id = u"teleforge/defaultPc"_q,
-		.title = rpl::single(u"Агент ПК (заготовка)"_q),
+		.title = tr::ayu_AiPcAgent(),
 		.getter = [=] {
 			return TeleForge::Storage::effectivePerChatSettings(
 				TeleForge::Storage::kTeleForgeGlobalDefaultsPeerId).pcAgent;
@@ -982,31 +988,31 @@ const auto kMeta = BuildHelper({
 			};
 
 			const auto fGk = addNumRow(
-				u"Глобальная память, top-K"_q,
+				tr::ayu_AiGlobalMemoryTopK(tr::now),
 				QString::number(r.globalMemoryTopK));
 			const auto fCk = addNumRow(
-				u"Память чата, top-K"_q,
+				tr::ayu_AiChatMemoryTopK(tr::now),
 				QString::number(r.chatMemoryTopK));
 			const auto fUk = addNumRow(
-				u"Память пользователя, top-K"_q,
+				tr::ayu_AiUserMemoryTopK(tr::now),
 				QString::number(r.userMemoryTopK));
 			const auto fAk = addNumRow(
-				u"Семантическое приложение, top-K"_q,
+				tr::ayu_AiMemoryAppendixTopK(tr::now),
 				QString::number(r.memoryAppendixTopK));
 			const auto fRx = addNumRow(
-				u"Число сводок (X)"_q,
+				tr::ayu_AiRecentSummariesLimit(tr::now),
 				QString::number(r.recentSummaryLimit));
 			const auto fSy = addNumRow(
-				u"Число стабильных фактов (Y)"_q,
+				tr::ayu_AiStableFactsLimit(tr::now),
 				QString::number(r.stableFactsLimit));
 			const auto fDec = addNumRow(
-				u"Линейное затухание в день"_q,
+				tr::ayu_AiMemoryDecay(tr::now),
 				QString::number(r.memoryDecayPerDay, 'g', 4));
 			const auto fMax = addNumRow(
-				u"Max chars на блок памяти в промпте"_q,
+				tr::ayu_AiMaxMemoryBlockChars(tr::now),
 				QString::number(r.maxMemoryBlockChars));
 
-			AddSettingsHint(c, rpl::single(u"Белый список папок (JSON)"_q));
+			AddSettingsHint(c, tr::ayu_AiDirectoryWhitelist());
 			const auto fWl = c->add(
 				object_ptr<Ui::InputField>(
 					c,
@@ -1020,8 +1026,7 @@ const auto kMeta = BuildHelper({
 			const auto saveNums = c->add(
 				object_ptr<Ui::SettingsButton>(
 					c,
-					rpl::single(
-						u"Сохранить числовые параметры и whitelist"_q),
+					tr::ayu_AiSaveNumeric(),
 					st::settingsButtonNoIcon));
 			saveNums->setClickedCallback([=] {
 				auto next = TeleForge::Storage::effectivePerChatSettings(
@@ -1076,7 +1081,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> TeleForgeAi::title() {
-	return rpl::single(u"Настройки ИИ"_q);
+	return tr::ayu_CategoryTeleForgeAi();
 }
 
 TeleForgeAi::TeleForgeAi(

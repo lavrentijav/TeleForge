@@ -74,9 +74,10 @@ void BuildVersionInfo(SectionBuilder &builder) {
 		return {
 			.widget = object_ptr<Ui::FlatLabel>(
 				ctx.container,
-				rpl::single(
-					QString("TeleForge Desktop v")
-					+ QString::fromLatin1(AppVersionStr)),
+				rpl::single(tr::ayu_VersionLine(
+					tr::now,
+					lt_version,
+					QString::fromLatin1(AppVersionStr))),
 				st::boxTitle),
 			.align = style::al_top,
 		};
@@ -102,7 +103,7 @@ void BuildCategories(SectionBuilder &builder) {
 		.icon = { &st::menuIconGroupReactions },
 	});
 	builder.addSectionButton({
-		.title = rpl::single(u"Шпион"_q),
+		.title = tr::ayu_CategorySpy(),
 		.targetSection = AyuSpy::Id(),
 		.icon = { &st::menuIconShowAll },
 	});
@@ -199,7 +200,7 @@ void BuildLinks(SectionBuilder &builder) {
 const auto kMeta = BuildHelper({
 	.id = AyuMain::Id(),
 	.parentId = MainId(),
-	.title = QStringLiteral("TeleForge"),
+	.title = &tr::ayu_AyuPreferences,
 	.icon = &st::menuIconPremium,
 }, [](SectionBuilder &builder) {
 	BuildLogo(builder);
@@ -212,7 +213,7 @@ const auto kMeta = BuildHelper({
 } // namespace
 
 rpl::producer<QString> AyuMain::title() {
-	return rpl::single(QString(""));
+	return tr::ayu_AyuPreferences();
 }
 
 AyuMain::AyuMain(

@@ -142,7 +142,7 @@ void PerDialogFiltersListController::rowClicked(not_null<PeerListRow*> peer) {
 		_contextMenu->setAttribute(Qt::WA_DeleteOnClose);
 
 		_contextMenu->addAction(
-			tr::lng_theme_delete(tr::now),
+			tr::ayu_Delete(tr::now),
 			[=]
 			{
 				if (AyuSettings::getInstance().isShadowBanned(did)) {

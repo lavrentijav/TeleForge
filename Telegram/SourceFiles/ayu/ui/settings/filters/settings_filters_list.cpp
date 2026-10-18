@@ -100,7 +100,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 		_contextMenu->setAttribute(Qt::WA_DeleteOnClose);
 
 		_contextMenu->addAction(
-			tr::lng_theme_edit(tr::now),
+			tr::ayu_Edit(tr::now),
 			[=]
 			{
 				_controller->show(
@@ -113,7 +113,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 			&st::menuIconEdit);
 
 		_contextMenu->addAction(
-			state->enabled ? tr::lng_settings_auto_night_disable(tr::now) : tr::lng_sure_enable(tr::now),
+			state->enabled ? tr::ayu_Disable(tr::now) : tr::ayu_Enable(tr::now),
 			[=]
 			{
 				state->enabled = !state->enabled;
@@ -126,7 +126,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 		_contextMenu->addSeparator();
 
 		_contextMenu->addAction(
-			tr::lng_theme_delete(tr::now),
+			tr::ayu_Delete(tr::now),
 			[=]
 			{
 				AyuDatabase::deleteFilter(state->id);
@@ -177,7 +177,7 @@ void AyuFiltersList::addNewFilter(const RegexFilter &filter, bool exclusion) {
 		_contextMenu->setAttribute(Qt::WA_DeleteOnClose);
 
 		_contextMenu->addAction(
-			tr::lng_theme_delete(tr::now),
+			tr::ayu_Delete(tr::now),
 			[=, this]
 			{
 				Expects(dialogId.has_value());

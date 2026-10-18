@@ -376,11 +376,13 @@ void AddAiModeAction(PeerData *peerData,
 		r.updatedAt = base::unixtime::now();
 		TeleForge::Storage::upsertPerChatSettings(r);
 		sessionController->showToast(r.aiAnswer
-			? u"AI-режим включён для этого чата."_q
-			: u"AI-режим выключен для этого чата."_q);
+			? tr::ayu_ContextAiModeOn(tr::now)
+			: tr::ayu_ContextAiModeOff(tr::now));
 	};
 	addCallback({
-		.text = enabled ? u"AI mode: вкл"_q : u"AI mode: выкл"_q,
+		.text = enabled
+			? tr::ayu_ContextAiModeEnabled(tr::now)
+			: tr::ayu_ContextAiModeDisabled(tr::now),
 		.handler = toggle,
 		.icon = &st::menuIconBot,
 	});
@@ -414,7 +416,7 @@ void AddTeleForgePeerSubmenu(
 				record.peerId = peerStorageId;
 				record.updatedAt = base::unixtime::now();
 				TeleForge::Storage::upsertPerChatSettings(record);
-				controller->showToast(u"Настройки чата сохранены."_q);
+				controller->showToast(tr::ayu_ContextChatSettingsSaved(tr::now));
 			};
 			const auto snapshot =
 				TeleForge::Storage::effectivePerChatSettings(peerStorageId);
@@ -429,21 +431,21 @@ void AddTeleForgePeerSubmenu(
 					save(next);
 				});
 			};
-			// "Ответы ИИ" (aiAnswer) is intentionally omitted here — it lives
+			// "AI replies" (aiAnswer) is intentionally omitted here — it lives
 			// as the standalone top-level "AI mode" item (AddAiModeAction).
-			item(u"Читать память"_q, snapshot.memoryReadEnabled,
+			item(tr::ayu_ContextReadMemory(tr::now), snapshot.memoryReadEnabled,
 				[](Record &r, bool v) { r.memoryReadEnabled = v; });
-			item(u"Записывать память"_q, snapshot.memoryWriteEnabled,
+			item(tr::ayu_ContextWriteMemory(tr::now), snapshot.memoryWriteEnabled,
 				[](Record &r, bool v) { r.memoryWriteEnabled = v; });
 			if (userId) {
 				const auto spyOn = TeleForge::Spy::isSpyTargetEnabled(userId);
 				menu->addAction(spyOn
-					? u"Отслеживать онлайн  ✓"_q
-					: u"Отслеживать онлайн"_q, [=] {
+					? (tr::ayu_ContextTrackOnline(tr::now) + u"  ✓"_q)
+					: tr::ayu_ContextTrackOnline(tr::now), [=] {
 					TeleForge::Spy::setSpyTargetEnabled(userId, !spyOn);
 					controller->showToast(!spyOn
-						? u"Отслеживание включено."_q
-						: u"Отслеживание выключено."_q);
+						? tr::ayu_ContextTrackOnlineOn(tr::now)
+						: tr::ayu_ContextTrackOnlineOff(tr::now));
 				});
 			}
 		},

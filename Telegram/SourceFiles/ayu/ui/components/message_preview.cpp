@@ -77,7 +77,7 @@ MessagePreview::MessagePreview(
 		history,
 		history->session().userPeerId(),
 		FullMsgId(),
-		u"Update wehn?"_q);
+		tr::ayu_MessagePreviewSampleReply(tr::now));
 
 	const auto previewUser = HistoryView::GenerateUser(
 		history,
@@ -92,7 +92,7 @@ MessagePreview::MessagePreview(
 			.messageId = _state->reply->data()->fullId(),
 		},
 		.date = base::unixtime::now(),
-	}, TextWithEntities{ u"You need to touch some grass."_q },
+	}, TextWithEntities{ tr::ayu_MessagePreviewSampleText(tr::now) },
 	MTP_messageMediaEmpty());
 
 	messageItem->setDeleted();
@@ -104,7 +104,7 @@ MessagePreview::MessagePreview(
 	auto edition = HistoryMessageEdition();
 	edition.editDate = base::unixtime::now();
 	edition.textWithEntities = TextWithEntities{
-		u"You need to touch some grass."_q,
+		tr::ayu_MessagePreviewSampleText(tr::now),
 	};
 	edition.useSameViews = true;
 	edition.useSameForwards = true;
