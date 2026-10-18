@@ -13,6 +13,7 @@
 #include "tfc/features/ghost/tf_ghost_read.h"
 #include "tfc/ui/tf_logo.h"
 #include "core/application.h"
+#include "main/main_account.h"
 #include "data/data_peer_id.h"
 #include "data/data_session.h"
 #include "features/filters/filters_cache_controller.h"
@@ -131,9 +132,11 @@ void GhostModeAccountSettings::setGhostModeEnabled(bool val) {
 				TfWorker::scheduleOfflinePacket(session);
 			}
 		}
-	} else if (const auto window = Core::App().activeWindow()) {
-		if (const auto session = window->maybeSession()) {
-			TeleForge::GhostRead::scheduleFlush(session);
+	} else {
+		for (const auto &entry : Core::App().domain().accounts()) {
+			if (const auto session = entry.account->maybeSession()) {
+				TeleForge::GhostRead::scheduleFlush(session);
+			}
 		}
 	}
 }
