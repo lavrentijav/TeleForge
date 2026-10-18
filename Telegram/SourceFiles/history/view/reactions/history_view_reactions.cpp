@@ -36,7 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_settings.h"
 #include "ayu/features/message_shot/message_shot.h"
 #include "ayu/ui/ayu_userpic.h"
-#include "ayu/features/filters/filters_controller.h"
+#include "tfc/features/filters/filters_controller.h"
 
 
 namespace HistoryView::Reactions {

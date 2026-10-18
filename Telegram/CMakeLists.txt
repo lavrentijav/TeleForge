@@ -288,12 +288,12 @@ set(teleforge_extension_files
         ayu/features/translator/implementations/telegram.h
         ayu/features/translator/implementations/base.cpp
         ayu/features/translator/implementations/base.h
-        ayu/features/filters/filters_controller.cpp
-        ayu/features/filters/filters_controller.h
-        ayu/features/filters/filters_cache_controller.cpp
-        ayu/features/filters/filters_cache_controller.h
-        ayu/features/filters/filters_utils.cpp
-        ayu/features/filters/filters_utils.h
+        tfc/features/filters/filters_controller.cpp
+        tfc/features/filters/filters_controller.h
+        tfc/features/filters/filters_cache_controller.cpp
+        tfc/features/filters/filters_cache_controller.h
+        tfc/features/filters/filters_utils.cpp
+        tfc/features/filters/filters_utils.h
         ayu/features/subscription/teleforge_subscription.cpp
         ayu/features/subscription/teleforge_subscription.h
         ayu/features/teleforge/teleforge_bootstrap.cpp

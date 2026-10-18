@@ -9,7 +9,7 @@
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
 #include "tfc/data/ayu_database.h"
-#include "ayu/features/filters/filters_cache_controller.h"
+#include "tfc/features/filters/filters_cache_controller.h"
 #include "ayu/ui/boxes/import_filters_box.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_main.h"

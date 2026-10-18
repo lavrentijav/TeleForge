@@ -4,12 +4,12 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/filters/filters_utils.h"
+#include "tfc/features/filters/filters_utils.h"
 
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
 #include "tfc/data/ayu_database.h"
-#include "ayu/features/filters/filters_cache_controller.h"
+#include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "data/data_document.h"
 #include "data/data_peer.h"

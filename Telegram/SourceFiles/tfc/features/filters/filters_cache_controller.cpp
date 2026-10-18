@@ -4,10 +4,10 @@
 // but be respectful and credit the original author.
 //
 // Copyright @Radolyn, 2026
-#include "ayu/features/filters/filters_cache_controller.h"
+#include "tfc/features/filters/filters_cache_controller.h"
 
 #include "tfc/data/ayu_database.h"
-#include "ayu/features/filters/filters_controller.h"
+#include "tfc/features/filters/filters_controller.h"
 #include "data/data_groups.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"

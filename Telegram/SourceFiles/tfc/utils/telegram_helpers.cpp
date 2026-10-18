@@ -14,7 +14,7 @@
 #include "ayu/ayu_worker.h"
 #include "tfc/data/entities.h"
 #include "tfc/data/messages_storage.h"
-#include "ayu/features/filters/filters_controller.h"
+#include "tfc/features/filters/filters_controller.h"
 #include "tfc/utils/rc_manager.h"
 #include "tfc/utils/official_resources.h"
 #include "base/unixtime.h"

@@ -226,7 +226,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
-#include "ayu/features/filters/filters_cache_controller.h"
+#include "tfc/features/filters/filters_cache_controller.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "ayu/features/message_shot/message_shot.h"
 #include "ayu/features/forward/ayu_forward.h"

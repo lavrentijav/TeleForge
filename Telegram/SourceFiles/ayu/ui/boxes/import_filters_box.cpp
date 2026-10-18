@@ -7,7 +7,7 @@
 #include "ayu/ui/boxes/import_filters_box.h"
 
 #include "lang_auto.h"
-#include "ayu/features/filters/filters_utils.h"
+#include "tfc/features/filters/filters_utils.h"
 #include "styles/style_giveaway.h"
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"

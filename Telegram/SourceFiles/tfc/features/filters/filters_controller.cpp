@@ -5,11 +5,11 @@
 //
 // Copyright @Radolyn, 2026
 
-#include "ayu/features/filters/filters_controller.h"
+#include "tfc/features/filters/filters_controller.h"
 
 #include "ayu/ayu_settings.h"
-#include "ayu/features/filters/filters_cache_controller.h"
-#include "ayu/features/filters/filters_utils.h"
+#include "tfc/features/filters/filters_cache_controller.h"
+#include "tfc/features/filters/filters_utils.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "data/data_peer.h"
 #include "data/data_peer_id.h"

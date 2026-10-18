@@ -22,7 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
-#include "ayu/features/filters/filters_controller.h"
+#include "tfc/features/filters/filters_controller.h"
 
 
 namespace HistoryView {
