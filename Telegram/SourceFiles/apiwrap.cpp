@@ -113,7 +113,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ayu_settings.h"
 #include "tfc/features/ghost/tf_ghost_audit.h"
 #include "ayu/ayu_worker.h"
-#include "ayu/ui/ghost_online_warn.h"
+#include "tfc/ui/ghost_online_warn.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "tfc/features/forward/ayu_forward.h"
 #include "tfc/features/spy/online_tracker.h"

@@ -32,7 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item_components.h"
 #include "history/view/history_view_message.h"
-#include "ayu/ui/ayu_userpic.h"
+#include "tfc/ui/ayu_userpic.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "settings/sections/settings_premium.h"

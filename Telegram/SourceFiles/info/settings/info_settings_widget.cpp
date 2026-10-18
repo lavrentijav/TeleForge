@@ -15,11 +15,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 
 // AyuGram includes
-#include "ayu/ui/settings/settings_main.h"
-#include "ayu/ui/settings/settings_teleforge_ai.h"
-#include "ayu/ui/settings/settings_teleforge_plugins.h"
-#include "ayu/ui/settings/settings_teleforge_sync.h"
-#include "ayu/ui/settings/settings_spy.h"
+#include "tfc/ui/settings/settings_main.h"
+#include "tfc/ui/settings/settings_teleforge_ai.h"
+#include "tfc/ui/settings/settings_teleforge_plugins.h"
+#include "tfc/ui/settings/settings_teleforge_sync.h"
+#include "tfc/ui/settings/settings_spy.h"
 
 
 namespace Info {

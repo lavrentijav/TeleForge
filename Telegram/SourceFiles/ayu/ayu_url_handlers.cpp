@@ -8,7 +8,7 @@
 
 #include "lang_auto.h"
 #include "mainwindow.h"
-#include "ayu/ui/settings/settings_main.h"
+#include "tfc/ui/settings/settings_main.h"
 #include "tfc/utils/official_resources.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "base/qthelp_url.h"

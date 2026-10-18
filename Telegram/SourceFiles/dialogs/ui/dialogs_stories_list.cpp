@@ -32,7 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/debug_log.h"
 
 // AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+#include "tfc/ui/ayu_userpic.h"
 
 
 namespace Dialogs::Stories {

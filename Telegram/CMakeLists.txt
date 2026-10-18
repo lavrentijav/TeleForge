@@ -157,60 +157,60 @@ set(teleforge_extension_files
         tfc/utils/taptic_engine/platform/taptic_engine_dummy.h
         tfc/utils/taptic_engine/platform/taptic_engine_mac.mm
         tfc/utils/taptic_engine/platform/taptic_engine_mac.h
-        ayu/ui/ayu_logo.cpp
-        ayu/ui/ayu_logo.h
-        ayu/ui/ayu_userpic.cpp
-        ayu/ui/ayu_userpic.h
-        ayu/ui/utils/ayu_profile_values.cpp
-        ayu/ui/utils/ayu_profile_values.h
-        ayu/ui/utils/color_cut_quantizer.cpp
-        ayu/ui/utils/color_cut_quantizer.h
-        ayu/ui/utils/color_utils.cpp
-        ayu/ui/utils/color_utils.h
-        ayu/ui/utils/palette.cpp
-        ayu/ui/utils/palette.h
-        ayu/ui/utils/itunes_search.cpp
-        ayu/ui/utils/itunes_search.h
-        ayu/ui/settings/ayu_builder.cpp
-        ayu/ui/settings/ayu_builder.h
-        ayu/ui/settings/settings_appearance.cpp
-        ayu/ui/settings/settings_appearance.h
-        ayu/ui/settings/settings_ayu_utils.cpp
-        ayu/ui/settings/settings_ayu_utils.h
-        ayu/ui/settings/settings_chats.cpp
-        ayu/ui/settings/settings_chats.h
-        ayu/ui/settings/settings_general.cpp
-        ayu/ui/settings/settings_general.h
-        ayu/ui/settings/settings_ayu.cpp
-        ayu/ui/settings/settings_ayu.h
-        ayu/ui/settings/settings_filters.cpp
-        ayu/ui/settings/settings_filters.h
-        ayu/ui/settings/settings_main.cpp
-        ayu/ui/settings/settings_main.h
-        ayu/ui/settings/settings_teleforge_ai.cpp
-        ayu/ui/settings/settings_teleforge_ai.h
-        ayu/ui/settings/settings_teleforge_plugins.cpp
-        ayu/ui/settings/settings_teleforge_plugins.h
-        ayu/ui/settings/settings_teleforge_sync.cpp
-        ayu/ui/settings/settings_teleforge_sync.h
-        ayu/ui/settings/settings_other.cpp
-        ayu/ui/settings/settings_other.h
-        ayu/ui/settings/filters/settings_filters_list.cpp
-        ayu/ui/settings/filters/settings_filters_list.h
-        ayu/ui/settings/filters/per_dialog_filter.cpp
-        ayu/ui/settings/filters/per_dialog_filter.h
-        ayu/ui/settings/filters/edit_filter.cpp
-        ayu/ui/settings/filters/edit_filter.h
-        ayu/ui/context_menu/context_menu.cpp
-        ayu/ui/context_menu/context_menu.h
-        ayu/ui/context_menu/menu_item_subtext.cpp
-        ayu/ui/context_menu/menu_item_subtext.h
-        ayu/ui/ghost_online_bar.cpp
-        ayu/ui/ghost_online_bar.h
-        ayu/ui/ghost_online_warn.cpp
-        ayu/ui/ghost_online_warn.h
-        ayu/ui/teleforge_upload_bar.cpp
-        ayu/ui/teleforge_upload_bar.h
+        tfc/ui/ayu_logo.cpp
+        tfc/ui/ayu_logo.h
+        tfc/ui/ayu_userpic.cpp
+        tfc/ui/ayu_userpic.h
+        tfc/ui/utils/ayu_profile_values.cpp
+        tfc/ui/utils/ayu_profile_values.h
+        tfc/ui/utils/color_cut_quantizer.cpp
+        tfc/ui/utils/color_cut_quantizer.h
+        tfc/ui/utils/color_utils.cpp
+        tfc/ui/utils/color_utils.h
+        tfc/ui/utils/palette.cpp
+        tfc/ui/utils/palette.h
+        tfc/ui/utils/itunes_search.cpp
+        tfc/ui/utils/itunes_search.h
+        tfc/ui/settings/ayu_builder.cpp
+        tfc/ui/settings/ayu_builder.h
+        tfc/ui/settings/settings_appearance.cpp
+        tfc/ui/settings/settings_appearance.h
+        tfc/ui/settings/settings_ayu_utils.cpp
+        tfc/ui/settings/settings_ayu_utils.h
+        tfc/ui/settings/settings_chats.cpp
+        tfc/ui/settings/settings_chats.h
+        tfc/ui/settings/settings_general.cpp
+        tfc/ui/settings/settings_general.h
+        tfc/ui/settings/settings_ayu.cpp
+        tfc/ui/settings/settings_ayu.h
+        tfc/ui/settings/settings_filters.cpp
+        tfc/ui/settings/settings_filters.h
+        tfc/ui/settings/settings_main.cpp
+        tfc/ui/settings/settings_main.h
+        tfc/ui/settings/settings_teleforge_ai.cpp
+        tfc/ui/settings/settings_teleforge_ai.h
+        tfc/ui/settings/settings_teleforge_plugins.cpp
+        tfc/ui/settings/settings_teleforge_plugins.h
+        tfc/ui/settings/settings_teleforge_sync.cpp
+        tfc/ui/settings/settings_teleforge_sync.h
+        tfc/ui/settings/settings_other.cpp
+        tfc/ui/settings/settings_other.h
+        tfc/ui/settings/filters/settings_filters_list.cpp
+        tfc/ui/settings/filters/settings_filters_list.h
+        tfc/ui/settings/filters/per_dialog_filter.cpp
+        tfc/ui/settings/filters/per_dialog_filter.h
+        tfc/ui/settings/filters/edit_filter.cpp
+        tfc/ui/settings/filters/edit_filter.h
+        tfc/ui/context_menu/context_menu.cpp
+        tfc/ui/context_menu/context_menu.h
+        tfc/ui/context_menu/menu_item_subtext.cpp
+        tfc/ui/context_menu/menu_item_subtext.h
+        tfc/ui/ghost_online_bar.cpp
+        tfc/ui/ghost_online_bar.h
+        tfc/ui/ghost_online_warn.cpp
+        tfc/ui/ghost_online_warn.h
+        tfc/ui/teleforge_upload_bar.cpp
+        tfc/ui/teleforge_upload_bar.h
         tfc/features/ghost/tf_ghost_audit.cpp
         tfc/features/ghost/tf_ghost_audit.h
         tfc/features/ghost/tf_ghost_read.cpp
@@ -219,40 +219,40 @@ set(teleforge_extension_files
         tfc/features/ghost/tf_ghost_scheduled.h
         tfc/features/presence/tf_presence_filter.cpp
         tfc/features/presence/tf_presence_filter.h
-        ayu/ui/message_history/history_inner.cpp
-        ayu/ui/message_history/history_inner.h
-        ayu/ui/message_history/history_item.cpp
-        ayu/ui/message_history/history_item.h
-        ayu/ui/message_history/history_section.cpp
-        ayu/ui/message_history/history_section.h
-        ayu/ui/boxes/edit_mark_box.cpp
-        ayu/ui/boxes/edit_mark_box.h
-        ayu/ui/boxes/font_selector.cpp
-        ayu/ui/boxes/font_selector.h
-        ayu/ui/boxes/import_filters_box.cpp
-        ayu/ui/boxes/import_filters_box.h
-        ayu/ui/boxes/theme_selector_box.cpp
-        ayu/ui/boxes/theme_selector_box.h
-        ayu/ui/boxes/message_shot_box.cpp
-        ayu/ui/boxes/message_shot_box.h
-        ayu/ui/boxes/donate_qr_box.cpp
-        ayu/ui/boxes/donate_qr_box.h
-        ayu/ui/boxes/donate_info_box.cpp
-        ayu/ui/boxes/donate_info_box.h
-        ayu/ui/boxes/plugin_info_box.cpp
-        ayu/ui/boxes/plugin_info_box.h
-        ayu/ui/components/image_view.cpp
-        ayu/ui/components/image_view.h
-        ayu/ui/components/icon_picker.cpp
-        ayu/ui/components/icon_picker.h
-        ayu/ui/components/avatar_corners_preview.cpp
-        ayu/ui/components/avatar_corners_preview.h
-        ayu/ui/components/dropdown_row.cpp
-        ayu/ui/components/dropdown_row.h
-        ayu/ui/components/message_preview.cpp
-        ayu/ui/components/message_preview.h
-        ayu/ui/components/saved_music.cpp
-        ayu/ui/components/saved_music.h
+        tfc/ui/message_history/history_inner.cpp
+        tfc/ui/message_history/history_inner.h
+        tfc/ui/message_history/history_item.cpp
+        tfc/ui/message_history/history_item.h
+        tfc/ui/message_history/history_section.cpp
+        tfc/ui/message_history/history_section.h
+        tfc/ui/boxes/edit_mark_box.cpp
+        tfc/ui/boxes/edit_mark_box.h
+        tfc/ui/boxes/font_selector.cpp
+        tfc/ui/boxes/font_selector.h
+        tfc/ui/boxes/import_filters_box.cpp
+        tfc/ui/boxes/import_filters_box.h
+        tfc/ui/boxes/theme_selector_box.cpp
+        tfc/ui/boxes/theme_selector_box.h
+        tfc/ui/boxes/message_shot_box.cpp
+        tfc/ui/boxes/message_shot_box.h
+        tfc/ui/boxes/donate_qr_box.cpp
+        tfc/ui/boxes/donate_qr_box.h
+        tfc/ui/boxes/donate_info_box.cpp
+        tfc/ui/boxes/donate_info_box.h
+        tfc/ui/boxes/plugin_info_box.cpp
+        tfc/ui/boxes/plugin_info_box.h
+        tfc/ui/components/image_view.cpp
+        tfc/ui/components/image_view.h
+        tfc/ui/components/icon_picker.cpp
+        tfc/ui/components/icon_picker.h
+        tfc/ui/components/avatar_corners_preview.cpp
+        tfc/ui/components/avatar_corners_preview.h
+        tfc/ui/components/dropdown_row.cpp
+        tfc/ui/components/dropdown_row.h
+        tfc/ui/components/message_preview.cpp
+        tfc/ui/components/message_preview.h
+        tfc/ui/components/saved_music.cpp
+        tfc/ui/components/saved_music.h
         ayu/libs/json.hpp
         ayu/libs/json_ext.hpp
         ayu/libs/sqlite/sqlite3.c
@@ -343,8 +343,8 @@ set(teleforge_extension_files
         tfc/features/teleforge/tf_archive_userpics_box.h
         tfc/features/teleforge/tf_archive_users_box.cpp
         tfc/features/teleforge/tf_archive_users_box.h
-        ayu/ui/settings/settings_spy.cpp
-        ayu/ui/settings/settings_spy.h
+        tfc/ui/settings/settings_spy.cpp
+        tfc/ui/settings/settings_spy.h
         tfc/features/teleforge/tf_chat_wallpaper_save.cpp
         tfc/features/teleforge/tf_chat_wallpaper_save.h
         tfc/data/ayu_content_hash.cpp

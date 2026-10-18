@@ -11,7 +11,7 @@
 #include "ayu/ayu_ui_settings.h"
 #include "ayu/ayu_worker.h"
 #include "tfc/features/ghost/tf_ghost_read.h"
-#include "ayu/ui/ayu_logo.h"
+#include "tfc/ui/ayu_logo.h"
 #include "core/application.h"
 #include "data/data_peer_id.h"
 #include "data/data_session.h"

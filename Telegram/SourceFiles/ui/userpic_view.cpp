@@ -14,7 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <cmath>
 
 // AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+#include "tfc/ui/ayu_userpic.h"
 
 namespace Ui {
 namespace {

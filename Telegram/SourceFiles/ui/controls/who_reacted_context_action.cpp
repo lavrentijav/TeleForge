@@ -29,7 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QLocale>
 
 // AyuGram includes
-#include "ayu/ui/ayu_userpic.h"
+#include "tfc/ui/ayu_userpic.h"
 
 
 namespace Lang {

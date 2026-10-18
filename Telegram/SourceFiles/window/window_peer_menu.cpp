@@ -68,7 +68,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session_settings.h"
 #include "menu/menu_mute.h"
 #include "menu/menu_ttl_validator.h"
-#include "ayu/ui/ghost_online_warn.h"
+#include "tfc/ui/ghost_online_warn.h"
 
 #include "apiwrap.h"
 #include "mainwidget.h"
@@ -145,7 +145,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "styles/style_ayu_icons.h"
-#include "ayu/ui/context_menu/context_menu.h"
+#include "tfc/ui/context_menu/context_menu.h"
 #include "ayu/features/translator/ayu_translate_actions.h"
 #include "tfc/features/forward/ayu_forward.h"
 #include "ayu/ayu_settings.h"

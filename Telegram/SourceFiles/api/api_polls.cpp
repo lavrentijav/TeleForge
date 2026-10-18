@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_polls.h"
 
-#include "ayu/ui/ghost_online_warn.h"
+#include "tfc/ui/ghost_online_warn.h"
 
 #include "api/api_common.h"
 #include "api/api_statistics_data_deserialize.h"

@@ -35,7 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/abstract_box.h" // Ui::show().
 
 // AyuGram includes
-#include "ayu/ui/ghost_online_warn.h"
+#include "tfc/ui/ghost_online_warn.h"
 #include "tfc/utils/telegram_helpers.h"
 
 

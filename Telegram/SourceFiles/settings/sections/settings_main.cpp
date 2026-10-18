@@ -93,8 +93,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QWindow>
 
 // AyuGram includes
-#include "ayu/ui/settings/settings_main.h"
-#include "ayu/ui/utils/ayu_profile_values.h"
+#include "tfc/ui/settings/settings_main.h"
+#include "tfc/ui/utils/ayu_profile_values.h"
 #include "tfc/utils/telegram_helpers.h"
 
 namespace Settings {

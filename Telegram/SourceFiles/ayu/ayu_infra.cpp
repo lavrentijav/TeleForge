@@ -13,7 +13,7 @@
 #include "tfc/data/ayu_database.h"
 #include "tfc/features/teleforge/teleforge_bootstrap.h"
 #include "tfc/features/teleforge/teleforge_storage.h"
-#include "ayu/ui/ayu_logo.h"
+#include "tfc/ui/ayu_logo.h"
 #include "features/translator/ayu_translator.h"
 #include "lang/lang_instance.h"
 #include "utils/rc_manager.h"
