@@ -1,6 +1,6 @@
 #include "ayu/features/sync/teleforge_ssh_tunnel.h"
 
-#include "ayu/features/teleforge/teleforge_core.h"
+#include "tfc/features/teleforge/teleforge_core.h"
 
 #include "logs.h"
 

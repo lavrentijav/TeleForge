@@ -1,4 +1,4 @@
-#include "ayu/features/teleforge/teleforge_paths.h"
+#include "tfc/features/teleforge/teleforge_paths.h"
 
 #include "settings.h"
 

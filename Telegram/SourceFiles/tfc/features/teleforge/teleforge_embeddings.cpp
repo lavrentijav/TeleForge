@@ -1,6 +1,6 @@
-#include "ayu/features/teleforge/teleforge_embeddings.h"
+#include "tfc/features/teleforge/teleforge_embeddings.h"
 
-#include "ayu/features/teleforge/teleforge_llama_runtime.h"
+#include "tfc/features/teleforge/teleforge_llama_runtime.h"
 
 #include "logs.h"
 

@@ -3,12 +3,12 @@
 // Copyright @Radolyn, 2026
 #include "ayu/ui/settings/settings_teleforge_ai.h"
 
-#include "ayu/features/teleforge/teleforge_core.h"
-#include "ayu/features/teleforge/teleforge_model_downloader.h"
-#include "ayu/features/teleforge/teleforge_openai_models.h"
-#include "ayu/features/teleforge/teleforge_paths.h"
-#include "ayu/features/teleforge/teleforge_rerank.h"
-#include "ayu/features/teleforge/teleforge_storage.h"
+#include "tfc/features/teleforge/teleforge_core.h"
+#include "tfc/features/teleforge/teleforge_model_downloader.h"
+#include "tfc/features/teleforge/teleforge_openai_models.h"
+#include "tfc/features/teleforge/teleforge_paths.h"
+#include "tfc/features/teleforge/teleforge_rerank.h"
+#include "tfc/features/teleforge/teleforge_storage.h"
 #include "ayu/features/translator/ayu_translate_actions.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/settings/ayu_builder.h"

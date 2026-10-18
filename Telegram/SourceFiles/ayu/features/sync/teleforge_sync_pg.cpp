@@ -1,6 +1,6 @@
 #include "ayu/features/sync/teleforge_sync_pg.h"
 
-#include "ayu/features/teleforge/teleforge_core.h"
+#include "tfc/features/teleforge/teleforge_core.h"
 #include "data/data_user.h"
 #include "main/main_session.h"
 
@@ -13,7 +13,7 @@
 #include "ayu/features/sync/teleforge_sync_crypto.h"
 #include "ayu/features/sync/teleforge_sync_embeddings.h"
 #include "ayu/features/sync/teleforge_sync_rows.h"
-#include "ayu/features/teleforge/teleforge_embeddings.h"
+#include "tfc/features/teleforge/teleforge_embeddings.h"
 
 #include "logs.h"
 

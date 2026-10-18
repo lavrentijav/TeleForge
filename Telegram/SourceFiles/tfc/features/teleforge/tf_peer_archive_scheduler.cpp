@@ -1,14 +1,14 @@
 // Copyright @Radolyn, 2026
 
-#include "ayu/features/teleforge/tf_peer_archive_scheduler.h"
+#include "tfc/features/teleforge/tf_peer_archive_scheduler.h"
 
 #include "apiwrap.h"
 #include "ayu/ayu_settings.h"
 #include "tfc/features/spy/online_history_storage.h"
-#include "ayu/features/teleforge/teleforge_unified_db.h"
-#include "ayu/features/teleforge/tf_peer_archive.h"
-#include "ayu/features/teleforge/tf_peer_archive_entities.h"
-#include "ayu/features/teleforge/tf_peer_archive_scanner.h"
+#include "tfc/features/teleforge/teleforge_unified_db.h"
+#include "tfc/features/teleforge/tf_peer_archive.h"
+#include "tfc/features/teleforge/tf_peer_archive_entities.h"
+#include "tfc/features/teleforge/tf_peer_archive_scanner.h"
 #include "base/call_delayed.h"
 #include "base/flat_map.h"
 #include "base/flat_set.h"

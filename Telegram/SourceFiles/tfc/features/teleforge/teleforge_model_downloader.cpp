@@ -1,8 +1,8 @@
-#include "ayu/features/teleforge/teleforge_model_downloader.h"
+#include "tfc/features/teleforge/teleforge_model_downloader.h"
 
-#include "ayu/features/teleforge/teleforge_core.h"
-#include "ayu/features/teleforge/teleforge_inference.h"
-#include "ayu/features/teleforge/teleforge_paths.h"
+#include "tfc/features/teleforge/teleforge_core.h"
+#include "tfc/features/teleforge/teleforge_inference.h"
+#include "tfc/features/teleforge/teleforge_paths.h"
 
 #include "base/call_delayed.h"
 #include "base/weak_qptr.h"

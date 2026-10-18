@@ -20,7 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ayu/ui/context_menu/context_menu.h"
 #include "ayu/features/translator/ayu_translate_actions.h"
 #include "tfc/utils/telegram_helpers.h"
-#include "ayu/features/teleforge/tf_chat_wallpaper_save.h"
+#include "tfc/features/teleforge/tf_chat_wallpaper_save.h"
 #include "history/view/controls/history_view_forward_panel.h"
 #include "history/view/controls/history_view_draft_options.h"
 #include "history/view/controls/history_view_suggest_options.h"

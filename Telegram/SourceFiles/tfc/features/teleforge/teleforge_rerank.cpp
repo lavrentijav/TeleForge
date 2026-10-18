@@ -1,7 +1,7 @@
-#include "ayu/features/teleforge/teleforge_rerank.h"
+#include "tfc/features/teleforge/teleforge_rerank.h"
 
-#include "ayu/features/teleforge/teleforge_llama_runtime.h"
-#include "ayu/features/teleforge/teleforge_paths.h"
+#include "tfc/features/teleforge/teleforge_llama_runtime.h"
+#include "tfc/features/teleforge/teleforge_paths.h"
 
 #include "logs.h"
 

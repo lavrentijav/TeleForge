@@ -1,11 +1,11 @@
-#include "ayu/features/teleforge/teleforge_memory.h"
+#include "tfc/features/teleforge/teleforge_memory.h"
 
 #include "ayu/features/sync/teleforge_sync.h"
-#include "ayu/features/teleforge/teleforge_core.h"
-#include "ayu/features/teleforge/teleforge_embeddings.h"
-#include "ayu/features/teleforge/teleforge_rerank.h"
-#include "ayu/features/teleforge/teleforge_storage.h"
-#include "ayu/features/teleforge/teleforge_vector_db.h"
+#include "tfc/features/teleforge/teleforge_core.h"
+#include "tfc/features/teleforge/teleforge_embeddings.h"
+#include "tfc/features/teleforge/teleforge_rerank.h"
+#include "tfc/features/teleforge/teleforge_storage.h"
+#include "tfc/features/teleforge/teleforge_vector_db.h"
 #include "core/application.h"
 #include "main/main_account.h"
 

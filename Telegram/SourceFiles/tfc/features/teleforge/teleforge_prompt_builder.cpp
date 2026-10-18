@@ -1,6 +1,6 @@
-#include "ayu/features/teleforge/teleforge_prompt_builder.h"
+#include "tfc/features/teleforge/teleforge_prompt_builder.h"
 
-#include "ayu/features/teleforge/teleforge_memory.h"
+#include "tfc/features/teleforge/teleforge_memory.h"
 
 namespace TeleForge::Prompt {
 namespace {

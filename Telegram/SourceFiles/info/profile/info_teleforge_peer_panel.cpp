@@ -9,7 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "tfc/features/spy/online_history_storage.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
-#include "ayu/features/teleforge/teleforge_storage.h"
+#include "tfc/features/teleforge/teleforge_storage.h"
 #include "ayu/ui/components/dropdown_row.h"
 #include "data/data_peer_id.h"
 #include "data/data_user.h"

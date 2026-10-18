@@ -1,10 +1,10 @@
 // Copyright @Radolyn, 2026
 
-#include "ayu/features/teleforge/tf_peer_archive_crawler.h"
+#include "tfc/features/teleforge/tf_peer_archive_crawler.h"
 
 #include "ayu/ayu_settings.h"
-#include "ayu/features/teleforge/tf_peer_archive.h"
-#include "ayu/features/teleforge/tf_peer_archive_scanner.h"
+#include "tfc/features/teleforge/tf_peer_archive.h"
+#include "tfc/features/teleforge/tf_peer_archive_scanner.h"
 #include "base/call_delayed.h"
 #include "base/flat_set.h"
 #include "base/random.h"

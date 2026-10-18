@@ -1,7 +1,7 @@
 #include "ayu/features/sync/teleforge_sync_snapshot.h"
 
 #include "ayu/features/sync/teleforge_sync_crypto.h"
-#include "ayu/features/teleforge/teleforge_storage.h"
+#include "tfc/features/teleforge/teleforge_storage.h"
 #include "settings.h"
 
 #include "logs.h"

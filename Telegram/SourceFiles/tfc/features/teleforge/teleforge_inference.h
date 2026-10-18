@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ayu/features/teleforge/teleforge_core.h"
-#include "ayu/features/teleforge/teleforge_lm_studio.h"
+#include "tfc/features/teleforge/teleforge_core.h"
+#include "tfc/features/teleforge/teleforge_lm_studio.h"
 
 #include "base/basic_types.h"
 

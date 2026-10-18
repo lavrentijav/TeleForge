@@ -1,7 +1,7 @@
-#include "ayu/features/teleforge/teleforge_history_bridge.h"
+#include "tfc/features/teleforge/teleforge_history_bridge.h"
 
-#include "ayu/features/teleforge/teleforge_inference.h"
-#include "ayu/features/teleforge/teleforge_memory.h"
+#include "tfc/features/teleforge/teleforge_inference.h"
+#include "tfc/features/teleforge/teleforge_memory.h"
 
 #include "data/data_peer_id.h"
 #include "data/data_session.h"

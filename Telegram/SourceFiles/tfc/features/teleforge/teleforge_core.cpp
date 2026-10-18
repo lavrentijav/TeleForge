@@ -1,8 +1,8 @@
-#include "ayu/features/teleforge/teleforge_core.h"
+#include "tfc/features/teleforge/teleforge_core.h"
 
 #include "ayu/features/sync/teleforge_sync_crypto.h"
-#include "ayu/features/teleforge/teleforge_inference.h"
-#include "ayu/features/teleforge/teleforge_storage.h"
+#include "tfc/features/teleforge/teleforge_inference.h"
+#include "tfc/features/teleforge/teleforge_storage.h"
 
 #include <algorithm>
 

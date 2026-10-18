@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ayu/features/teleforge/teleforge_inference.h"
+#include "tfc/features/teleforge/teleforge_inference.h"
 
 #include "history/history.h"
 #include "history/history_item.h"

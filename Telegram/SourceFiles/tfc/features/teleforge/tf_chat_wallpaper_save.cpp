@@ -1,6 +1,6 @@
 // Copyright @Radolyn, 2026
 
-#include "ayu/features/teleforge/tf_chat_wallpaper_save.h"
+#include "tfc/features/teleforge/tf_chat_wallpaper_save.h"
 
 #include "core/application.h"
 #include "core/file_utilities.h"

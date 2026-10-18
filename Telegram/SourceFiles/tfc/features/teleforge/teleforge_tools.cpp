@@ -1,7 +1,7 @@
 // Copyright @Radolyn, 2026
-#include "ayu/features/teleforge/teleforge_tools.h"
+#include "tfc/features/teleforge/teleforge_tools.h"
 
-#include "ayu/features/teleforge/teleforge_memory.h"
+#include "tfc/features/teleforge/teleforge_memory.h"
 
 #include <QtCore/QDateTime>
 

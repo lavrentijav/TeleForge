@@ -1,6 +1,6 @@
 // Copyright @Radolyn, 2026
 
-#include "ayu/features/teleforge/tf_deleted_restore.h"
+#include "tfc/features/teleforge/tf_deleted_restore.h"
 
 #include "api/api_text_entities.h"
 #include "ayu/ayu_settings.h"

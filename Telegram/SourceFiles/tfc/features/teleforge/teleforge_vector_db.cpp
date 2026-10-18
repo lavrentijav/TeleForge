@@ -1,7 +1,7 @@
-#include "ayu/features/teleforge/teleforge_vector_db.h"
+#include "tfc/features/teleforge/teleforge_vector_db.h"
 
-#include "ayu/features/teleforge/teleforge_embeddings.h"
-#include "ayu/features/teleforge/teleforge_storage.h"
+#include "tfc/features/teleforge/teleforge_embeddings.h"
+#include "tfc/features/teleforge/teleforge_storage.h"
 
 #include "base/unixtime.h"
 #include "logs.h"

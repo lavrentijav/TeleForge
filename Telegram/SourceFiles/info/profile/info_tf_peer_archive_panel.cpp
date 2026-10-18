@@ -2,10 +2,10 @@
 
 #include "info/profile/info_tf_peer_archive_panel.h"
 
-#include "ayu/features/teleforge/tf_archive_userpics_box.h"
+#include "tfc/features/teleforge/tf_archive_userpics_box.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
-#include "ayu/features/teleforge/tf_peer_archive.h"
-#include "ayu/features/teleforge/tf_peer_archive_scheduler.h"
+#include "tfc/features/teleforge/tf_peer_archive.h"
+#include "tfc/features/teleforge/tf_peer_archive_scheduler.h"
 #include "base/unixtime.h"
 #include "data/data_peer_id.h"
 #include "data/data_user.h"

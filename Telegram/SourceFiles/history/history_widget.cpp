@@ -230,9 +230,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "tfc/utils/telegram_helpers.h"
 #include "ayu/features/message_shot/message_shot.h"
 #include "tfc/features/forward/ayu_forward.h"
-#include "ayu/features/teleforge/teleforge_history_bridge.h"
-#include "ayu/features/teleforge/teleforge_inference.h"
-#include "ayu/features/teleforge/teleforge_memory.h"
+#include "tfc/features/teleforge/teleforge_history_bridge.h"
+#include "tfc/features/teleforge/teleforge_inference.h"
+#include "tfc/features/teleforge/teleforge_memory.h"
 
 #include "crl/crl.h"
 #include "data/data_peer_id.h"
