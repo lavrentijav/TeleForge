@@ -14,6 +14,7 @@
 
 #include <QtCore/QFile>
 
+#include <map>
 #include <set>
 #include <tuple>
 #include <utility>
@@ -534,6 +535,7 @@ void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows) {
 		for (const auto &row : rows) {
 			peers.emplace(row.accountId, row.peerId);
 		}
+		auto known = std::map<std::tuple<TfId, TfId, int>, GhostReadMessage>();
 		auto seen = std::set<std::tuple<TfId, TfId, int>>();
 		for (const auto &[accountId, peerId] : peers) {
 			const auto existing = db().get_all<GhostReadMessage>(
@@ -541,14 +543,26 @@ void insertGhostReadBatch(const std::vector<GhostReadMessage> &rows) {
 					column<GhostReadMessage>(&GhostReadMessage::accountId) == accountId
 					and column<GhostReadMessage>(&GhostReadMessage::peerId) == peerId));
 			for (const auto &row : existing) {
-				seen.emplace(row.accountId, row.peerId, row.msgId);
+				const auto key = std::make_tuple(row.accountId, row.peerId, row.msgId);
+				seen.emplace(key);
+				known.emplace(key, row);
 			}
 		}
 		auto tx = Tx(db());
 		for (const auto &row : rows) {
-			if (!seen.emplace(row.accountId, row.peerId, row.msgId).second) {
+			const auto key = std::make_tuple(row.accountId, row.peerId, row.msgId);
+			if (const auto i = known.find(key); i != end(known)) {
+				if (row.readAt > i->second.readAt) {
+					auto updated = i->second;
+					updated.readAt = row.readAt;
+					db().update(updated);
+				}
 				continue;
 			}
+			if (!seen.emplace(key).second) {
+				continue;
+			}
+			known.emplace(key, row);
 			db().insert(row);
 		}
 		tx.commit();
