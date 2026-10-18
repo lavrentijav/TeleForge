@@ -8,6 +8,17 @@ BIN="$TF_DIR/out/bin/TeleForge"
 WORK="$HOME/tfwork-check"
 
 say() { echo; echo "=== $* ==="; }
+# sqlite3 в WSL часто нет, поэтому читаем базу через python3
+q() {
+	python3 - "$1" "$2" <<'PY'
+import sqlite3, sys
+path, query = sys.argv[1], sys.argv[2]
+try:
+	print(sqlite3.connect(path).execute(query).fetchone()[0])
+except Exception as e:
+	print("?")
+PY
+}
 
 if [ ! -x "$BIN" ]; then
 	echo "нет бинаря: $BIN"
@@ -41,14 +52,14 @@ say "сценарий 1: миграция data.tforge версии 14 -> 16"
 prepare
 if [ -f "$HOME/tfwork/tdata/data.tforge" ]; then
 	cp "$HOME/tfwork/tdata/data.tforge" "$WORK/tdata/data.tforge"
-	before=$(sqlite3 "$WORK/tdata/data.tforge" "select value from SchemaVersion" 2>/dev/null || echo "?")
+	before=$(q "$WORK/tdata/data.tforge" "select version from SchemaVersion where singletonId = 1")
 	echo "схема до: $before"
 	run_app
-	after=$(sqlite3 "$WORK/tdata/data.tforge" "select value from SchemaVersion" 2>/dev/null || echo "?")
+	after=$(q "$WORK/tdata/data.tforge" "select version from SchemaVersion where singletonId = 1")
 	echo "схема после: $after"
-	echo "таблица GhostReadMessage: $(sqlite3 "$WORK/tdata/data.tforge" "select count(*) from sqlite_master where name='GhostReadMessage'" 2>/dev/null)"
-	echo "индекс idx_ghost_read_peer: $(sqlite3 "$WORK/tdata/data.tforge" "select count(*) from sqlite_master where name='idx_ghost_read_peer'" 2>/dev/null)"
-	echo "колонка accountId в PeerArchiveProfile: $(sqlite3 "$WORK/tdata/data.tforge" "select count(*) from pragma_table_info('PeerArchiveProfile') where name='accountId'" 2>/dev/null)"
+	echo "таблица GhostReadMessage: $(q "$WORK/tdata/data.tforge" "select count(*) from sqlite_master where name='GhostReadMessage'")"
+	echo "индекс idx_ghost_read_peer: $(q "$WORK/tdata/data.tforge" "select count(*) from sqlite_master where name='idx_ghost_read_peer'")"
+	echo "колонка accountId в PeerArchiveProfile: $(q "$WORK/tdata/data.tforge" "select count(*) from pragma_table_info('PeerArchiveProfile') where name='accountId'")"
 else
 	echo "нет копии БД $HOME/tfwork/tdata/data.tforge — сценарий пропущен"
 fi
