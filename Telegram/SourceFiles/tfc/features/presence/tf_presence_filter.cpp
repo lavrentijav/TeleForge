@@ -1,9 +1,9 @@
 // Copyright @Radolyn, 2026
-#include "ayu/features/presence/tf_presence_filter.h"
+#include "tfc/features/presence/tf_presence_filter.h"
 
 #include "apiwrap.h"
 #include "ayu/ayu_settings.h"
-#include "ayu/features/ghost/tf_ghost_audit.h"
+#include "tfc/features/ghost/tf_ghost_audit.h"
 #include "main/main_session.h"
 
 namespace TeleForge::Presence {

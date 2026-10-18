@@ -109,9 +109,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_account.h"
 
 // AyuGram includes
-#include "ayu/features/ghost/tf_ghost_scheduled.h"
+#include "tfc/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/ayu_settings.h"
-#include "ayu/features/ghost/tf_ghost_audit.h"
+#include "tfc/features/ghost/tf_ghost_audit.h"
 #include "ayu/ayu_worker.h"
 #include "ayu/ui/ghost_online_warn.h"
 #include "tfc/utils/telegram_helpers.h"

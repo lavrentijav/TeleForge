@@ -8,7 +8,7 @@
 
 #include "apiwrap.h"
 #include "ayu_settings.h"
-#include "ayu/features/presence/tf_presence_filter.h"
+#include "tfc/features/presence/tf_presence_filter.h"
 #include "base/timer.h"
 #include "base/unixtime.h"
 #include "core/application.h"

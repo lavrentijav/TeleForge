@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "main/main_account.h"
 
-#include "ayu/features/ghost/tf_ghost_read.h"
+#include "tfc/features/ghost/tf_ghost_read.h"
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "storage/storage_account.h"

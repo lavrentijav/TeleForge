@@ -7,8 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_session.h"
 
-#include "ayu/features/ghost/tf_ghost_read.h"
-#include "ayu/features/ghost/tf_ghost_scheduled.h"
+#include "tfc/features/ghost/tf_ghost_read.h"
+#include "tfc/features/ghost/tf_ghost_scheduled.h"
 #include "tfc/features/spy/online_tracker.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"

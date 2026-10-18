@@ -2,7 +2,7 @@
 #include "ayu/ui/settings/settings_spy.h"
 
 #include "ayu/ayu_settings.h"
-#include "ayu/features/ghost/tf_ghost_audit.h"
+#include "tfc/features/ghost/tf_ghost_audit.h"
 #include "tfc/features/spy/online_history_storage.h"
 #include "ayu/features/teleforge/tf_archive_users_box.h"
 #include "ayu/features/teleforge/tf_peer_archive.h"

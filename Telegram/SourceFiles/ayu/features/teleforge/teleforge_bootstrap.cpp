@@ -1,7 +1,7 @@
 #include "ayu/features/teleforge/teleforge_bootstrap.h"
 
 #include "tfc/features/plugins/plugin_manager.h"
-#include "ayu/features/ghost/tf_ghost_read.h"
+#include "tfc/features/ghost/tf_ghost_read.h"
 #include "tfc/features/plugins/plugin_runner.h"
 #include "tfc/features/spy/online_history_storage.h"
 #include "ayu/features/subscription/teleforge_subscription.h"

@@ -38,7 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 
 // AyuGram includes
-#include "ayu/features/ghost/tf_ghost_scheduled.h"
+#include "tfc/features/ghost/tf_ghost_scheduled.h"
 #include "tfc/utils/telegram_helpers.h"
 
 

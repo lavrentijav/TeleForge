@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/components/scheduled_messages.h"
 
-#include "ayu/features/ghost/tf_ghost_scheduled.h"
+#include "tfc/features/ghost/tf_ghost_scheduled.h"
 #include "base/unixtime.h"
 #include "data/data_forum_topic.h"
 #include "data/data_peer.h"

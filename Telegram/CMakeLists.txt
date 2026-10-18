@@ -211,14 +211,14 @@ set(teleforge_extension_files
         ayu/ui/ghost_online_warn.h
         ayu/ui/teleforge_upload_bar.cpp
         ayu/ui/teleforge_upload_bar.h
-        ayu/features/ghost/tf_ghost_audit.cpp
-        ayu/features/ghost/tf_ghost_audit.h
-        ayu/features/ghost/tf_ghost_read.cpp
-        ayu/features/ghost/tf_ghost_read.h
-        ayu/features/ghost/tf_ghost_scheduled.cpp
-        ayu/features/ghost/tf_ghost_scheduled.h
-        ayu/features/presence/tf_presence_filter.cpp
-        ayu/features/presence/tf_presence_filter.h
+        tfc/features/ghost/tf_ghost_audit.cpp
+        tfc/features/ghost/tf_ghost_audit.h
+        tfc/features/ghost/tf_ghost_read.cpp
+        tfc/features/ghost/tf_ghost_read.h
+        tfc/features/ghost/tf_ghost_scheduled.cpp
+        tfc/features/ghost/tf_ghost_scheduled.h
+        tfc/features/presence/tf_presence_filter.cpp
+        tfc/features/presence/tf_presence_filter.h
         ayu/ui/message_history/history_inner.cpp
         ayu/ui/message_history/history_inner.h
         ayu/ui/message_history/history_item.cpp

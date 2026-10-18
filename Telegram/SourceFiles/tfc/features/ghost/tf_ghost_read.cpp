@@ -1,5 +1,5 @@
 // Copyright @Radolyn, 2026
-#include "ayu/features/ghost/tf_ghost_read.h"
+#include "tfc/features/ghost/tf_ghost_read.h"
 
 #include "ayu/ayu_settings.h"
 #include "tfc/data/ayu_database.h"

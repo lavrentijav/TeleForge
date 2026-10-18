@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/notifications_manager.h"
 
-#include "ayu/features/ghost/tf_ghost_scheduled.h"
+#include "tfc/features/ghost/tf_ghost_scheduled.h"
 #include "ayu/features/sync/teleforge_sync_transport.h"
 
 #include "base/options.h"

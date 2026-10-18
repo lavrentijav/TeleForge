@@ -17,7 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "ayu/ayu_settings.h"
-#include "ayu/features/ghost/tf_ghost_audit.h"
+#include "tfc/features/ghost/tf_ghost_audit.h"
 
 
 namespace Api {

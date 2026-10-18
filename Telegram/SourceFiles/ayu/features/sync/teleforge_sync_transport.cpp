@@ -1,6 +1,6 @@
 #include "ayu/features/sync/teleforge_sync_transport.h"
 
-#include "ayu/features/presence/tf_presence_filter.h"
+#include "tfc/features/presence/tf_presence_filter.h"
 #include "ayu/features/sync/teleforge_sync_files.h"
 #include "ayu/features/sync/teleforge_sync_merger.h"
 #include "tfc/utils/telegram_helpers.h"
