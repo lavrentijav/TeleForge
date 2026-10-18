@@ -320,7 +320,7 @@ void RunAiCompletionInline(
 					current,
 					FormatQuotedOverlay(
 						original,
-						TextWithEntities{ u"Translation failed"_q }));
+						TextWithEntities{ tr::lng_translate_box_error(tr::now) }));
 			}
 		},
 		options);
@@ -350,7 +350,7 @@ void ForceTranslateMessageInline(
 						FormatQuotedOverlay(
 							original,
 							TextWithEntities{
-								u"Translation failed"_q }));
+								tr::lng_translate_box_error(tr::now) }));
 				} else {
 					ApplyInlineOverlay(
 						current,
