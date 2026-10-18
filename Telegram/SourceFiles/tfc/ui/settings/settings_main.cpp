@@ -8,7 +8,7 @@
 
 #include "settings/sections/settings_main.h"
 #include "lang_auto.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/ui/ayu_logo.h"
 #include "tfc/ui/settings/settings_appearance.h"
 #include "tfc/ui/settings/settings_ayu.h"

@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/utils/ayu_profile_values.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "data/data_peer.h"
 #include "lang/lang_text_entity.h"

@@ -1,6 +1,6 @@
 #include "tfc/ui/ghost_online_warn.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "lang/lang_keys.h"
 #include "ui/toast/toast.h"
 #include "window/window_session_controller.h"

@@ -7,7 +7,7 @@
 #include "tfc/ui/settings/filters/edit_filter.h"
 
 #include "lang_auto.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/data/ayu_database.h"
 #include "tfc/features/filters/filters_cache_controller.h"
 #include "base/event_filter.h"

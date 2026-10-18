@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/settings/ayu_builder.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/ui/components/dropdown_row.h"
 #include "tfc/ui/settings/settings_ayu_utils.h"
 #include "settings/settings_common.h"

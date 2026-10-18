@@ -126,20 +126,20 @@ PRIVATE
 )
 
 set(teleforge_extension_files
-        tfc/ayu_worker.cpp
-        tfc/ayu_worker.h
-        tfc/ayu_url_handlers.cpp
-        tfc/ayu_url_handlers.h
-        tfc/ayu_state.cpp
-        tfc/ayu_state.h
-        tfc/ayu_settings.cpp
-        tfc/ayu_settings.h
-        tfc/ayu_ui_settings.cpp
-        tfc/ayu_ui_settings.h
-        tfc/ayu_lang.cpp
-        tfc/ayu_lang.h
-        tfc/ayu_infra.cpp
-        tfc/ayu_infra.h
+        tfc/tf_worker.cpp
+        tfc/tf_worker.h
+        tfc/tf_url_handlers.cpp
+        tfc/tf_url_handlers.h
+        tfc/tf_state.cpp
+        tfc/tf_state.h
+        tfc/tf_settings.cpp
+        tfc/tf_settings.h
+        tfc/tf_ui_settings.cpp
+        tfc/tf_ui_settings.h
+        tfc/tf_lang.cpp
+        tfc/tf_lang.h
+        tfc/tf_infra.cpp
+        tfc/tf_infra.h
         tfc/utils/ayu_mapper.cpp
         tfc/utils/ayu_mapper.h
         tfc/utils/qt_key_modifiers_extended.h

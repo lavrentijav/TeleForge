@@ -78,7 +78,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_iv.h"
 
 // AyuGram includes
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/features/message_shot/message_shot.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "styles/style_ayu_styles.h"

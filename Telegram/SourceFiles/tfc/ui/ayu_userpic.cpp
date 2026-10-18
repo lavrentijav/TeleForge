@@ -6,8 +6,8 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/ayu_userpic.h"
 
-#include "tfc/ayu_settings.h"
-#include "tfc/ayu_ui_settings.h"
+#include "tfc/tf_settings.h"
+#include "tfc/tf_ui_settings.h"
 #include "media/streaming/media_streaming_common.h"
 #include "ui/image/image_prepare.h"
 #include "ui/style/style_core.h"

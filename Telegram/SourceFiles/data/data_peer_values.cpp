@@ -21,7 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 
 // AyuGram includes
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/features/spy/online_history_storage.h"
 
 

@@ -1,7 +1,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/features/ghost/tf_ghost_read.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/data/ayu_database.h"
 #include "tfc/data/entities.h"
 

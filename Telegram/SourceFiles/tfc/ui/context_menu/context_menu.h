@@ -11,7 +11,7 @@
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 
 namespace AyuUi {
 

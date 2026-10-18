@@ -2,7 +2,7 @@
 
 #include "tfc/features/teleforge/tf_peer_archive_crawler.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/features/teleforge/tf_peer_archive.h"
 #include "tfc/features/teleforge/tf_peer_archive_scanner.h"
 #include "base/call_delayed.h"

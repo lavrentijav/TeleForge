@@ -43,7 +43,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_overview.h"
 
 // AyuGram includes
-#include "tfc/ayu_ui_settings.h"
+#include "tfc/tf_ui_settings.h"
 #include "tfc/ui/ayu_userpic.h"
 
 

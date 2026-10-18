@@ -109,7 +109,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QTextEdit>
 
 // AyuGram includes
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/utils/taptic_engine/taptic_engine.h"
 #include "tfc/utils/telegram_helpers.h"
 

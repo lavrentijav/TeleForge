@@ -5,7 +5,7 @@
 //
 // Copyright @Radolyn, 2026
 //
-// NOTE(TeleForge): sourced from lavrentijav/lib_ui (tfc/ayu_ui_settings.h);
+// NOTE(TeleForge): sourced from lavrentijav/lib_ui (tfc/tf_ui_settings.h);
 // the fork's Telegram code depends on it but the pinned lib_ui submodule
 // predates it, so it lives here in the Telegram target instead.
 #pragma once

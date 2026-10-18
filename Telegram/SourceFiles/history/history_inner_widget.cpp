@@ -16,7 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat_participant_status.h"
 #include "history/history_item_helpers.h"
 #include "data/data_document_media.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/ui/context_menu/context_menu.h"
 #include "tfc/features/translator/ayu_translate_actions.h"
 #include "tfc/utils/telegram_helpers.h"

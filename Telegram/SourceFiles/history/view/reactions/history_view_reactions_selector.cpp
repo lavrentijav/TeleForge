@@ -42,7 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "tfc/ui/context_menu/context_menu.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 
 
 namespace HistoryView::Reactions {

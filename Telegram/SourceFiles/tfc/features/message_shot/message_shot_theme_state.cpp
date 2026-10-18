@@ -7,7 +7,7 @@
 #include "tfc/features/message_shot/message_shot_theme_state.h"
 
 #include "lang_auto.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"

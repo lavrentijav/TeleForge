@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/data/messages_storage.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/data/ayu_database.h"
 #include "tfc/utils/ayu_mapper.h"
 #include "tfc/utils/telegram_helpers.h"

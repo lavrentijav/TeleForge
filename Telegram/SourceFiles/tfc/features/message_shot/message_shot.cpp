@@ -7,7 +7,7 @@
 #include "tfc/features/message_shot/message_shot.h"
 
 #include "qguiapplication.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/ui/boxes/message_shot_box.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "boxes/abstract_box.h"

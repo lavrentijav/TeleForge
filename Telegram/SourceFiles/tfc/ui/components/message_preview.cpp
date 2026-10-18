@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/components/message_preview.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/utils/official_resources.h"
 #include "base/unixtime.h"
 #include "data/data_session.h"

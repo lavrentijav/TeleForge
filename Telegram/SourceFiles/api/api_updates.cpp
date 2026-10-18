@@ -81,8 +81,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/format_values.h" // Ui::FormatPhone
 
 // AyuGram includes
-#include "tfc/ayu_settings.h"
-#include "tfc/ayu_worker.h"
+#include "tfc/tf_settings.h"
+#include "tfc/tf_worker.h"
 
 
 namespace Api {

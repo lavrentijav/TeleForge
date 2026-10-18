@@ -7,8 +7,8 @@
 #include "tfc/ui/settings/settings_appearance.h"
 
 #include "lang_auto.h"
-#include "tfc/ayu_settings.h"
-#include "tfc/ayu_ui_settings.h"
+#include "tfc/tf_settings.h"
+#include "tfc/tf_ui_settings.h"
 #include "tfc/ui/boxes/font_selector.h"
 #include "tfc/ui/components/avatar_corners_preview.h"
 #include "tfc/ui/components/icon_picker.h"

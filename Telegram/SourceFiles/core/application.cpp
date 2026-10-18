@@ -111,7 +111,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <ksandbox.h>
 
 // AyuGram includes
-#include "tfc/ayu_infra.h"
+#include "tfc/tf_infra.h"
 #include "tfc/features/streamer_mode/streamer_mode.h"
 
 

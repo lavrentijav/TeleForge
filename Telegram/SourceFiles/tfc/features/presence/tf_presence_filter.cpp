@@ -2,7 +2,7 @@
 #include "tfc/features/presence/tf_presence_filter.h"
 
 #include "apiwrap.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/features/ghost/tf_ghost_audit.h"
 #include "main/main_session.h"
 

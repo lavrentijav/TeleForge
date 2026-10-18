@@ -23,7 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // AyuGram includes
 #include "lang_auto.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/ui/components/saved_music.h"
 #include "tfc/utils/telegram_helpers.h"
 #include "data/data_document.h"

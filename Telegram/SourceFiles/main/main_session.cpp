@@ -69,7 +69,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #endif // TDESKTOP_DISABLE_SPELLCHECK
 
 // AyuGram includes
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "api/api_blocked_peers.h"
 
 

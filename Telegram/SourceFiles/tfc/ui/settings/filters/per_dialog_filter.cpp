@@ -7,7 +7,7 @@
 #include "tfc/ui/settings/filters/per_dialog_filter.h"
 
 #include "lang_auto.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/data/ayu_database.h"
 #include "tfc/ui/settings/filters/settings_filters_list.h"
 #include "tfc/utils/telegram_helpers.h"

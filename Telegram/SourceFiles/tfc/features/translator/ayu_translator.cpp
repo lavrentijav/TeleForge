@@ -7,7 +7,7 @@
 #include "tfc/features/translator/ayu_translator.h"
 
 #include "api/api_text_entities.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/features/translator/implementations/google.h"
 #include "tfc/features/translator/implementations/telegram.h"
 #include "tfc/features/translator/implementations/yandex.h"

@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #include "tfc/ui/components/saved_music.h"
 
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/ui/utils/color_utils.h"
 #include "tfc/ui/utils/itunes_search.h"
 #include "tfc/ui/utils/palette.h"

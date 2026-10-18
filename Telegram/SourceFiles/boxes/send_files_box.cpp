@@ -85,7 +85,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QMimeData>
 
 // AyuGram includes
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "base/unixtime.h"
 #include "styles/style_menu_icons.h"
 #include "tfc/utils/telegram_helpers.h"

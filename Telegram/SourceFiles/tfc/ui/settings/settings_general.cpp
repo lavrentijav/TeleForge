@@ -7,7 +7,7 @@
 #include "tfc/ui/settings/settings_general.h"
 
 #include "lang_auto.h"
-#include "tfc/ayu_settings.h"
+#include "tfc/tf_settings.h"
 #include "tfc/ui/settings/ayu_builder.h"
 #include "tfc/ui/settings/settings_ayu_utils.h"
 #include "tfc/ui/settings/settings_main.h"
