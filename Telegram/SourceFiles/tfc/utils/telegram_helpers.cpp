@@ -5,6 +5,7 @@
 //
 // Copyright @Radolyn, 2026
 #include "tfc/utils/telegram_helpers.h"
+#include "tfc/features/ghost/tf_ghost_read.h"
 
 #include "apiwrap.h"
 #include "lang_auto.h"
@@ -294,6 +295,16 @@ void MarkAsReadThread(not_null<Data::Thread*> thread) {
 void readHistory(not_null<HistoryItem*> message) {
 	const auto history = message->history();
 	const auto tillId = message->id;
+	const auto &ghost = TfSettings::ghost(&history->session());
+	if (ghost.isGhostModeActive() && !ghost.sendReadMessages()) {
+		TeleForge::GhostRead::rememberShownTill(
+			history,
+			history->inboxReadTillId(),
+			tillId);
+		history->setInboxReadTill(tillId);
+		return;
+	}
+
 
 	history->session().data().histories()
 		.sendRequest(history,
