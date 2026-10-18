@@ -5496,6 +5496,9 @@ void ApiWrap::sendMediaWithRandomId(
 		return;
 	}
 
+	if (!options.scheduled) {
+		markGhostReadLocally(item->history());
+	}
 	applyGhostScheduling(_session, options);
 	Ayu::GhostScheduled::registerGhostSend(
 		options,
